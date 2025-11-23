@@ -593,6 +593,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resendConfirmationEmail = async (email: string) => {
+    if (!isSupabaseConfigured) {
+      throw new Error('Funcionalidade disponível apenas com Supabase configurado.');
+    }
+
+    if (!email || !isValidEmail(email)) {
+      throw new Error('Email inválido.');
+    }
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?redirect=/app`,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erro ao reenviar email de confirmação.');
+      }
+
+      // Sucesso - email reenviado
+    } catch (error: any) {
+      console.error('Erro ao reenviar email de confirmação:', error);
+      throw new Error(error.message || 'Erro ao reenviar email de confirmação. Tente novamente.');
+    }
+  };
+
   // Helper function para validar email
   const isValidEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
