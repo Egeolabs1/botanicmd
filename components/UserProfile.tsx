@@ -431,8 +431,8 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
     
     try {
       await updateProfile(trimmedName);
-      alert(t('profile_updated'));
-      setCurrentView('main');
+        alert(t('profile_updated'));
+        setCurrentView('main');
     } catch (error: any) {
       alert(error.message || 'Erro ao atualizar perfil. Tente novamente.');
     }
@@ -507,14 +507,14 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
             
              {/* Admin Button - Only visible for admins */}
              {isAdmin(user) && (
-               <button 
-                  onClick={() => { onClose(); if(onAdmin) onAdmin(); }}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-gray-700 transition-colors text-left"
-              >
-                 <div className="p-2 bg-gray-900 rounded-lg text-white"><LayoutDashboard className="w-5 h-5" /></div>
-                 <span className="font-medium flex-1">Admin Panel</span>
-                 <ArrowRight className="w-4 h-4 text-gray-300" />
-              </button>
+             <button 
+                onClick={() => { onClose(); if(onAdmin) onAdmin(); }}
+                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-gray-700 transition-colors text-left"
+            >
+               <div className="p-2 bg-gray-900 rounded-lg text-white"><LayoutDashboard className="w-5 h-5" /></div>
+               <span className="font-medium flex-1">Admin Panel</span>
+               <ArrowRight className="w-4 h-4 text-gray-300" />
+            </button>
              )}
 
             <button 
@@ -689,23 +689,23 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
         </div>
 
         {/* Campos de perfil - Mobile optimized */}
-        <div className="space-y-4">
+      <div className="space-y-4">
           {/* Nome - Primeiro */}
-          <div>
+        <div>
             <label className="text-sm font-semibold text-gray-700 block mb-2">
               {t('your_name')}
             </label>
-            <input 
-              type="text" 
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
+          <input 
+            type="text" 
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
               placeholder="Seu nome"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-nature-500 focus:border-nature-500 transition-all text-base"
-            />
+          />
             {nameError && (
               <p className="text-xs text-red-600 mt-1">{nameError}</p>
             )}
-          </div>
+        </div>
 
           {/* Email (somente leitura) - Segundo */}
           <div>
@@ -958,7 +958,7 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
         <div className="flex items-center gap-3 mb-4 md:mb-6 sticky top-0 bg-white pb-2 z-10">
           <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-full active:scale-95 transition-transform"><ArrowRight className="w-5 h-5 rotate-180" /></button>
           <h3 className="text-lg md:text-xl font-bold text-gray-900">{t('subscription')}</h3>
-        </div>
+      </div>
         
         {/* Mobile-optimized plan cards */}
         <div className="space-y-3 md:space-y-4">
@@ -1001,22 +1001,22 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
                         <h4 className="font-bold text-base md:text-lg text-gray-900 leading-tight">{plan.name}</h4>
                         {plan.equivalent && (
                           <p className="text-xs text-nature-600 font-semibold mt-0.5">{plan.equivalent}</p>
-                        )}
+        )}
                       </div>
                     </div>
                     {plan.name.startsWith('PRO') && !plan.current && (
-                      <button
+          <button 
                         onClick={() => {
                           onClose();
                           onUpgrade();
                         }}
                         className="bg-nature-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-bold text-xs md:text-sm hover:bg-nature-700 active:scale-95 transition-all flex items-center gap-1.5 shadow-md flex-shrink-0"
-                      >
+          >
                         <Star className="w-3 h-3 md:w-4 md:h-4" /> 
                         <span className="hidden sm:inline">Assinar</span>
-                      </button>
-                    )}
-                  </div>
+          </button>
+        )}
+      </div>
                   
                   {/* Price */}
                   <div className="mt-2">
@@ -1056,7 +1056,7 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
         </div>
 
         {/* Action buttons for PRO users */}
-        {user.plan === 'pro' && (
+      {user.plan === 'pro' && (
           <div className="mt-6 space-y-2 bg-gray-50 rounded-xl p-4">
             <button 
               onClick={() => {
@@ -1071,13 +1071,13 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
               {t('manage_sub')}
             </button>
             <button 
-              onClick={handleCancelSubscription}
+               onClick={handleCancelSubscription}
               className="w-full text-center text-sm text-red-500 hover:text-red-700 font-medium py-2"
             >
-              {t('cancel_subscription')}
+               {t('cancel_subscription')}
             </button>
-          </div>
-        )}
+         </div>
+      )}
         
         {/* Info box */}
         <div className="mt-6 bg-blue-50 border border-blue-100 rounded-xl p-4">
@@ -1558,16 +1558,6 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
       </div>
       <div className="space-y-3">
         <button 
-          onClick={() => {
-            onClose();
-            onOpenAbout();
-          }}
-          className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          <h4 className="font-semibold text-gray-900 mb-1">Como usar o app?</h4>
-          <p className="text-sm text-gray-600">Guia completo de uso do BotanicMD</p>
-        </button>
-        <button 
           onClick={() => setIsFAQModalOpen(true)}
           className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
@@ -1698,8 +1688,8 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
         isOpen={isSupportModalOpen} 
         onClose={() => setIsSupportModalOpen(false)} 
       />
-      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-        <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl relative transition-all duration-300 max-h-[85vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+      <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl relative transition-all duration-300 max-h-[85vh] overflow-y-auto">
           {/* Fixed Close Button */}
           <button 
             onClick={onClose} 
@@ -1707,9 +1697,9 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
           >
             <X className="w-5 h-5" />
           </button>
-          {renderContent()}
-        </div>
+        {renderContent()}
       </div>
+    </div>
     </>
   );
 };
