@@ -9,7 +9,6 @@ import { AuthModal } from '../components/AuthModal';
 import { PricingModal } from '../components/PricingModal';
 import { ResetPasswordModal } from '../components/ResetPasswordModal';
 import { UserProfile } from '../components/UserProfile';
-import { LegalModal } from '../components/LegalModal';
 import { AboutModal } from '../components/AboutModal';
 import { Luxometer } from '../components/Luxometer';
 
@@ -375,7 +374,6 @@ export const AppMain: React.FC = () => {
 
   const isCurrentPlantSaved = plantData?.id ? savedPlants.some(p => p.data.id === plantData.id) : false;
 
-  const openLegal = (type: 'privacy' | 'terms') => setLegalModal({ isOpen: true, type });
 
   const loadingTips = [
     t('preparing_info'),
@@ -439,11 +437,6 @@ export const AppMain: React.FC = () => {
       <PricingModal isOpen={isPricingModalOpen} onClose={() => setIsPricingModalOpen(false)} />
       <ResetPasswordModal isOpen={isResetPasswordModalOpen} onClose={() => setIsResetPasswordModalOpen(false)} />
       <Luxometer isOpen={isLuxometerOpen} onClose={() => setIsLuxometerOpen(false)} />
-      <LegalModal 
-          isOpen={legalModal.isOpen} 
-          type={legalModal.type} 
-          onClose={() => setLegalModal({ ...legalModal, isOpen: false })} 
-      />
       <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />
       
       {user && isProfileOpen && (
@@ -454,7 +447,10 @@ export const AppMain: React.FC = () => {
           onUpgrade={() => { setIsProfileOpen(false); setIsPricingModalOpen(true); }}
           onAdmin={() => setAppState(AppState.ADMIN)}
           onOpenAbout={() => setIsAboutModalOpen(true)}
-          onOpenPrivacy={() => setLegalModal({ isOpen: true, type: 'privacy' })}
+          onOpenPrivacy={() => {
+            setIsProfileOpen(false);
+            navigate('/privacy');
+          }}
         />
       )}
       

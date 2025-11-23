@@ -13,6 +13,7 @@ import { supabase, isSupabaseConfigured } from '../services/supabase';
 import { FAQModal } from './FAQModal';
 import { SupportModal } from './SupportModal';
 import { useIsPWA } from '../hooks/useIsPWA';
+import { useNavigate } from 'react-router-dom';
 
 interface UserProfileProps {
   user: UserType;
@@ -28,6 +29,7 @@ type ViewState = 'main' | 'profile' | 'settings' | 'subscription' | 'savedPlants
 
 export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogout, onUpgrade, onAdmin, onOpenAbout, onOpenPrivacy }) => {
   const { t, language, setLanguage } = useLanguage();
+  const navigate = useNavigate();
   const { updateProfile, changePassword } = useAuth();
   const isPWA = useIsPWA();
   const [currentView, setCurrentView] = useState<ViewState>('main');
@@ -1487,12 +1489,8 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
         </div>
         <button 
           onClick={() => {
-            if (onOpenPrivacy) {
-              onOpenPrivacy();
-            } else {
-              // Fallback: abre link externo se a função não for fornecida
-              window.open('https://egeolabs.com/privacy', '_blank');
-            }
+            onClose();
+            navigate('/privacy');
           }}
           className="w-full bg-nature-600 text-white py-2.5 rounded-lg font-medium hover:bg-nature-700 transition-colors"
         >

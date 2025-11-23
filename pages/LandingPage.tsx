@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Leaf, Sprout, HeartPulse, Trophy, Star, Smartphone, ArrowRight, CheckCircle, Camera, Zap, Database, HelpCircle, ChevronDown, Flask } from '../components/Icons';
 import { useLanguage } from '../i18n';
 import { AuthModal } from '../components/AuthModal';
-import { LegalModal } from '../components/LegalModal';
 import { AboutModal } from '../components/AboutModal';
 import { PWAInstallPrompt } from '../components/PWAInstallPrompt';
 import { SEOHead, getOrganizationSchema, getWebApplicationSchema } from '../components/SEOHead';
@@ -16,10 +15,6 @@ export const LandingPage: React.FC = () => {
     const [activeFaq, setActiveFaq] = useState<number | null>(null);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
-    const [legalModal, setLegalModal] = useState<{ isOpen: boolean; type: 'privacy' | 'terms' }>({ 
-      isOpen: false, 
-      type: 'privacy' 
-    });
 
   const toggleFaq = (idx: number) => {
     setActiveFaq(activeFaq === idx ? null : idx);
@@ -40,7 +35,6 @@ export const LandingPage: React.FC = () => {
     }
   };
 
-  const openLegal = (type: 'privacy' | 'terms') => setLegalModal({ isOpen: true, type });
 
   return (
     <>
@@ -458,8 +452,8 @@ export const LandingPage: React.FC = () => {
              <div>
                <h4 className="font-bold text-gray-900 mb-4">Legal</h4>
                <ul className="space-y-2 text-sm text-gray-500">
-                  <li><button onClick={() => openLegal('privacy')} className="hover:text-nature-600 text-left">Privacy Policy</button></li>
-                  <li><button onClick={() => openLegal('terms')} className="hover:text-nature-600 text-left">Terms of Service</button></li>
+                  <li><button onClick={() => navigate('/privacy')} className="hover:text-nature-600 text-left">Privacy Policy</button></li>
+                  <li><button onClick={() => navigate('/terms')} className="hover:text-nature-600 text-left">Terms of Service</button></li>
                </ul>
             </div>
           </div>
@@ -472,11 +466,6 @@ export const LandingPage: React.FC = () => {
       
       <PWAInstallPrompt />
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-      <LegalModal 
-        isOpen={legalModal.isOpen} 
-        type={legalModal.type} 
-        onClose={() => setLegalModal({ ...legalModal, isOpen: false })} 
-      />
       <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />
     </>
   );
