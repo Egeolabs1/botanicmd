@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Mail, MessageCircle, AlertCircle, Lightbulb } from './Icons';
+import { X, Mail, MessageCircle, AlertTriangle, Lightbulb } from './Icons';
 
 interface SupportModalProps {
   isOpen: boolean;
