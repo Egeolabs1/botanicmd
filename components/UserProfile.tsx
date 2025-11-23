@@ -485,6 +485,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
                 <ArrowRight className="w-4 h-4 text-gray-300" />
               </button>
             )}
+            
+            {/* Debug - remover depois */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="text-xs text-gray-400 p-2">
+                Debug: isPWA={isPWA ? 'true' : 'false'}, isIOS={isIOS ? 'true' : 'false'}, hasPrompt={deferredPrompt ? 'true' : 'false'}
+              </div>
+            )}
 
             <button 
                 onClick={() => { if(window.confirm(t('logout_confirm'))) { onLogout(); } }}
