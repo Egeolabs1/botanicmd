@@ -25,29 +25,38 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           try {
-            // Registra o Service Worker sem cache para sempre buscar a versão mais recente
-            navigator.serviceWorker.register('/sw.js?t=' + Date.now(), { updateViaCache: 'none' })
+            // Previne loop de recarregamento
+            let isReloading = false;
+            
+            // Registra o Service Worker
+            navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
               .then(registration => {
                 console.log('SW registrado com sucesso:', registration.scope);
                 
-                // Verifica atualizações e força reload quando necessário
+                // Apenas verifica atualizações, sem recarregar automaticamente na primeira carga
                 registration.addEventListener('updatefound', () => {
                   const newWorker = registration.installing;
                   if (newWorker) {
                     newWorker.addEventListener('statechange', () => {
-                      if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // Nova versão disponível - recarrega a página
-                        console.log('Nova versão do Service Worker disponível. Recarregando...');
-                        window.location.reload();
+                      // Só recarrega se já houver um controller ativo (não na primeira instalação)
+                      if (newWorker.state === 'installed' && navigator.serviceWorker.controller && !isReloading) {
+                        console.log('Nova versão do Service Worker disponível. Recarregando em 2 segundos...');
+                        isReloading = true;
+                        // Delay para evitar múltiplos recarregamentos
+                        setTimeout(() => {
+                          window.location.reload();
+                        }, 2000);
                       }
                     });
                   }
                 });
                 
-                // Verifica atualizações periodicamente (a cada minuto)
+                // Verifica atualizações periodicamente (a cada 5 minutos, não 1 minuto)
                 setInterval(() => {
-                  registration.update();
-                }, 60000);
+                  registration.update().catch(() => {
+                    // Ignora erros silenciosamente
+                  });
+                }, 300000); // 5 minutos
               })
               .catch(err => {
                 // Silencia erro em preview/iframe com origem diferente
@@ -63,10 +72,14 @@
           }
         });
         
-        // Escuta mudanças no controller do Service Worker
+        // Escuta mudanças no controller - apenas uma vez, não em loop
+        let controllerChangeHandled = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-          console.log('Service Worker controller mudou. Recarregando página...');
-          window.location.reload();
+          if (!controllerChangeHandled && navigator.serviceWorker.controller) {
+            controllerChangeHandled = true;
+            console.log('Service Worker controller ativado.');
+            // Não recarrega automaticamente aqui para evitar loop
+          }
         });
       }
     </script>
