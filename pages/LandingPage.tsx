@@ -5,6 +5,7 @@ import { useLanguage } from '../i18n';
 import { AuthModal } from '../components/AuthModal';
 import { LegalModal } from '../components/LegalModal';
 import { AboutModal } from '../components/AboutModal';
+import { PWAInstallPrompt } from '../components/PWAInstallPrompt';
 import { useAuth } from '../contexts/AuthContext';
 
 export const LandingPage: React.FC = () => {
@@ -461,6 +462,7 @@ export const LandingPage: React.FC = () => {
         </footer>
       </div>
       
+      <PWAInstallPrompt />
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       <LegalModal 
         isOpen={legalModal.isOpen} 
