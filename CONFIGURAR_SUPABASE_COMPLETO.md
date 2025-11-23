@@ -38,6 +38,23 @@ Este guia te levará passo a passo para configurar **TUDO** no Supabase para o B
    ```
    👉 **Copie isso** - será o valor de `VITE_SUPABASE_KEY`
 
+   **🔒 IMPORTANTE: Segurança das Chaves**
+   
+   ⚠️ **NÃO copie a "service_role key"** - esta é secreta e nunca deve ser exposta!
+   
+   ✅ **Use APENAS a "anon public key"** - esta chave é **PÚBLICA POR DESIGN** e **SEGURA para expor no cliente**.
+   
+   **Por quê é seguro?**
+   - A "anon key" tem **permissões limitadas**
+   - A segurança real vem do **RLS (Row Level Security)** no banco de dados
+   - Mesmo que alguém veja a chave no código, **não pode acessar dados de outros usuários** devido ao RLS
+   - É assim que o Supabase foi projetado para funcionar
+   
+   **Comparação:**
+   - `VITE_SUPABASE_KEY` (anon key) = ✅ **Pode expor** (pública por design)
+   - `GEMINI_API_KEY` = ❌ **NUNCA expor** (já protegida via Edge Function)
+   - Service Role Key = ❌ **NUNCA expor** (não usar no frontend)
+
 ---
 
 ## ✅ ETAPA 2: Configurar Variáveis de Ambiente
@@ -57,9 +74,21 @@ Este guia te levará passo a passo para configurar **TUDO** no Supabase para o B
 
    **Variável 2:**
    - **Key**: `VITE_SUPABASE_KEY`
-   - **Value**: Cole a **anon public key** que você copiou
+   - **Value**: Cole a **anon public key** (NÃO a service_role key!)
    - **Environment**: Marque todas (☑️ Production, ☑️ Preview, ☑️ Development)
    - Clique em **Add**
+
+   **🔒 Por que usar prefixo `VITE_`?**
+   
+   As chaves do Supabase **podem** usar `VITE_` porque:
+   - ✅ A "anon key" é **pública por design** e **feita para ser exposta no cliente**
+   - ✅ A segurança vem do **RLS (Row Level Security)**, não da ocultação da chave
+   - ✅ Mesmo que alguém veja a chave no código-fonte, não pode acessar dados de outros usuários
+   - ✅ É a forma recomendada pelo Supabase para apps cliente-servidor
+   
+   **Diferente da Gemini API Key:**
+   - `GEMINI_API_KEY` (sem `VITE_`) = Fica segura no servidor via Edge Function
+   - `VITE_SUPABASE_KEY` (com `VITE_`) = Pode ser pública porque é limitada pelo RLS
 
 5. Clique em **Save** (se houver)
 6. **Faça um Redeploy** para aplicar as variáveis:
@@ -253,6 +282,16 @@ Marque cada item após completar:
 ## 🎉 Pronto!
 
 Se todos os itens acima estão marcados, o Supabase está **100% configurado**!
+
+---
+
+## 🔒 Dúvidas sobre Segurança?
+
+**Pergunta comum:** "Não é perigoso expor a chave do Supabase com `VITE_`?"
+
+**Resposta:** Não! A "anon key" do Supabase é **pública por design** e **feita para ser exposta no cliente**. A segurança vem do **RLS (Row Level Security)** no banco de dados, não da ocultação da chave.
+
+Veja o guia completo em: [SEGURANCA_CHAVES_API.md](./SEGURANCA_CHAVES_API.md)
 
 ---
 
