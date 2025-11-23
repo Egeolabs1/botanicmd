@@ -395,25 +395,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('botanicmd_demo_user', JSON.stringify(syncedUser));
       return;
     }
+    
     try {
+      console.log('Iniciando login com Google OAuth...');
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirect=/app`
+          redirectTo: `${window.location.origin}/auth/callback?redirect=/app`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         }
       });
       
       if (error) {
         console.error('Erro no login social:', error);
+        
+        // Mensagens de erro mais específicas
         if (error.message.includes('provider is not enabled')) {
-          alert('Google OAuth não está habilitado no Supabase. Por favor, habilite o provider Google nas configurações do Supabase ou use o login com email.');
+          alert(
+            '⚠️ Google OAuth não está habilitado no Supabase.\n\n' +
+            'Para habilitar:\n' +
+            '1. Acesse o Supabase Dashboard\n' +
+            '2. Vá em Authentication → Providers\n' +
+            '3. Habilite o provider Google\n' +
+            '4. Configure as credenciais do Google Cloud Console\n\n' +
+            'Veja o guia completo em: SUPABASE_OAUTH_SETUP.md'
+          );
+        } else if (error.message.includes('redirect_uri_mismatch')) {
+          alert(
+            '⚠️ URL de redirecionamento não configurada.\n\n' +
+            'Configure a URL de callback no Google Cloud Console:\n' +
+            `https://[seu-projeto-id].supabase.co/auth/v1/callback`
+          );
         } else {
-          alert('Erro no login social: ' + error.message);
+          alert(`Erro no login com Google: ${error.message}`);
         }
+        return;
       }
+      
+      // Se não houver erro, o usuário será redirecionado para o Google
+      // e depois voltará para /auth/callback
+      console.log('Redirecionando para Google OAuth...');
+      
     } catch (err: any) {
       console.error('Erro ao iniciar login OAuth:', err);
-      alert('Erro ao iniciar login com Google. Verifique as configurações do Supabase.');
+      alert(
+        '❌ Erro ao iniciar login com Google.\n\n' +
+        'Verifique:\n' +
+        '1. Se o Google OAuth está habilitado no Supabase\n' +
+        '2. Se as credenciais estão configuradas corretamente\n' +
+        '3. Se as URLs de redirecionamento estão corretas\n\n' +
+        'Erro técnico: ' + (err.message || 'Erro desconhecido')
+      );
     }
   };
 

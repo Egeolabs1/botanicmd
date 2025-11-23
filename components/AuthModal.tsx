@@ -151,8 +151,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   };
 
   const handleSocialLogin = async () => {
-    await loginSocial('google');
-    onClose();
+    try {
+      setIsSubmitting(true);
+      await loginSocial('google');
+      // Não fecha o modal imediatamente pois o OAuth vai redirecionar
+      // Se houver erro, o loginSocial mostrará um alert
+      // Se funcionar, o usuário será redirecionado para o Google
+    } catch (error: any) {
+      console.error('Erro no login social:', error);
+      alert('Erro ao iniciar login com Google. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -233,10 +243,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           <div className="space-y-4 mb-6">
             <button 
               onClick={handleSocialLogin}
-              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-700 py-3.5 rounded-2xl font-medium hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm group"
+              disabled={isSubmitting}
+              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-700 py-3.5 rounded-2xl font-medium hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm group disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Google className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              {t('continue_google')}
+              {isSubmitting ? 'Carregando...' : t('continue_google')}
             </button>
           </div>
 
