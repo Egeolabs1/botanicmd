@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Settings, LogOut, CreditCard, X, Star, Trophy, ArrowRight, CheckCircle, Leaf, LayoutDashboard, Users, Bookmark, Clock, TrendingUp, Shield, HelpCircle, Mail, Lock, Share2, FileDown, Calendar, Camera, MessageCircle, Plus, Trash } from './Icons';
+import { User, Settings, LogOut, CreditCard, X, Star, Trophy, ArrowRight, CheckCircle, Leaf, LayoutDashboard, Users, Bookmark, Clock, TrendingUp, Shield, HelpCircle, Mail, Lock, Share2, FileDown, Calendar, Camera, MessageCircle, Plus, Trash, Smartphone } from './Icons';
 import { useLanguage } from '../i18n';
 import { User as UserType, SupportedLanguage } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,6 +12,7 @@ import { uploadImageToStorage } from '../services/storageUploadService';
 import { supabase, isSupabaseConfigured } from '../services/supabase';
 import { FAQModal } from './FAQModal';
 import { SupportModal } from './SupportModal';
+import { useIsPWA } from '../hooks/useIsPWA';
 
 interface UserProfileProps {
   user: UserType;
