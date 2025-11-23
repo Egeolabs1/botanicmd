@@ -1437,9 +1437,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
           <p className="text-sm text-gray-600">Guia completo de uso do BotanicMD</p>
         </button>
         <button 
-          onClick={() => {
-            const faqContent = `
-Perguntas Frequentes - BotanicMD
+          onClick={(e) => {
+            e.preventDefault();
+            // Use setTimeout to make it async and non-blocking
+            setTimeout(() => {
+              const faqContent = `Perguntas Frequentes - BotanicMD
 
 1. Como identificar uma planta?
    - Tire uma foto ou digite o nome da planta
@@ -1459,9 +1461,9 @@ Perguntas Frequentes - BotanicMD
 
 5. O app funciona offline?
    - A identificação requer conexão com internet
-   - Plantas salvas podem ser visualizadas offline
-            `;
-            alert(faqContent);
+   - Plantas salvas podem ser visualizadas offline`;
+              alert(faqContent);
+            }, 0);
           }}
           className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
@@ -1469,8 +1471,12 @@ Perguntas Frequentes - BotanicMD
           <p className="text-sm text-gray-600">Respostas para dúvidas comuns</p>
         </button>
         <button 
-          onClick={() => {
-            window.location.href = `mailto:suporte@egeolabs.com?subject=Suporte BotanicMD&body=Olá,%0D%0A%0D%0A`;
+          onClick={(e) => {
+            e.preventDefault();
+            // Use setTimeout to make it async and non-blocking
+            setTimeout(() => {
+              window.location.href = `mailto:suporte@egeolabs.com?subject=Suporte BotanicMD&body=Olá,%0D%0A%0D%0A`;
+            }, 0);
           }}
           className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
@@ -1478,8 +1484,12 @@ Perguntas Frequentes - BotanicMD
           <p className="text-sm text-gray-600">Entre em contato conosco</p>
         </button>
         <button 
-          onClick={() => {
-            window.location.href = `mailto:suporte@egeolabs.com?subject=Sugestão BotanicMD&body=Olá,%0D%0A%0D%0ADesejo sugerir:%0D%0A%0D%0A`;
+          onClick={(e) => {
+            e.preventDefault();
+            // Use setTimeout to make it async and non-blocking
+            setTimeout(() => {
+              window.location.href = `mailto:suporte@egeolabs.com?subject=Sugestão BotanicMD&body=Olá,%0D%0A%0D%0ADesejo sugerir:%0D%0A%0D%0A`;
+            }, 0);
           }}
           className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
@@ -1487,8 +1497,12 @@ Perguntas Frequentes - BotanicMD
           <p className="text-sm text-gray-600">Compartilhe suas ideias para melhorar o app</p>
         </button>
         <button 
-          onClick={() => {
-            window.location.href = `mailto:suporte@egeolabs.com?subject=Relatar Problema BotanicMD&body=Olá,%0D%0A%0D%0AEncontrei um problema:%0D%0A%0D%0ADescrição:%0D%0A%0D%0A`;
+          onClick={(e) => {
+            e.preventDefault();
+            // Use setTimeout to make it async and non-blocking
+            setTimeout(() => {
+              window.location.href = `mailto:suporte@egeolabs.com?subject=Relatar Problema BotanicMD&body=Olá,%0D%0A%0D%0AEncontrei um problema:%0D%0A%0D%0ADescrição:%0D%0A%0D%0A`;
+            }, 0);
           }}
           className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
