@@ -7,12 +7,13 @@ import { generateBlogPost } from '../services/geminiService';
 import { useLanguage } from '../i18n';
 import { LayoutDashboard, Plus, Edit, Trash, ArrowRight, User, FileDown, Users, CreditCard, CheckCircle, Star, Search, Zap } from './Icons';
 import { PostEditor } from './PostEditor';
+import { trackingService, TrackingConfig } from '../services/trackingService';
 
 interface AdminDashboardProps {
   onExit: () => void;
 }
 
-type Tab = 'dashboard' | 'posts' | 'users';
+type Tab = 'dashboard' | 'posts' | 'users' | 'seo';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
   const { language } = useLanguage();
@@ -426,6 +427,243 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                      ))}
                    </tbody>
                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SEO & TRACKING VIEW */}
+          {activeTab === 'seo' && (
+            <div className="animate-fade-in">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">SEO & Tracking</h1>
+                  <p className="text-gray-500 mt-1">Configure códigos de verificação e analytics</p>
+                </div>
+                <button
+                  onClick={handleSaveTracking}
+                  disabled={isSaving}
+                  className="px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  {isSaving ? 'Salvando...' : 'Salvar Configurações'}
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Google Services */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-200">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Search className="w-6 h-6 text-blue-600" />
+                    Google Services
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Google Search Console - Verification Code
+                      </label>
+                      <input
+                        type="text"
+                        value={trackingConfig.googleSearchConsole || ''}
+                        onChange={(e) => handleTrackingChange('googleSearchConsole', e.target.value)}
+                        placeholder="Ex: 1234567890abcdef"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Cole apenas o código, sem as tags HTML
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Google Analytics 4 - Measurement ID
+                      </label>
+                      <input
+                        type="text"
+                        value={trackingConfig.googleAnalytics || ''}
+                        onChange={(e) => handleTrackingChange('googleAnalytics', e.target.value)}
+                        placeholder="Ex: G-XXXXXXXXXX"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Encontre em: Google Analytics → Admin → Data Streams
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Google Tag Manager - Container ID
+                      </label>
+                      <input
+                        type="text"
+                        value={trackingConfig.googleTagManager || ''}
+                        onChange={(e) => handleTrackingChange('googleTagManager', e.target.value)}
+                        placeholder="Ex: GTM-XXXXXXX"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Encontre em: Google Tag Manager → Admin → Container ID
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Social Media Pixels */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-200">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Star className="w-6 h-6 text-purple-600" />
+                    Social Media Tracking
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Facebook Pixel ID
+                      </label>
+                      <input
+                        type="text"
+                        value={trackingConfig.facebookPixel || ''}
+                        onChange={(e) => handleTrackingChange('facebookPixel', e.target.value)}
+                        placeholder="Ex: 1234567890123456"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Encontre em: Facebook Events Manager → Data Sources → Pixel
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        TikTok Pixel ID
+                      </label>
+                      <input
+                        type="text"
+                        value={trackingConfig.tiktokPixel || ''}
+                        onChange={(e) => handleTrackingChange('tiktokPixel', e.target.value)}
+                        placeholder="Ex: ABCDEFGHIJ1234567890"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Encontre em: TikTok Ads Manager → Assets → Events
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        LinkedIn Insight Tag - Partner ID
+                      </label>
+                      <input
+                        type="text"
+                        value={trackingConfig.linkedInInsight || ''}
+                        onChange={(e) => handleTrackingChange('linkedInInsight', e.target.value)}
+                        placeholder="Ex: 1234567"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Encontre em: LinkedIn Campaign Manager → Account Assets → Insight Tag
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Analytics & Heatmaps */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-200">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Zap className="w-6 h-6 text-orange-600" />
+                    User Behavior Analytics
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Hotjar Site ID
+                      </label>
+                      <input
+                        type="text"
+                        value={trackingConfig.hotjar || ''}
+                        onChange={(e) => handleTrackingChange('hotjar', e.target.value)}
+                        placeholder="Ex: 1234567"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Para heatmaps e recordings. Encontre em: Hotjar → Sites & Organizations
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Microsoft Clarity - Project ID
+                      </label>
+                      <input
+                        type="text"
+                        value={trackingConfig.clarity || ''}
+                        onChange={(e) => handleTrackingChange('clarity', e.target.value)}
+                        placeholder="Ex: abcdefgh12"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Grátis da Microsoft. Encontre em: Clarity → Settings → Setup
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Custom Scripts */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-200">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Edit className="w-6 h-6 text-gray-600" />
+                    Custom Scripts
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Custom Header Scripts ({"<head>"})
+                      </label>
+                      <textarea
+                        value={trackingConfig.customHeader || ''}
+                        onChange={(e) => handleTrackingChange('customHeader', e.target.value)}
+                        placeholder="Cole aqui qualquer código HTML/JS que deve ir no <head>"
+                        rows={6}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-transparent font-mono text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Será inserido no {"<head>"}. Útil para scripts de verificação ou tracking customizado.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Custom Body Scripts ({"<body>"})
+                      </label>
+                      <textarea
+                        value={trackingConfig.customBody || ''}
+                        onChange={(e) => handleTrackingChange('customBody', e.target.value)}
+                        placeholder="Cole aqui qualquer código HTML/JS que deve ir no <body>"
+                        rows={6}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-500 focus:border-transparent font-mono text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Será inserido no {"<body>"}. Útil para widgets, chatbots, etc.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info Box */}
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6">
+                  <h4 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+                    <Zap className="w-5 h-5" />
+                    ℹ️ Informações Importantes
+                  </h4>
+                  <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                    <li>As configurações são salvas localmente no navegador</li>
+                    <li>Após salvar, a página será recarregada para aplicar as mudanças</li>
+                    <li>Os códigos de tracking são carregados apenas no frontend (client-side)</li>
+                    <li>Para remover um serviço, basta limpar o campo e salvar</li>
+                    <li>Certifique-se de ter os termos de privacidade atualizados ao usar tracking</li>
+                  </ul>
                 </div>
               </div>
             </div>

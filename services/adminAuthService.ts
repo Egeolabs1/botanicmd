@@ -15,6 +15,7 @@ import { User } from '../types';
 const ADMIN_EMAILS = [
   'admin@botanicmd.com',
   'admin@egeolabs.com',
+  'ngfilho@gmail.com',
   // Adicione mais emails de admin aqui
   ...(import.meta.env.VITE_ADMIN_EMAILS 
     ? import.meta.env.VITE_ADMIN_EMAILS.split(',').map((e: string) => e.trim())
