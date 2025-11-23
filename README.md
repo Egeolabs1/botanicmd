@@ -99,58 +99,29 @@ npm run preview
 
 Para usar autenticação e armazenamento em nuvem:
 
-1. **Crie um projeto no [Supabase](https://supabase.com)**
+### 🚀 Guia Rápido
 
-2. **Configure as variáveis de ambiente** com suas credenciais do Supabase
+**Para uma configuração completa passo a passo, veja:**
+- **[CONFIGURAR_SUPABASE_COMPLETO.md](./CONFIGURAR_SUPABASE_COMPLETO.md)** - Guia completo do zero
 
-3. **⚠️ IMPORTANTE: Configure o Google OAuth (para login com Google)**
-   - Veja o guia completo em [SUPABASE_OAUTH_SETUP.md](./SUPABASE_OAUTH_SETUP.md)
-   - Ou habilite em: Supabase Dashboard → Authentication → Providers → Google
-   - **Nota**: Login com email funciona sem configuração adicional!
+### 📋 Resumo das Etapas
 
-4. **Crie a tabela `plants`** no SQL Editor:
-```sql
-CREATE TABLE plants (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  common_name TEXT NOT NULL,
-  plant_data JSONB NOT NULL,
-  image_url TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+1. **Obter credenciais** no Supabase Dashboard (Settings → API)
+2. **Configurar variáveis** `VITE_SUPABASE_URL` e `VITE_SUPABASE_KEY` no Vercel
+3. **Executar script SQL** para criar tabela e políticas (veja `supabase-setup.sql`)
+4. **Criar bucket** `plant-images` no Storage (público)
+5. **Configurar políticas** de Storage (veja `supabase-storage-setup.sql`)
 
--- Índice para melhor performance
-CREATE INDEX idx_plants_user_id ON plants(user_id);
-CREATE INDEX idx_plants_created_at ON plants(created_at DESC);
-```
+### 📄 Scripts SQL Disponíveis
 
-4. **Crie o bucket de Storage `plant-images`**:
-   - Vá em Storage no Supabase Dashboard
-   - Crie um novo bucket chamado `plant-images`
-   - Configure como público para acesso às imagens
+- **`supabase-setup.sql`** - Cria tabela `plants` e políticas RLS
+- **`supabase-storage-setup.sql`** - Configura políticas de Storage
 
-5. **Configure Políticas RLS (Row Level Security)**:
-```sql
--- Permitir leitura apenas para o próprio usuário
-CREATE POLICY "Users can read own plants"
-ON plants FOR SELECT
-USING (auth.uid() = user_id);
+### 📚 Documentação Adicional
 
--- Permitir inserção apenas para usuários autenticados
-CREATE POLICY "Users can insert own plants"
-ON plants FOR INSERT
-WITH CHECK (auth.uid() = user_id);
-
--- Permitir atualização apenas para o próprio usuário
-CREATE POLICY "Users can update own plants"
-ON plants FOR UPDATE
-USING (auth.uid() = user_id);
-
--- Permitir deleção apenas para o próprio usuário
-CREATE POLICY "Users can delete own plants"
-ON plants FOR DELETE
-USING (auth.uid() = user_id);
-```
+- **[SUPABASE_CHECKLIST.md](./SUPABASE_CHECKLIST.md)** - Checklist detalhado para verificação
+- **[SUPABASE_OAUTH_SETUP.md](./SUPABASE_OAUTH_SETUP.md)** - Guia para configurar Google OAuth
+- **[CONFIGURAR_SUPABASE_COMPLETO.md](./CONFIGURAR_SUPABASE_COMPLETO.md)** - Guia passo a passo completo
 
 ## 📦 Tecnologias Utilizadas
 
