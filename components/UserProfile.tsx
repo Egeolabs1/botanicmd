@@ -16,11 +16,12 @@ interface UserProfileProps {
   onUpgrade: () => void;
   onAdmin?: () => void;
   onOpenAbout: () => void;
+  onOpenPrivacy?: () => void;
 }
 
 type ViewState = 'main' | 'profile' | 'settings' | 'subscription' | 'savedPlants' | 'history' | 'statistics' | 'reminders' | 'privacy' | 'email' | 'password' | 'share' | 'export' | 'help';
 
-export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogout, onUpgrade, onAdmin, onOpenAbout }) => {
+export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogout, onUpgrade, onAdmin, onOpenAbout, onOpenPrivacy }) => {
   const { t, language, setLanguage } = useLanguage();
   const { updateProfile, changePassword } = useAuth();
   const [currentView, setCurrentView] = useState<ViewState>('main');
@@ -1054,9 +1055,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
         </div>
         <button 
           onClick={() => {
-            onClose();
-            // Abre modal de política de privacidade ou link externo
-            window.open('https://egeolabs.com/privacy', '_blank');
+            if (onOpenPrivacy) {
+              onOpenPrivacy();
+            } else {
+              // Fallback: abre link externo se a função não for fornecida
+              window.open('https://egeolabs.com/privacy', '_blank');
+            }
           }}
           className="w-full bg-nature-600 text-white py-2.5 rounded-lg font-medium hover:bg-nature-700 transition-colors"
         >

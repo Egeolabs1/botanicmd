@@ -442,6 +442,7 @@ export const AppMain: React.FC = () => {
           onUpgrade={() => { setIsProfileOpen(false); setIsPricingModalOpen(true); }}
           onAdmin={() => setAppState(AppState.ADMIN)}
           onOpenAbout={() => setIsAboutModalOpen(true)}
+          onOpenPrivacy={() => setLegalModal({ isOpen: true, type: 'privacy' })}
         />
       )}
       
