@@ -29,6 +29,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
   const [users, setUsers] = useState<UserType[]>([]);
   const [userSearch, setUserSearch] = useState('');
 
+  // SEO & Tracking State
+  const [trackingConfig, setTrackingConfig] = useState<TrackingConfig>(trackingService.getConfig());
+  const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -116,6 +120,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     u.email.toLowerCase().includes(userSearch.toLowerCase())
   );
 
+  // --- SEO & Tracking Handlers ---
+  const handleSaveTracking = () => {
+    setIsSaving(true);
+    try {
+      trackingService.saveConfig(trackingConfig);
+      alert('Configurações salvas com sucesso! As mudanças serão aplicadas na próxima recarga.');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      alert('Erro ao salvar configurações. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleTrackingChange = (field: keyof TrackingConfig, value: string) => {
+    setTrackingConfig(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   // --- Renderers ---
 
   if (isEditingPost) {
@@ -168,6 +195,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
           >
              <Edit className="w-5 h-5" /> Blog Content
           </button>
+          <button 
+            onClick={() => setActiveTab('seo')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'seo' ? 'bg-nature-50 text-nature-700' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+             <Search className="w-5 h-5" /> SEO & Tracking
+          </button>
         </nav>
 
         <div className="p-4 border-t border-gray-100">
@@ -194,13 +227,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
         {/* Mobile Nav */}
         <div className="md:hidden bg-white border-b border-gray-200 px-4 py-2 flex gap-2 overflow-x-auto">
-           {['dashboard', 'users', 'posts'].map((tab) => (
+           {['dashboard', 'users', 'posts', 'seo'].map((tab) => (
               <button 
                 key={tab}
                 onClick={() => setActiveTab(tab as Tab)}
                 className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap ${activeTab === tab ? 'bg-nature-600 text-white' : 'bg-gray-100 text-gray-600'}`}
               >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab === 'seo' ? 'SEO' : tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
            ))}
         </div>
