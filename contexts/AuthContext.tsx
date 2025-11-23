@@ -272,7 +272,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Verifica se há sessão disponível (pode estar disponível se email não precisa confirmar)
         const { data: { session: signupSession } } = await supabase.auth.getSession();
         
-        if (signupSession?.user) {
+        if (signupSession?.user && signupSession?.access_token) {
           // Há sessão disponível - usuário já pode usar (email não precisa confirmar ou já foi confirmado)
           console.log('✅ Sessão disponível após cadastro - logando automaticamente');
           mapUser(signupSession.user);
@@ -293,79 +293,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           
           return;
-        } else {
-          // Não há sessão disponível - verifica se precisa confirmar email
-          const needsEmailConfirmation = signUpData.user.email_confirmed_at === null;
+        }
+        
+        // Não há sessão disponível - sempre tenta login automático primeiro
+        // Se falhar, assume que precisa confirmar email
+        console.log('ℹ️ Sem sessão após cadastro - tentando login automático...');
+        
+        // Aguarda um pouco para o Supabase processar o cadastro
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        try {
+          // Tenta fazer login com as mesmas credenciais para criar a sessão
+          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password: password,
+          });
           
-          if (needsEmailConfirmation) {
-            // Email precisa ser confirmado
-            console.log('ℹ️ Email precisa ser confirmado');
-            alert('Conta criada com sucesso! Verifique seu email para confirmar sua conta antes de fazer login.');
-            return;
-          } else {
-            // Email já confirmado mas sem sessão - pode ser um delay do Supabase
-            // Aguarda um pouco e tenta fazer login automaticamente
-            console.log('ℹ️ Email confirmado mas sem sessão - aguardando e tentando login automático...');
+          if (loginData.user && loginData.session && !loginError) {
+            console.log('✅ Login automático bem-sucedido após cadastro');
+            mapUser(loginData.user);
             
-            // Aguarda 1 segundo para o Supabase processar o cadastro
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Aguarda um pouco para garantir que a sessão foi salva
+            await new Promise(resolve => setTimeout(resolve, 300));
             
-            try {
-              // Tenta fazer login com as mesmas credenciais para criar a sessão
-              const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-                email: email.trim(),
-                password: password,
-              });
-              
-              if (loginData.user && !loginError && loginData.session) {
-                console.log('✅ Login automático bem-sucedido após cadastro');
-                mapUser(loginData.user);
-                
-                // Aguarda um pouco para garantir que a sessão foi salva
-                await new Promise(resolve => setTimeout(resolve, 300));
-                
-                // Verifica se a sessão foi salva
-                const { data: { session: finalSession } } = await supabase.auth.getSession();
-                if (finalSession) {
-                  console.log('✅ Sessão confirmada e salva após login automático');
-                  return;
-                } else {
-                  console.warn('⚠️ Sessão não encontrada após login automático');
-                }
-              } else {
-                // Se o login falhar, o email provavelmente precisa ser confirmado
-                const errorMsg = loginError?.message || 'Credenciais inválidas';
-                console.error('Erro no login automático:', loginError);
-                console.log('ℹ️ Login automático falhou - usuário precisará confirmar email');
-                
-                // Se for erro de credenciais inválidas, é porque precisa confirmar email
-                if (errorMsg.includes('Invalid login credentials') || 
-                    errorMsg.includes('Email not confirmed')) {
-                  alert('Conta criada com sucesso! 📧\n\nVerifique seu email e clique no link de confirmação. Depois, faça login manualmente.');
-                } else {
-                  alert('Conta criada com sucesso! ✅\n\nPor favor, faça login manualmente com seu email e senha.');
-                }
-                return;
-              }
-            } catch (autoLoginError: any) {
-              console.error('Falha no login automático:', autoLoginError);
-              
-              // Se o erro for de credenciais inválidas, o email provavelmente precisa ser confirmado
-              // Isso acontece mesmo quando email_confirmed_at não é null inicialmente
-              const errorMessage = autoLoginError?.message || '';
-              
-              if (errorMessage.includes('Invalid login credentials') || 
-                  errorMessage.includes('Email not confirmed') ||
-                  errorMessage.includes('email not confirmed')) {
-                console.log('ℹ️ Login falhou - email precisa ser confirmado');
-                alert('Conta criada com sucesso! 📧\n\nVerifique seu email e clique no link de confirmação. Depois, faça login manualmente com seu email e senha.');
-              } else {
-                console.log('ℹ️ Login automático falhou por outro motivo:', errorMessage);
-                alert('Conta criada com sucesso! ✅\n\nPor favor, faça login manualmente com seu email e senha.');
-              }
+            // Verifica se a sessão foi salva
+            const { data: { session: finalSession } } = await supabase.auth.getSession();
+            if (finalSession) {
+              console.log('✅ Sessão confirmada e salva após login automático');
               return;
+            } else {
+              console.warn('⚠️ Sessão não encontrada após login automático');
             }
+          } else {
+            // Login falhou - provavelmente precisa confirmar email
+            const errorMsg = loginError?.message || '';
+            console.error('Erro no login automático:', loginError);
+            console.log('ℹ️ Login automático falhou - email precisa ser confirmado');
+            
+            // Sempre assume que precisa confirmar email quando login falha após signup
+            throw new Error('Email precisa ser confirmado');
           }
+        } catch (autoLoginError: any) {
+          console.error('Falha no login automático:', autoLoginError);
+          
+          // Se chegou aqui, o email precisa ser confirmado
+          const errorMessage = autoLoginError?.message || '';
+          
+          // Mostra mensagem clara para o usuário
+          if (errorMessage.includes('Invalid login credentials') || 
+              errorMessage.includes('Email precisa ser confirmado') ||
+              errorMessage.includes('Email not confirmed')) {
+            console.log('ℹ️ Login falhou - email precisa ser confirmado');
+            
+            // Usa window.alert para garantir que aparece
+            setTimeout(() => {
+              alert('Conta criada com sucesso! 📧\n\n⚠️ IMPORTANTE: Verifique seu email e clique no link de confirmação.\n\nDepois de confirmar, faça login manualmente com seu email e senha.');
+            }, 100);
+          } else {
+            console.log('ℹ️ Login automático falhou por outro motivo:', errorMessage);
+            setTimeout(() => {
+              alert('Conta criada com sucesso! ✅\n\nPor favor, faça login manualmente com seu email e senha.\n\nSe não conseguir, verifique seu email para confirmar a conta primeiro.');
+            }, 100);
+          }
+          return;
         }
       }
 
