@@ -23,6 +23,7 @@ import { useLanguage } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { storage, SavedPlant } from '../services/storageService';
 import { historyService } from '../services/historyService';
+import { isAdmin } from '../services/adminAuthService';
 
 const PLACEHOLDER_PLANT_IMAGE = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23dcfce7;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%2386efac;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='400' fill='url(%23grad)' /%3E%3Cpath d='M200 100c0 0 40 60 40 100s-20 60-40 80c-20-20-40-40-40-80s40-100 40-100z' fill='%2315803d' opacity='0.6'/%3E%3Cpath d='M200 280v60' stroke='%2315803d' stroke-width='8' stroke-linecap='round' /%3E%3Ccircle cx='200' cy='200' r='140' stroke='%23fff' stroke-width='4' fill='none' opacity='0.5' /%3E%3C/svg%3E`;
 
