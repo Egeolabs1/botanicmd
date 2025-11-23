@@ -65,3 +65,4 @@ supabase db push
 
 Mas para este projeto, executar o SQL manualmente no Dashboard é mais simples e direto.
 
+

@@ -70,3 +70,4 @@ USING (auth.uid() = user_id);
 -- Execute este comando para verificar se tudo foi criado corretamente:
 -- SELECT * FROM plants LIMIT 1;
 
+

@@ -16,3 +16,4 @@ Sitemap: https://botanicmd.vercel.app/sitemap.xml
 # Crawl-delay (optional, helps prevent server overload)
 Crawl-delay: 1
 
+

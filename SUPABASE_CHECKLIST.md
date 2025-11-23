@@ -294,3 +294,4 @@ Marque aqui quando tudo estiver configurado:
 
 **Data de Criação:** ${new Date().toLocaleDateString('pt-BR')}
 
+
