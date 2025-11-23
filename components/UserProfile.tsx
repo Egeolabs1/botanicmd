@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Settings, LogOut, CreditCard, X, Star, Trophy, ArrowRight, CheckCircle, Leaf, LayoutDashboard, Users, Bookmark, Clock, TrendingUp, Shield, HelpCircle, Mail, Lock, Share2, FileDown, Calendar } from './Icons';
+import { User, Settings, LogOut, CreditCard, X, Star, Trophy, ArrowRight, CheckCircle, Leaf, LayoutDashboard, Users, Bookmark, Clock, TrendingUp, Shield, HelpCircle, Mail, Lock, Share2, FileDown, Calendar, Camera, MessageCircle, Plus, Trash } from './Icons';
 import { useLanguage } from '../i18n';
 import { User as UserType, SupportedLanguage } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { storage, SavedPlant } from '../services/storageService';
+import { historyService, HistoryEntry } from '../services/historyService';
+import { reminderService, Reminder } from '../services/reminderService';
 
 interface UserProfileProps {
   user: UserType;
@@ -32,13 +34,25 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
   });
   const [nameError, setNameError] = useState<string>('');
   const [savedPlants, setSavedPlants] = useState<SavedPlant[]>([]);
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [statistics, setStatistics] = useState<any>(null);
+  const [showCreateReminder, setShowCreateReminder] = useState(false);
+  const [newReminder, setNewReminder] = useState({
+    plantName: '',
+    type: 'watering' as Reminder['type'],
+    title: '',
+    description: '',
+    date: '',
+    time: '',
+    frequency: 'once' as Reminder['frequency'],
+  });
   
   // Carregar dados ao montar
   useEffect(() => {
     loadSavedPlants();
     loadHistory();
+    loadReminders();
     calculateStatistics();
   }, []);
   
@@ -53,12 +67,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
   
   const loadHistory = () => {
     try {
-      const stored = localStorage.getItem('botanicmd_history');
-      if (stored) {
-        setHistory(JSON.parse(stored));
-      }
+      const historyData = historyService.getHistory();
+      setHistory(historyData);
     } catch (error) {
       console.error('Erro ao carregar histórico:', error);
+    }
+  };
+  
+  const loadReminders = () => {
+    try {
+      const remindersData = reminderService.getReminders();
+      setReminders(remindersData);
+    } catch (error) {
+      console.error('Erro ao carregar lembretes:', error);
     }
   };
   
@@ -134,13 +155,83 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
     }
   };
   
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  
   const handleChangePassword = () => {
-    const newPassword = prompt('Digite sua nova senha (mínimo 6 caracteres):');
-    if (newPassword && newPassword.length >= 6) {
-      alert('Senha alterada com sucesso! (Funcionalidade em desenvolvimento)');
-    } else if (newPassword) {
-      alert('A senha deve ter pelo menos 6 caracteres.');
+    setCurrentView('password');
+  };
+  
+  const handleSavePassword = () => {
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      alert('Preencha todos os campos.');
+      return;
     }
+    
+    if (passwordData.newPassword.length < 6) {
+      alert('A nova senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      alert('As senhas não coincidem.');
+      return;
+    }
+    
+    // Em produção, aqui faria a chamada à API para alterar a senha
+    alert('Senha alterada com sucesso! (Funcionalidade em desenvolvimento - requer backend)');
+    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setCurrentView('settings');
+  };
+  
+  const handleCreateReminder = () => {
+    if (!newReminder.title || !newReminder.date || !newReminder.time) {
+      alert('Preencha todos os campos obrigatórios.');
+      return;
+    }
+    
+    const dateTime = new Date(`${newReminder.date}T${newReminder.time}`);
+    if (dateTime.getTime() < Date.now()) {
+      alert('A data/hora deve ser no futuro.');
+      return;
+    }
+    
+    const reminder = reminderService.addReminder({
+      plantName: newReminder.plantName || 'Geral',
+      type: newReminder.type,
+      title: newReminder.title,
+      description: newReminder.description,
+      date: dateTime.getTime(),
+      frequency: newReminder.frequency,
+    });
+    
+    loadReminders();
+    setShowCreateReminder(false);
+    setNewReminder({
+      plantName: '',
+      type: 'watering',
+      title: '',
+      description: '',
+      date: '',
+      time: '',
+      frequency: 'once',
+    });
+    alert('Lembrete criado com sucesso!');
+  };
+  
+  const handleDeleteReminder = (id: string) => {
+    if (window.confirm('Deseja realmente excluir este lembrete?')) {
+      reminderService.deleteReminder(id);
+      loadReminders();
+    }
+  };
+  
+  const handleCompleteReminder = (id: string) => {
+    reminderService.completeReminder(id);
+    loadReminders();
   };
 
   // Calculate usage percentage
@@ -575,21 +666,56 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => setCurrentView('profile')} className="p-2 hover:bg-gray-100 rounded-full"><ArrowRight className="w-5 h-5 rotate-180" /></button>
         <h3 className="text-lg font-bold text-gray-900">Histórico</h3>
+        {history.length > 0 && (
+          <button 
+            onClick={() => {
+              if (window.confirm('Deseja limpar todo o histórico?')) {
+                historyService.clearHistory();
+                loadHistory();
+              }
+            }}
+            className="ml-auto text-xs text-red-500 hover:text-red-700"
+          >
+            Limpar
+          </button>
+        )}
       </div>
       <div className="space-y-3">
         {history.length === 0 ? (
           <div className="text-center py-8">
             <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">Nenhuma análise no histórico</p>
+            <p className="text-xs text-gray-400 mt-2">As análises aparecerão aqui automaticamente</p>
           </div>
         ) : (
-          history.slice(0, 10).map((item, idx) => (
-            <div key={idx} className="bg-gray-50 rounded-lg p-3 flex items-center gap-3">
-              <Clock className="w-5 h-5 text-gray-400" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">{item.plantName || 'Planta analisada'}</p>
-                <p className="text-xs text-gray-500">{item.date ? new Date(item.date).toLocaleDateString('pt-BR') : 'Data não disponível'}</p>
+          history.slice(0, 20).map((item) => (
+            <div key={item.id} className="bg-gray-50 rounded-lg p-3 flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                item.type === 'image' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
+              }`}>
+                {item.type === 'image' ? <Camera className="w-5 h-5" /> : <MessageCircle className="w-5 h-5" />}
               </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{item.plantName}</p>
+                <p className="text-xs text-gray-500">
+                  {new Date(item.date).toLocaleDateString('pt-BR', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  historyService.deleteEntry(item.id);
+                  loadHistory();
+                }}
+                className="text-gray-400 hover:text-red-500 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           ))
         )}
@@ -648,28 +774,238 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
     </div>
   );
 
-  const renderRemindersView = () => (
-    <div className="p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => setCurrentView('profile')} className="p-2 hover:bg-gray-100 rounded-full"><ArrowRight className="w-5 h-5 rotate-180" /></button>
-        <h3 className="text-lg font-bold text-gray-900">Lembretes</h3>
+  const getReminderTypeLabel = (type: Reminder['type']) => {
+    const labels: Record<Reminder['type'], string> = {
+      watering: 'Regar',
+      fertilizing: 'Fertilizar',
+      pruning: 'Podar',
+      checkup: 'Verificar',
+      custom: 'Personalizado',
+    };
+    return labels[type];
+  };
+
+  const renderRemindersView = () => {
+    const upcomingReminders = reminders.filter(r => !r.isCompleted && r.date >= Date.now());
+    const pastReminders = reminders.filter(r => r.isCompleted || r.date < Date.now());
+    
+    return (
+      <div className="p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <button onClick={() => setCurrentView('profile')} className="p-2 hover:bg-gray-100 rounded-full"><ArrowRight className="w-5 h-5 rotate-180" /></button>
+          <h3 className="text-lg font-bold text-gray-900">Lembretes</h3>
+          <button
+            onClick={() => setShowCreateReminder(true)}
+            className="ml-auto bg-nature-600 text-white p-2 rounded-lg hover:bg-nature-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+        
+        {showCreateReminder ? (
+          <div className="space-y-4 mb-6">
+            <div>
+              <label className="text-sm font-medium text-gray-600 block mb-1">Título *</label>
+              <input
+                type="text"
+                value={newReminder.title}
+                onChange={(e) => setNewReminder({...newReminder, title: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-nature-300"
+                placeholder="Ex: Regar a samambaia"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-600 block mb-1">Planta (opcional)</label>
+              <input
+                type="text"
+                value={newReminder.plantName}
+                onChange={(e) => setNewReminder({...newReminder, plantName: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-nature-300"
+                placeholder="Nome da planta"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-600 block mb-1">Tipo</label>
+              <select
+                value={newReminder.type}
+                onChange={(e) => setNewReminder({...newReminder, type: e.target.value as Reminder['type']})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50"
+              >
+                <option value="watering">Regar</option>
+                <option value="fertilizing">Fertilizar</option>
+                <option value="pruning">Podar</option>
+                <option value="checkup">Verificar</option>
+                <option value="custom">Personalizado</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-gray-600 block mb-1">Data *</label>
+                <input
+                  type="date"
+                  value={newReminder.date}
+                  onChange={(e) => setNewReminder({...newReminder, date: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-nature-300"
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600 block mb-1">Hora *</label>
+                <input
+                  type="time"
+                  value={newReminder.time}
+                  onChange={(e) => setNewReminder({...newReminder, time: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-nature-300"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-600 block mb-1">Frequência</label>
+              <select
+                value={newReminder.frequency}
+                onChange={(e) => setNewReminder({...newReminder, frequency: e.target.value as Reminder['frequency']})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50"
+              >
+                <option value="once">Uma vez</option>
+                <option value="daily">Diário</option>
+                <option value="weekly">Semanal</option>
+                <option value="monthly">Mensal</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-600 block mb-1">Descrição (opcional)</label>
+              <textarea
+                value={newReminder.description}
+                onChange={(e) => setNewReminder({...newReminder, description: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-nature-300"
+                rows={2}
+                placeholder="Observações adicionais..."
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCreateReminder}
+                className="flex-1 bg-nature-600 text-white py-2 rounded-lg font-medium hover:bg-nature-700 transition-colors"
+              >
+                Criar
+              </button>
+              <button
+                onClick={() => setShowCreateReminder(false)}
+                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {upcomingReminders.length === 0 && pastReminders.length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 mb-4">Nenhum lembrete criado</p>
+                <button
+                  onClick={() => setShowCreateReminder(true)}
+                  className="bg-nature-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-nature-700 transition-colors"
+                >
+                  Criar Primeiro Lembrete
+                </button>
+              </div>
+            ) : (
+              <>
+                {upcomingReminders.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Próximos</h4>
+                    <div className="space-y-2">
+                      {upcomingReminders.map((reminder) => (
+                        <div key={reminder.id} className="bg-nature-50 border border-nature-200 rounded-lg p-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-medium text-nature-600 bg-nature-100 px-2 py-0.5 rounded">
+                                  {getReminderTypeLabel(reminder.type)}
+                                </span>
+                                <span className="text-xs text-gray-500">{reminder.plantName}</span>
+                              </div>
+                              <h5 className="font-semibold text-gray-900 text-sm">{reminder.title}</h5>
+                              {reminder.description && (
+                                <p className="text-xs text-gray-600 mt-1">{reminder.description}</p>
+                              )}
+                              <p className="text-xs text-gray-500 mt-1">
+                                {new Date(reminder.date).toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </p>
+                            </div>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => handleCompleteReminder(reminder.id)}
+                                className="text-green-600 hover:text-green-700 p-1"
+                                title="Marcar como concluído"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteReminder(reminder.id)}
+                                className="text-red-500 hover:text-red-700 p-1"
+                                title="Excluir"
+                              >
+                                <Trash className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {pastReminders.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Concluídos</h4>
+                    <div className="space-y-2">
+                      {pastReminders.slice(0, 5).map((reminder) => (
+                        <div key={reminder.id} className="bg-gray-50 border border-gray-200 rounded-lg p-3 opacity-60">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                  {getReminderTypeLabel(reminder.type)}
+                                </span>
+                                {reminder.isCompleted && (
+                                  <CheckCircle className="w-3 h-3 text-green-600" />
+                                )}
+                              </div>
+                              <h5 className="font-semibold text-gray-700 text-sm line-through">{reminder.title}</h5>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteReminder(reminder.id)}
+                              className="text-gray-400 hover:text-red-500 p-1"
+                            >
+                              <Trash className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+        
+        {/* Footer */}
+        <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+          <p className="text-xs text-gray-400">
+            Desenvolvido com <span className="text-red-500">♥</span> por <span className="font-semibold text-nature-600">Egeolabs</span>
+          </p>
+        </div>
       </div>
-      <div className="text-center py-8">
-        <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-        <p className="text-gray-500 mb-4">Sistema de lembretes em desenvolvimento</p>
-        <button className="bg-nature-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
-          Criar Lembrete
-        </button>
-      </div>
-      
-      {/* Footer */}
-      <div className="mt-6 pt-4 border-t border-gray-100 text-center">
-        <p className="text-xs text-gray-400">
-          Desenvolvido com <span className="text-red-500">♥</span> por <span className="font-semibold text-nature-600">Egeolabs</span>
-        </p>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderPrivacyView = () => (
     <div className="p-6">
@@ -686,8 +1022,30 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
           <h4 className="font-semibold text-gray-900 mb-2">Permissões</h4>
           <p className="text-sm text-gray-600">O app solicita apenas as permissões necessárias para funcionamento.</p>
         </div>
-        <button className="w-full bg-nature-600 text-white py-2.5 rounded-lg font-medium">
+        <button 
+          onClick={() => {
+            onClose();
+            // Abre modal de política de privacidade ou link externo
+            window.open('https://egeolabs.com/privacy', '_blank');
+          }}
+          className="w-full bg-nature-600 text-white py-2.5 rounded-lg font-medium hover:bg-nature-700 transition-colors"
+        >
           Ver Política de Privacidade
+        </button>
+        <button 
+          onClick={() => {
+            if (window.confirm('Deseja realmente excluir todos os seus dados? Esta ação não pode ser desfeita.')) {
+              // Limpar dados locais
+              localStorage.removeItem('botanicmd_history');
+              localStorage.removeItem('botanicmd_reminders');
+              localStorage.removeItem('botanicmd_notifications');
+              localStorage.removeItem('botanicmd_email_notifications');
+              alert('Dados locais excluídos. Para excluir dados do servidor, entre em contato com o suporte.');
+            }
+          }}
+          className="w-full bg-red-50 text-red-600 py-2.5 rounded-lg font-medium hover:bg-red-100 transition-colors border border-red-200"
+        >
+          Excluir Meus Dados
         </button>
       </div>
       
@@ -735,21 +1093,63 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
         <h3 className="text-lg font-bold text-gray-900">Ajuda e Suporte</h3>
       </div>
       <div className="space-y-3">
-        <button className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+        <button 
+          onClick={() => {
+            onClose();
+            onOpenAbout();
+          }}
+          className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+        >
           <h4 className="font-semibold text-gray-900 mb-1">Como usar o app?</h4>
           <p className="text-sm text-gray-600">Guia completo de uso do BotanicMD</p>
         </button>
-        <button className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+        <button 
+          onClick={() => {
+            const faqContent = `
+Perguntas Frequentes - BotanicMD
+
+1. Como identificar uma planta?
+   - Tire uma foto ou digite o nome da planta
+   - O app usará IA para identificar e fornecer informações
+
+2. Preciso pagar para usar?
+   - O plano gratuito permite 3 análises por mês
+   - O plano PRO oferece análises ilimitadas
+
+3. Meus dados são seguros?
+   - Sim, seus dados são armazenados de forma segura
+   - Não compartilhamos informações com terceiros
+
+4. Como salvar plantas?
+   - Apenas usuários PRO podem salvar plantas
+   - Faça upgrade para acessar esta funcionalidade
+
+5. O app funciona offline?
+   - A identificação requer conexão com internet
+   - Plantas salvas podem ser visualizadas offline
+            `;
+            alert(faqContent);
+          }}
+          className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+        >
           <h4 className="font-semibold text-gray-900 mb-1">Perguntas Frequentes</h4>
           <p className="text-sm text-gray-600">Respostas para dúvidas comuns</p>
         </button>
-        <button className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+        <button 
+          onClick={() => {
+            window.location.href = `mailto:suporte@egeolabs.com?subject=Suporte BotanicMD&body=Olá,%0D%0A%0D%0A`;
+          }}
+          className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+        >
           <h4 className="font-semibold text-gray-900 mb-1">Contatar Suporte</h4>
           <p className="text-sm text-gray-600">Entre em contato conosco</p>
         </button>
         <div className="bg-nature-50 rounded-lg p-4 mt-4">
-          <p className="text-sm text-nature-700">
+          <p className="text-sm text-nature-700 mb-2">
             <strong>Email:</strong> suporte@egeolabs.com
+          </p>
+          <p className="text-xs text-nature-600">
+            Horário de atendimento: Segunda a Sexta, 9h às 18h
           </p>
         </div>
       </div>
@@ -785,10 +1185,79 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
         return renderEmailView();
       case 'help':
         return renderHelpView();
+      case 'password':
+        return renderPasswordView();
       default:
         return renderMainView();
     }
   };
+  
+  const renderPasswordView = () => (
+    <div className="p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={() => setCurrentView('settings')} className="p-2 hover:bg-gray-100 rounded-full"><ArrowRight className="w-5 h-5 rotate-180" /></button>
+        <h3 className="text-lg font-bold text-gray-900">Alterar Senha</h3>
+      </div>
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm font-medium text-gray-600 block mb-1">Senha Atual</label>
+          <input
+            type="password"
+            value={passwordData.currentPassword}
+            onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+            className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-nature-300"
+            placeholder="Digite sua senha atual"
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-gray-600 block mb-1">Nova Senha</label>
+          <input
+            type="password"
+            value={passwordData.newPassword}
+            onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+            className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-nature-300"
+            placeholder="Mínimo 6 caracteres"
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-gray-600 block mb-1">Confirmar Nova Senha</label>
+          <input
+            type="password"
+            value={passwordData.confirmPassword}
+            onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+            className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-nature-300"
+            placeholder="Digite a senha novamente"
+          />
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-xs text-blue-700">
+            <strong>Dica:</strong> Use uma senha forte com pelo menos 6 caracteres, incluindo letras e números.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleSavePassword}
+            className="flex-1 bg-nature-600 text-white py-2.5 rounded-lg font-medium hover:bg-nature-700 transition-colors"
+          >
+            Alterar Senha
+          </button>
+          <button
+            onClick={() => setCurrentView('settings')}
+            className="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+      
+      {/* Footer */}
+      <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+        <p className="text-xs text-gray-400">
+          Desenvolvido com <span className="text-red-500">♥</span> por <span className="font-semibold text-nature-600">Egeolabs</span>
+        </p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
