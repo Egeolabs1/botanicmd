@@ -25,12 +25,24 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
   const [currentView, setCurrentView] = useState<ViewState>('main');
   const [editName, setEditName] = useState(user.name);
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
-    const stored = localStorage.getItem('botanicmd_notifications');
-    return stored ? JSON.parse(stored) : false;
+    try {
+      const stored = localStorage.getItem('botanicmd_notifications');
+      return stored ? JSON.parse(stored) : false;
+    } catch (error) {
+      // Se o localStorage estiver corrompido, retorna valor padrão
+      console.warn('Erro ao ler notificações do localStorage:', error);
+      return false;
+    }
   });
   const [emailNotifications, setEmailNotifications] = useState(() => {
-    const stored = localStorage.getItem('botanicmd_email_notifications');
-    return stored ? JSON.parse(stored) : false;
+    try {
+      const stored = localStorage.getItem('botanicmd_email_notifications');
+      return stored ? JSON.parse(stored) : false;
+    } catch (error) {
+      // Se o localStorage estiver corrompido, retorna valor padrão
+      console.warn('Erro ao ler notificações de email do localStorage:', error);
+      return false;
+    }
   });
   const [nameError, setNameError] = useState<string>('');
   const [savedPlants, setSavedPlants] = useState<SavedPlant[]>([]);
@@ -90,7 +102,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
         total: plants.length,
         healthy: plants.filter(p => p.data.health?.isHealthy).length,
         sick: plants.filter(p => !p.data.health?.isHealthy).length,
-        toxic: plants.filter(p => p.data.toxicity?.toLowerCase().includes('toxic') || p.data.toxicity?.toLowerCase().includes('tóxica')).length,
+        toxic: plants.filter(p => {
+          const toxicity = p.data.toxicity?.toLowerCase?.() || '';
+          return toxicity.includes('toxic') || toxicity.includes('tóxica');
+        }).length,
         medicinal: plants.filter(p => p.data.medicinal?.isMedicinal).length,
       };
       setStatistics(stats);
