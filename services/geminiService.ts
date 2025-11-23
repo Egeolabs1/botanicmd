@@ -1,32 +1,15 @@
-import { GoogleGenAI, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { PlantData, PlantCandidate, SupportedLanguage, BlogPost } from "../types";
 import { fetchPlantImage } from "./imageService";
+import { Type } from "@google/genai";
 
-// ⚠️ IMPORTANTE: Configure a variável de ambiente GEMINI_API_KEY no arquivo .env.local
-// O Vite usa import.meta.env para variáveis de ambiente (prefixo VITE_)
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY;
+// ⚠️ IMPORTANTE: A API Key agora é armazenada SEGURAMENTE no servidor (Vercel Edge Function)
+// Configure GEMINI_API_KEY (SEM prefixo VITE_) no Vercel Dashboard
+// Esta variável NÃO será exposta no cliente
 
-// Valida se a API Key está configurada
-if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === '') {
-  console.error('❌ GEMINI_API_KEY não configurada. Configure no arquivo .env.local');
-}
-
-// Initialize Gemini Client
-let ai: GoogleGenAI | null = null;
-
-try {
-  if (GEMINI_API_KEY && GEMINI_API_KEY.trim() !== '') {
-    ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-  } else {
-    console.warn('⚠️ Gemini API Key não encontrada. Funcionalidades de IA não estarão disponíveis.');
-  }
-} catch (error) {
-  console.error('Erro ao inicializar cliente Gemini:', error);
-}
+// URL da API route (será /api/gemini no Vercel)
+const API_URL = '/api/gemini';
 
 // Modelo Gemini
-// Configurado para "gemini-3-pro-preview" - modelo avançado que requer conta de faturamento configurada no Google Cloud
-// Este é o modelo mais poderoso disponível atualmente para análise de plantas
 const MODEL_NAME = "gemini-3-pro-preview";
 
 const getLanguageName = (lang: SupportedLanguage) => {
@@ -42,7 +25,8 @@ const getLanguageName = (lang: SupportedLanguage) => {
   return map[lang] || "English";
 };
 
-const PLANT_SCHEMA = {
+// Schemas exportados para uso na API route
+export const PLANT_SCHEMA = {
   type: Type.OBJECT,
   properties: {
     commonName: { type: Type.STRING },
@@ -105,18 +89,56 @@ const BLOG_POST_SCHEMA = {
   required: ["title", "excerpt", "content", "category", "author", "imageSearchQuery"]
 };
 
-const SAFETY_SETTINGS = [
-  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-];
+const CANDIDATES_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    candidates: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          commonName: { type: Type.STRING },
+          scientificName: { type: Type.STRING },
+          imageUrl: { type: Type.STRING, description: "Leave empty, handled externally." }
+        },
+        required: ["commonName", "scientificName"]
+      }
+    }
+  }
+};
+
+// Helper para fazer chamadas à API route
+async function callGeminiAPI(action: string, params: any): Promise<any> {
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action, ...params }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.data;
+  } catch (error: any) {
+    // Se for erro de rede (API route não encontrada), significa que está rodando localmente
+    // ou a API route não foi deployada
+    if (error.message?.includes('Failed to fetch') || error.message?.includes('404')) {
+      throw new Error(
+        'API Gemini não configurada no servidor. Configure GEMINI_API_KEY no Vercel Dashboard (Settings → Environment Variables). ' +
+        'Use o nome SEM prefixo VITE_ para manter a chave segura no servidor.'
+      );
+    }
+    throw error;
+  }
+}
 
 export const analyzePlantImage = async (base64Image: string, mimeType: string, language: SupportedLanguage): Promise<PlantData> => {
-  if (!ai) {
-    throw new Error('Gemini API não está configurada. Configure a variável GEMINI_API_KEY no arquivo .env.local');
-  }
-
   if (!base64Image || !mimeType) {
     throw new Error('Imagem inválida. Verifique se o arquivo foi carregado corretamente.');
   }
@@ -143,97 +165,26 @@ export const analyzePlantImage = async (base64Image: string, mimeType: string, l
 
   try {
     console.log(`Iniciando análise com modelo ${MODEL_NAME}...`);
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: [
-        {
-          parts: [
-            {
-              inlineData: {
-                data: base64Image,
-                mimeType: mimeType,
-              },
-            },
-            {
-              text: prompt,
-            },
-          ],
-        },
-      ],
-      config: {
-        systemInstruction: `You are a helpful, accurate, and friendly gardening assistant. Respond in ${langName}.`,
-        temperature: 0.4,
-        responseMimeType: "application/json",
-        responseSchema: PLANT_SCHEMA,
-        safetySettings: SAFETY_SETTINGS,
-      },
+    
+    const plantData = await callGeminiAPI('analyzeImage', {
+      base64Image,
+      mimeType,
+      language: langName,
+      prompt,
     });
-
-    const text = response.text;
-    if (!text) {
-      console.error("Response empty", response);
-      throw new Error("Model returned no data.");
-    }
-
-    // Valida e faz parse da resposta
-    let plantData: PlantData;
-    try {
-      plantData = JSON.parse(text) as PlantData;
-    } catch (parseError) {
-      console.error("Error parsing AI response:", parseError);
-      throw new Error("Resposta inválida da IA. Tente novamente.");
-    }
 
     // Valida campos obrigatórios
     if (!plantData.commonName || !plantData.scientificName || !plantData.description) {
       throw new Error("Resposta da IA incompleta. Campos obrigatórios faltando.");
     }
 
-    return plantData;
+    return plantData as PlantData;
 
   } catch (error: any) {
     console.error("Analysis error:", error);
-    console.error("Error details:", {
-      message: error.message,
-      code: error.code,
-      status: error.status,
-      statusText: error.statusText,
-      response: error.response
-    });
-    
-    // Verifica se é erro de quota excedida (429)
-    if (error.code === 429 || error.status === 429 || error.message?.includes('quota') || error.message?.includes('RESOURCE_EXHAUSTED')) {
-      const quotaError = error.message?.includes('free_tier') || error.message?.includes('FreeTier');
-      if (quotaError) {
-        throw new Error(
-          `❌ O modelo "${MODEL_NAME}" não está disponível no plano gratuito da API Gemini.\n\n` +
-          `Por favor, altere para um modelo compatível com o tier gratuito:\n` +
-          `- gemini-1.5-flash (recomendado)\n` +
-          `- gemini-1.5-pro\n\n` +
-          `Ou configure um plano pago no Google AI Studio para usar modelos Pro.`
-        );
-      } else {
-        const retryAfter = error.message?.match(/retry in ([\d.]+)s/)?.[1];
-        throw new Error(
-          `⚠️ Limite de requisições excedido.\n` +
-          (retryAfter ? `Tente novamente em ${Math.ceil(parseFloat(retryAfter))} segundos.\n` : '') +
-          `Visite: https://ai.dev/usage?tab=rate-limit para verificar seu uso.`
-        );
-      }
-    }
-    
-    // Verifica se é erro de modelo não encontrado
-    if (error.message?.includes('not found') || error.message?.includes('404') || error.code === 404) {
-      throw new Error(`Modelo "${MODEL_NAME}" não está disponível. Por favor, verifique se o modelo está habilitado para sua conta ou tente novamente mais tarde.`);
-    }
-    
-    // Verifica se é erro de API key
-    if (error.message?.includes('API key') || error.message?.includes('401') || error.code === 401) {
-      throw new Error('Chave de API inválida ou expirada. Verifique sua configuração no arquivo .env.local');
-    }
     
     // Re-throw erros customizados
-    if (error.message && !error.message.includes('Resposta') && !error.message.includes('Model')) {
+    if (error.message && !error.message.includes('Resposta') && !error.message.includes('HTTP')) {
       throw error;
     }
     
@@ -242,11 +193,6 @@ export const analyzePlantImage = async (base64Image: string, mimeType: string, l
 };
 
 export const searchPlantOptions = async (query: string, language: SupportedLanguage): Promise<PlantCandidate[]> => {
-  if (!ai) {
-    console.warn('Gemini API não configurada. Retornando array vazio.');
-    return [];
-  }
-
   if (!query || query.trim() === '') {
     return [];
   }
@@ -259,44 +205,16 @@ export const searchPlantOptions = async (query: string, language: SupportedLangu
     Respond in ${langName}.
   `;
 
-  const CANDIDATES_SCHEMA = {
-    type: Type.OBJECT,
-    properties: {
-      candidates: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            commonName: { type: Type.STRING },
-            scientificName: { type: Type.STRING },
-            imageUrl: { type: Type.STRING, description: "Leave empty, handled externally." }
-          },
-          required: ["commonName", "scientificName"]
-        }
-      }
-    }
-  };
-
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: [
-        {
-          parts: [{ text: prompt }]
-        }
-      ],
-      config: {
-        temperature: 0.3,
-        responseMimeType: "application/json",
-        responseSchema: CANDIDATES_SCHEMA,
-        safetySettings: SAFETY_SETTINGS,
-      }
+    const response = await callGeminiAPI('generateText', {
+      prompt,
+      language: langName,
+      temperature: 0.3,
+      responseMimeType: "application/json",
+      schemaType: 'candidates',
     });
     
-    const text = response.text;
-    if(!text) return [];
-    const json = JSON.parse(text);
-    return json.candidates || [];
+    return response.candidates || [];
   } catch (e) {
     console.error("Error searching options:", e);
     return [];
@@ -304,10 +222,6 @@ export const searchPlantOptions = async (query: string, language: SupportedLangu
 };
 
 export const identifyPlantByName = async (plantName: string, language: SupportedLanguage): Promise<PlantData> => {
-  if (!ai) {
-    throw new Error('Gemini API não está configurada. Configure a variável GEMINI_API_KEY no arquivo .env.local');
-  }
-
   if (!plantName || plantName.trim() === '') {
     throw new Error('Nome da planta é obrigatório.');
   }
@@ -330,66 +244,34 @@ export const identifyPlantByName = async (plantName: string, language: Supported
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: [
-        {
-          parts: [{ text: prompt }]
-        }
-      ],
-      config: {
-        systemInstruction: `You are a living botanical encyclopedia. Respond in ${langName}.`,
-        temperature: 0.3,
-        responseMimeType: "application/json",
-        responseSchema: PLANT_SCHEMA,
-        safetySettings: SAFETY_SETTINGS,
-      },
+    const plantData = await callGeminiAPI('generateText', {
+      prompt,
+      language: langName,
+      temperature: 0.3,
+      responseMimeType: "application/json",
+      schemaType: 'plant',
     });
-
-    const text = response.text;
-    if (!text) throw new Error("No response from model.");
-
-    // Valida e faz parse da resposta
-    let plantData: PlantData;
-    try {
-      plantData = JSON.parse(text) as PlantData;
-    } catch (parseError) {
-      console.error("Error parsing AI response:", parseError);
-      throw new Error("Resposta inválida da IA. Tente novamente.");
-    }
 
     // Valida campos obrigatórios
     if (!plantData.commonName || !plantData.scientificName || !plantData.description) {
       throw new Error("Resposta da IA incompleta. Campos obrigatórios faltando.");
     }
 
-    return plantData;
+    return plantData as PlantData;
 
   } catch (error: any) {
     console.error("Search by name error:", error);
-    console.error("Error details:", {
-      message: error.message,
-      code: error.code,
-      status: error.status
-    });
     
-    // Verifica se é erro de modelo não encontrado
-    if (error.message?.includes('not found') || error.message?.includes('404') || error.code === 404) {
-      throw new Error(`Modelo "${MODEL_NAME}" não está disponível. Verifique se está habilitado para sua conta.`);
+    // Re-throw erros customizados
+    if (error.message && !error.message.includes('Resposta') && !error.message.includes('HTTP')) {
+      throw error;
     }
     
-    if (error.message && !error.message.includes('Resposta') && !error.message.includes('No response')) {
-      throw error; // Re-throw erros customizados
-    }
     throw new Error(`Não foi possível encontrar informações sobre esta planta: ${error.message || 'Erro desconhecido'}`);
   }
 };
 
 export const askPlantExpert = async (plantContext: PlantData, question: string, language: SupportedLanguage): Promise<string> => {
-  if (!ai) {
-    return "Desculpe, o serviço de IA não está disponível no momento. Configure a variável GEMINI_API_KEY no arquivo .env.local";
-  }
-
   if (!question || question.trim() === '') {
     return "Por favor, faça uma pergunta sobre a planta.";
   }
@@ -411,40 +293,20 @@ export const askPlantExpert = async (plantContext: PlantData, question: string, 
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: [
-        {
-          parts: [{ text: prompt }]
-        }
-      ],
-      config: {
-        safetySettings: SAFETY_SETTINGS,
-      }
+    const response = await callGeminiAPI('generateText', {
+      prompt,
+      language: langName,
+      temperature: 0.7,
     });
-    return response.text || "Sorry, I couldn't formulate a response.";
+    
+    return response || "Desculpe, não foi possível formular uma resposta.";
   } catch (error: any) {
     console.error("Chat error:", error);
-    console.error("Error details:", {
-      message: error.message,
-      code: error.code,
-      status: error.status
-    });
-    
-    // Verifica se é erro de modelo não encontrado
-    if (error.message?.includes('not found') || error.message?.includes('404') || error.code === 404) {
-      return `Erro: Modelo "${MODEL_NAME}" não está disponível. Verifique se está habilitado para sua conta.`;
-    }
-    
-    return `Sorry, an error occurred: ${error.message || 'Erro desconhecido'}`;
+    return `Desculpe, ocorreu um erro: ${error.message || 'Erro desconhecido'}`;
   }
 };
 
 export const generateBlogPost = async (language: SupportedLanguage): Promise<Omit<BlogPost, 'id' | 'date'>> => {
-  if (!ai) {
-    throw new Error('Gemini API não está configurada. Configure a variável GEMINI_API_KEY no arquivo .env.local');
-  }
-
   const langName = getLanguageName(language);
   const prompt = `
     Generate a high-quality, engaging blog post for a gardening app called BotanicMD.
@@ -463,25 +325,13 @@ export const generateBlogPost = async (language: SupportedLanguage): Promise<Omi
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: [
-        {
-          parts: [{ text: prompt }]
-        }
-      ],
-      config: {
-        temperature: 0.8, // Higher creativity
-        responseMimeType: "application/json",
-        responseSchema: BLOG_POST_SCHEMA,
-        safetySettings: SAFETY_SETTINGS,
-      },
+    const data = await callGeminiAPI('generateText', {
+      prompt,
+      language: langName,
+      temperature: 0.8,
+      responseMimeType: "application/json",
+      schemaType: 'blog',
     });
-
-    const text = response.text;
-    if (!text) throw new Error("Model returned no data.");
-
-    const data = JSON.parse(text);
     
     // Fetch image based on the AI's suggestion
     let imageUrl = await fetchPlantImage(data.imageSearchQuery);
@@ -502,17 +352,6 @@ export const generateBlogPost = async (language: SupportedLanguage): Promise<Omi
 
   } catch (error: any) {
     console.error("Blog generation error:", error);
-    console.error("Error details:", {
-      message: error.message,
-      code: error.code,
-      status: error.status
-    });
-    
-    // Verifica se é erro de modelo não encontrado
-    if (error.message?.includes('not found') || error.message?.includes('404') || error.code === 404) {
-      throw new Error(`Modelo "${MODEL_NAME}" não está disponível. Verifique se está habilitado para sua conta.`);
-    }
-    
     throw new Error(`Failed to generate blog post: ${error.message || 'Erro desconhecido'}`);
   }
 };

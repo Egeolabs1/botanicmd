@@ -39,11 +39,14 @@ npm install
 
 ### 3. Configure as variáveis de ambiente
 
+#### Para Desenvolvimento Local
+
 Crie um arquivo `.env.local` na raiz do projeto:
 
 ```env
 # Google Gemini API Key (Obrigatório)
-# Obtenha em: https://makersuite.google.com/app/apikey
+# Obtenha em: https://ai.google.dev/
+# Para desenvolvimento local, você pode usar VITE_ (mas NÃO faça isso em produção!)
 VITE_GEMINI_API_KEY=sua_chave_gemini_aqui
 
 # Supabase Configuration (Opcional - para autenticação e armazenamento)
@@ -52,8 +55,23 @@ VITE_SUPABASE_URL=https://seu-projeto-id.supabase.co
 VITE_SUPABASE_KEY=sua_chave_supabase_aqui
 ```
 
+#### Para Produção no Vercel
+
+**🔒 IMPORTANTE: Segurança da API Key**
+
+Para produção, a API Key da Gemini deve ser configurada **SEM o prefixo `VITE_`** no Vercel Dashboard para manter a chave segura no servidor.
+
+Veja o guia completo em [VERCEL_ENV_SETUP.md](./VERCEL_ENV_SETUP.md)
+
+**Resumo rápido:**
+1. Acesse Vercel Dashboard → Settings → Environment Variables
+2. Adicione `GEMINI_API_KEY` (SEM `VITE_`) com sua chave
+3. Marque todos os ambientes (Production, Preview, Development)
+4. Faça redeploy
+
 **Notas importantes:**
-- `VITE_GEMINI_API_KEY` é **obrigatória** para funcionalidades de IA funcionarem
+- `GEMINI_API_KEY` (sem `VITE_`) é **obrigatória** para funcionalidades de IA em produção
+- A chave fica segura no servidor (não exposta no cliente)
 - Supabase é **opcional**, mas recomendado para produção
 - Sem Supabase, o app funcionará em modo demo/offline com LocalStorage
 
@@ -178,7 +196,8 @@ botanicmd/
 ## 🐛 Resolução de Problemas
 
 ### Erro: "Gemini API não está configurada"
-- Verifique se `VITE_GEMINI_API_KEY` está definida no `.env.local`
+- Verifique se `GEMINI_API_KEY` está configurada no Vercel (produção) ou `.env.local` (desenvolvimento)
+- Veja [VERCEL_ENV_SETUP.md](./VERCEL_ENV_SETUP.md) para instruções detalhadas
 - Reinicie o servidor de desenvolvimento após criar/editar `.env.local`
 
 ### Erro: "Supabase não configurado"
