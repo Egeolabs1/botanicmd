@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useEffect, useState, lazy, Suspense } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { LandingPage } from '../pages/LandingPage';
 import { AuthProvider } from '../contexts/AuthContext';
 import { LanguageProvider } from '../i18n';
@@ -72,6 +73,7 @@ export const AppRouter = () => {
             {/* Redirect padrão */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <Analytics />
         </BrowserRouter>
       </AuthProvider>
     </LanguageProvider>
