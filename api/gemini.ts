@@ -84,9 +84,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Validação de autenticação (opcional - pode ser desabilitada em modo demo)
-  // Em produção, sempre validar autenticação
+  // Em produção, configure REQUIRE_AUTH=true no Vercel para exigir autenticação
   const authHeader = req.headers.authorization;
-  const requireAuth = process.env.REQUIRE_AUTH !== 'false'; // Por padrão requer auth
+  const requireAuth = process.env.REQUIRE_AUTH === 'true'; // Por padrão NÃO requer auth (modo demo)
   
   if (requireAuth && (!authHeader || !authHeader.startsWith('Bearer '))) {
     return res.status(401).json({ 
