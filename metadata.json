@@ -1,0 +1,7 @@
+{
+  "name": "BotanicMD",
+  "description": "Seu assistente botânico pessoal com IA. Identifique plantas, diagnostique doenças e receba dicas de cuidados instantaneamente.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

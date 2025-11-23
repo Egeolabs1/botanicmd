@@ -1,0 +1,438 @@
+
+import React, { useState, useEffect } from 'react';
+import { BlogPost, User as UserType, PlanType } from '../types';
+import { blogService } from '../services/blogService';
+import { adminService } from '../services/adminService';
+import { generateBlogPost } from '../services/geminiService';
+import { useLanguage } from '../i18n';
+import { LayoutDashboard, Plus, Edit, Trash, ArrowRight, User, FileDown, Users, CreditCard, CheckCircle, Star, Search, Zap } from './Icons';
+import { PostEditor } from './PostEditor';
+
+interface AdminDashboardProps {
+  onExit: () => void;
+}
+
+type Tab = 'dashboard' | 'posts' | 'users';
+
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
+  const { language } = useLanguage();
+  const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  
+  // Blog State
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [isEditingPost, setIsEditingPost] = useState(false);
+  const [currentPost, setCurrentPost] = useState<BlogPost | undefined>(undefined);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Users State
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [userSearch, setUserSearch] = useState('');
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = () => {
+    setPosts(blogService.getPosts());
+    setUsers(adminService.getUsers());
+  };
+
+  // --- Blog Handlers ---
+  const handleCreatePost = () => {
+    setCurrentPost(undefined);
+    setIsEditingPost(true);
+  };
+
+  const handleEditPost = (post: BlogPost) => {
+    setCurrentPost(post);
+    setIsEditingPost(true);
+  };
+
+  const handleDeletePost = (id: number) => {
+    if (window.confirm('Are you sure you want to delete this post?')) {
+      blogService.deletePost(id);
+      loadData();
+    }
+  };
+
+  const handleSavePost = (postData: Omit<BlogPost, 'id'> & { id?: number }) => {
+    // If ID is 0 (draft from AI), treat as new post (undefined ID)
+    const dataToSave = { ...postData };
+    if (dataToSave.id === 0) {
+      delete dataToSave.id;
+    }
+
+    blogService.savePost(dataToSave);
+    setIsEditingPost(false);
+    loadData();
+  };
+
+  const handleGeneratePost = async () => {
+    setIsGenerating(true);
+    try {
+      // Force 'en' to ensure original content is in English
+      const newPostData = await generateBlogPost('en');
+      
+      // Create a draft object. ID 0 indicates it's a new, unsaved draft.
+      const draftPost: BlogPost = {
+        id: 0, 
+        ...newPostData,
+        date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+      };
+
+      // Instead of saving immediately, open the editor for approval
+      setCurrentPost(draftPost);
+      setIsEditingPost(true);
+      
+    } catch (error) {
+      console.error(error);
+      alert("Failed to generate post. Please check API Key and try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // --- User Handlers ---
+  const handlePlanChange = (userId: string, newPlan: string) => {
+    try {
+      adminService.updateUserPlan(userId, newPlan as PlanType);
+      loadData(); // Refresh list
+    } catch (e) {
+      console.error(e);
+      alert('Failed to update plan');
+    }
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      adminService.deleteUser(userId);
+      loadData();
+    }
+  };
+
+  const filteredUsers = users.filter(u => 
+    u.name.toLowerCase().includes(userSearch.toLowerCase()) || 
+    u.email.toLowerCase().includes(userSearch.toLowerCase())
+  );
+
+  // --- Renderers ---
+
+  if (isEditingPost) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-5xl mx-auto">
+           <div className="mb-6 flex items-center gap-2">
+             <button onClick={() => setIsEditingPost(false)} className="text-sm text-gray-500 hover:text-nature-600 font-medium">Dashboard</button>
+             <span className="text-gray-300">/</span>
+             <span className="text-sm text-gray-900 font-medium">{currentPost ? (currentPost.id === 0 ? 'Review AI Draft' : 'Edit Post') : 'New Post'}</span>
+           </div>
+           <PostEditor post={currentPost} onSave={handleSavePost} onCancel={() => setIsEditingPost(false)} />
+        </div>
+      </div>
+    );
+  }
+
+  const stats = {
+    posts: posts.length,
+    users: users.length,
+    proUsers: users.filter(u => u.plan === 'pro').length
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex font-sans text-gray-800">
+      {/* Sidebar */}
+      <div className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col sticky top-0 h-screen">
+        <div className="p-6 border-b border-gray-100">
+           <div className="flex items-center gap-2 text-nature-700 font-bold text-xl">
+             <LayoutDashboard className="w-6 h-6" /> Admin Panel
+           </div>
+        </div>
+        
+        <nav className="flex-1 p-4 space-y-2">
+          <button 
+            onClick={() => setActiveTab('dashboard')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'dashboard' ? 'bg-nature-50 text-nature-700' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+             <LayoutDashboard className="w-5 h-5" /> Dashboard
+          </button>
+          <button 
+            onClick={() => setActiveTab('users')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'users' ? 'bg-nature-50 text-nature-700' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+             <Users className="w-5 h-5" /> Users & Plans
+          </button>
+          <button 
+            onClick={() => setActiveTab('posts')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'posts' ? 'bg-nature-50 text-nature-700' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+             <Edit className="w-5 h-5" /> Blog Content
+          </button>
+        </nav>
+
+        <div className="p-4 border-t border-gray-100">
+          <div className="flex items-center gap-3 px-4 py-3 mb-2">
+             <div className="w-8 h-8 bg-nature-100 rounded-full flex items-center justify-center text-nature-700 font-bold text-xs">AD</div>
+             <div className="text-sm">
+                <p className="font-bold text-gray-900">Administrator</p>
+                <p className="text-gray-500 text-xs">Super Access</p>
+             </div>
+          </div>
+          <button onClick={onExit} className="w-full flex items-center justify-center gap-2 text-gray-500 hover:text-red-600 px-4 py-2 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium">
+             <ArrowRight className="w-4 h-4 rotate-180" /> Exit to App
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Header Mobile */}
+        <header className="bg-white border-b border-gray-200 px-6 py-4 flex md:hidden justify-between items-center sticky top-0 z-30">
+           <div className="font-bold text-nature-700">Admin Panel</div>
+           <button onClick={onExit} className="text-sm text-gray-500">Exit</button>
+        </header>
+
+        {/* Mobile Nav */}
+        <div className="md:hidden bg-white border-b border-gray-200 px-4 py-2 flex gap-2 overflow-x-auto">
+           {['dashboard', 'users', 'posts'].map((tab) => (
+              <button 
+                key={tab}
+                onClick={() => setActiveTab(tab as Tab)}
+                className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap ${activeTab === tab ? 'bg-nature-600 text-white' : 'bg-gray-100 text-gray-600'}`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+           ))}
+        </div>
+
+        <div className="p-6 md:p-10 max-w-6xl mx-auto">
+          
+          {/* DASHBOARD VIEW */}
+          {activeTab === 'dashboard' && (
+            <div className="animate-fade-in">
+              <h1 className="text-3xl font-bold text-gray-900 mb-8">Overview</h1>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-4">
+                   <div className="p-4 bg-blue-50 text-blue-600 rounded-xl"><Users className="w-8 h-8" /></div>
+                   <div>
+                      <p className="text-gray-500 text-sm font-bold uppercase">Total Users</p>
+                      <p className="text-3xl font-bold text-gray-900">{stats.users}</p>
+                   </div>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-4">
+                   <div className="p-4 bg-yellow-50 text-yellow-600 rounded-xl"><Star className="w-8 h-8" /></div>
+                   <div>
+                      <p className="text-gray-500 text-sm font-bold uppercase">Pro Subscribers</p>
+                      <p className="text-3xl font-bold text-gray-900">{stats.proUsers}</p>
+                   </div>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-4">
+                   <div className="p-4 bg-green-50 text-green-600 rounded-xl"><Edit className="w-8 h-8" /></div>
+                   <div>
+                      <p className="text-gray-500 text-sm font-bold uppercase">Blog Posts</p>
+                      <p className="text-3xl font-bold text-gray-900">{stats.posts}</p>
+                   </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                    <h3 className="font-bold text-gray-900 mb-4">Quick Actions</h3>
+                    <div className="space-y-3">
+                       <button onClick={() => setActiveTab('users')} className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-left">
+                          <div className="flex items-center gap-3">
+                             <div className="bg-white p-2 rounded-lg shadow-sm"><Users className="w-5 h-5 text-gray-600"/></div>
+                             <span className="font-medium">Manage Users</span>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-gray-400" />
+                       </button>
+                       <button onClick={handleCreatePost} className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-left">
+                          <div className="flex items-center gap-3">
+                             <div className="bg-white p-2 rounded-lg shadow-sm"><Edit className="w-5 h-5 text-gray-600"/></div>
+                             <span className="font-medium">Write New Article</span>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-gray-400" />
+                       </button>
+                        <button onClick={handleGeneratePost} disabled={isGenerating} className="w-full flex items-center justify-between p-4 bg-purple-50 hover:bg-purple-100 border border-purple-100 rounded-xl transition-colors text-left">
+                          <div className="flex items-center gap-3">
+                             <div className="bg-white p-2 rounded-lg shadow-sm text-purple-600">
+                               {isGenerating ? <div className="animate-spin w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full"></div> : <Zap className="w-5 h-5"/>}
+                             </div>
+                             <span className="font-medium text-purple-800">
+                               {isGenerating ? 'Generating Content...' : 'Generate Post with AI'}
+                             </span>
+                          </div>
+                          {!isGenerating && <ArrowRight className="w-4 h-4 text-purple-400" />}
+                       </button>
+                    </div>
+                 </div>
+                 
+                 <div className="bg-nature-600 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
+                    <div className="relative z-10">
+                      <h3 className="font-bold text-xl mb-2">Admin Note</h3>
+                      <p className="text-nature-100 mb-6">Remember to check user feedback and update the "Recommended" section in the CMS weekly.</p>
+                      <div className="flex items-center gap-2 text-sm bg-white/10 w-fit px-3 py-1 rounded-lg">
+                         <CheckCircle className="w-4 h-4" /> System Operational
+                      </div>
+                    </div>
+                    <div className="absolute right-0 bottom-0 w-32 h-32 bg-white/10 rounded-full blur-2xl transform translate-y-10 translate-x-10"></div>
+                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* USERS VIEW */}
+          {activeTab === 'users' && (
+            <div className="animate-fade-in">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
+                  <p className="text-gray-500">Manage access, plans, and user accounts.</p>
+                </div>
+                <div className="relative w-full md:w-64">
+                   <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                   <input 
+                     type="text" 
+                     placeholder="Search users..." 
+                     value={userSearch}
+                     onChange={(e) => setUserSearch(e.target.value)}
+                     className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-nature-500 focus:border-transparent"
+                   />
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-100">
+                        <th className="p-4 font-semibold text-gray-600 text-sm">User</th>
+                        <th className="p-4 font-semibold text-gray-600 text-sm">Plan Status</th>
+                        <th className="p-4 font-semibold text-gray-600 text-sm">Usage</th>
+                        <th className="p-4 font-semibold text-gray-600 text-sm">Admin Control</th>
+                        <th className="p-4 font-semibold text-gray-600 text-sm text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {filteredUsers.map(user => (
+                        <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="p-4">
+                              <div className="flex items-center gap-3">
+                                 <div className="w-10 h-10 rounded-full bg-nature-100 flex items-center justify-center text-nature-700 font-bold text-xs">
+                                    {user.name.substring(0,2).toUpperCase()}
+                                 </div>
+                                 <div>
+                                    <div className="font-bold text-gray-900">{user.name}</div>
+                                    <div className="text-xs text-gray-500">{user.email}</div>
+                                 </div>
+                              </div>
+                          </td>
+                          <td className="p-4">
+                             {user.plan === 'pro' ? (
+                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-bold border border-yellow-200">
+                                 <Star className="w-3 h-3 fill-yellow-800" /> PRO
+                               </span>
+                             ) : (
+                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-bold border border-gray-200">
+                                 FREE
+                               </span>
+                             )}
+                          </td>
+                          <td className="p-4 text-sm text-gray-600">
+                             <div className="flex items-center gap-2">
+                                <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                   <div className={`h-full rounded-full ${user.plan === 'pro' ? 'bg-yellow-400' : 'bg-nature-500'}`} style={{ width: user.plan === 'pro' ? '100%' : `${(user.usageCount/3)*100}%` }}></div>
+                                </div>
+                                <span>{user.usageCount} / {user.maxUsage === -1 ? '∞' : user.maxUsage}</span>
+                             </div>
+                          </td>
+                          <td className="p-4">
+                             <select 
+                               value={user.plan} 
+                               onChange={(e) => handlePlanChange(user.id, e.target.value)}
+                               className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-nature-500 outline-none"
+                             >
+                               <option value="free">Free Plan</option>
+                               <option value="pro">Pro Plan</option>
+                             </select>
+                          </td>
+                          <td className="p-4 text-right">
+                             <button onClick={() => handleDeleteUser(user.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Remove User">
+                                <Trash className="w-4 h-4" />
+                             </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {filteredUsers.length === 0 && (
+                   <div className="p-8 text-center text-gray-500">No users found matching your search.</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* POSTS VIEW */}
+          {activeTab === 'posts' && (
+            <div className="animate-fade-in">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                   <h1 className="text-3xl font-bold text-gray-900">Blog Content</h1>
+                   <p className="text-gray-500">Manage your educational articles.</p>
+                </div>
+                <div className="flex gap-3">
+                    <button onClick={handleGeneratePost} disabled={isGenerating} className="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200">
+                      {isGenerating ? <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div> : <Zap className="w-4 h-4" />}
+                      {isGenerating ? 'Generating...' : 'Generate with AI'}
+                    </button>
+                    <button onClick={handleCreatePost} className="bg-nature-600 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-nature-700 transition-colors shadow-lg shadow-nature-200">
+                      <Plus className="w-4 h-4" /> New Post
+                    </button>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                 <table className="w-full text-left border-collapse">
+                   <thead>
+                     <tr className="bg-gray-50 border-b border-gray-100">
+                       <th className="p-4 font-semibold text-gray-600 text-sm">Title</th>
+                       <th className="p-4 font-semibold text-gray-600 text-sm">Category</th>
+                       <th className="p-4 font-semibold text-gray-600 text-sm">Author</th>
+                       <th className="p-4 font-semibold text-gray-600 text-sm">Date</th>
+                       <th className="p-4 font-semibold text-gray-600 text-sm text-right">Actions</th>
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y divide-gray-100">
+                     {posts.map(post => (
+                       <tr key={post.id} className="hover:bg-gray-50 transition-colors">
+                         <td className="p-4">
+                            <div className="font-medium text-gray-900 max-w-xs truncate">{post.title}</div>
+                         </td>
+                         <td className="p-4">
+                            <span className="px-2 py-1 bg-gray-100 rounded-md text-xs font-medium text-gray-600">{post.category}</span>
+                         </td>
+                         <td className="p-4 text-sm text-gray-600">{post.author}</td>
+                         <td className="p-4 text-sm text-gray-500">{post.date}</td>
+                         <td className="p-4 text-right flex justify-end gap-2">
+                            <button onClick={() => handleEditPost(post)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+                               <Edit className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDeletePost(post.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                               <Trash className="w-4 h-4" />
+                            </button>
+                         </td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+};
