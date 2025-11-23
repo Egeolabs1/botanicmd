@@ -133,6 +133,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Se login funcionou, retorna sucesso
       if (loginData.user && !loginError) {
         // O mapUser será chamado automaticamente via onAuthStateChange
+        // Mas vamos garantir que a sessão seja mapeada imediatamente
+        mapUser(loginData.user);
         return;
       }
 
@@ -166,7 +168,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         } else {
           // Email já confirmado - usuário já pode usar
-          // O mapUser será chamado automaticamente via onAuthStateChange
+          // Mapeia o usuário imediatamente
+          mapUser(signUpData.user);
           return;
         }
       }

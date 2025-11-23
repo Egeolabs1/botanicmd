@@ -120,11 +120,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       // Passa a senha e o nome (apenas no cadastro)
       await login(email.trim(), password.trim(), !isLogin ? name.trim() : undefined);
       
-      // Só fecha o modal se não for cadastro que precisa confirmar email
-      // (se for cadastro, o usuário vai receber um alerta para confirmar email)
+      // Para login: fecha o modal e aguarda um pouco para garantir que a autenticação foi processada
       if (isLogin) {
-        onClose();
+        // Aguarda um pouco para garantir que o estado foi atualizado
+        setTimeout(() => {
+          onClose();
+          // Se ainda não estiver autenticado, força navegação (modo demo)
+          if (!isAuthenticated) {
+            navigate('/app');
+          }
+        }, 500);
       }
+      // Para cadastro: o alert já foi mostrado na função login, então não fecha o modal ainda
     } catch (error: any) {
       // Se for erro específico de email ou senha, mostra no campo correspondente
       if (error.message?.includes('senha') || error.message?.includes('password')) {
