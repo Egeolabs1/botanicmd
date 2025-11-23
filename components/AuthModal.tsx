@@ -66,6 +66,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('handleSubmit chamado', { isLogin, email: email.trim(), passwordLength: password.length });
     
     // Validações
     if (!isLogin && !name.trim()) {
@@ -73,7 +74,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       return;
     }
 
-    if (name.trim() && name.trim().length < 2) {
+    if (!isLogin && name.trim() && name.trim().length < 2) {
       setNameError('Nome deve ter pelo menos 2 caracteres');
       return;
     }
@@ -117,23 +118,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setPasswordError('');
 
     try {
+      console.log('Chamando função login...');
       // Passa a senha e o nome (apenas no cadastro)
       await login(email.trim(), password.trim(), !isLogin ? name.trim() : undefined);
+      console.log('Login/cadastro concluído com sucesso');
       
       // Para login: fecha o modal imediatamente
       if (isLogin) {
+        console.log('Fechando modal e navegando para /app');
         onClose();
         // Navega para o app (o useEffect vai cuidar se já estiver autenticado)
         navigate('/app');
+      } else {
+        console.log('Cadastro realizado, aguardando confirmação de email');
       }
       // Para cadastro: o alert já foi mostrado na função login, então não fecha o modal ainda
     } catch (error: any) {
       console.error('Erro no login/cadastro:', error);
       // Se for erro específico de email ou senha, mostra no campo correspondente
-      if (error.message?.includes('senha') || error.message?.includes('password')) {
+      if (error?.message?.includes('senha') || error?.message?.includes('password')) {
         setPasswordError(error.message);
       } else {
-        setEmailError(error.message || 'Erro ao fazer login. Tente novamente.');
+        const errorMsg = error?.message || 'Erro ao fazer login. Tente novamente.';
+        setEmailError(errorMsg);
+        console.error('Mensagem de erro:', errorMsg);
       }
     } finally {
       setIsSubmitting(false);
