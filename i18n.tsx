@@ -357,7 +357,7 @@ const translations = {
     about_story_text: "O BotanicMD começou como um projeto apaixonado da Egeolabs. Combinamos nosso amor pela natureza com Inteligência Artificial de ponta para criar o melhor companheiro de bolso para amantes de plantas.",
     about_vision: "A Visão",
     about_vision_text: "Construir a enciclopédia botânica digital mais abrangente do mundo, promovendo uma comunidade global conectada pelo amor à natureza e à sustentabilidade.",
-    footer_developed_by: "Desenvolvido por Egeolabs",
+    footer_developed_by: "Desenvolvido com ♥ por Egeolabs",
     // Luxometer
     lux_title: "Medidor de Luz (Lux)",
     lux_desc: "Aponte a câmera para o local onde quer colocar a planta para medir a intensidade da luz.",
@@ -401,14 +401,14 @@ const translations = {
     best_value: "MELHOR VALOR",
     unlock_urgency: "Salvar Minha Planta Agora",
     secure_payment: "Pagamento Seguro via Store",
-    app_footer_credit: "Desenvolvido por Egeolabs 2025",
+    app_footer_credit: "Desenvolvido com ♥ por Egeolabs",
     privacy_and_security: "Privacidade e Segurança",
     email_notifications: "Notificações por Email",
     change_password: "Alterar Senha",
     share_app: "Compartilhar App",
     export_data: "Exportar Dados",
     help_and_support: "Ajuda e Suporte",
-    developed_with_love: "Desenvolvido com"
+    developed_with_love: ""
   },
   es: {
     app_name: "BotanicMD",

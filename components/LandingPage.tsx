@@ -441,7 +441,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, onOpenPrivacy
         </div>
         
         <div className="max-w-7xl mx-auto pt-8 border-t border-gray-100 text-center text-sm text-gray-400">
-            © {new Date().getFullYear()} BotanicMD AI. Desenvolvido por Egeolabs.
+            © {new Date().getFullYear()} BotanicMD AI. Desenvolvido com ♥ por Egeolabs.
         </div>
       </footer>
     </div>
