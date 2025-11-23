@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Leaf, Sprout, HeartPulse, Trophy, Star, Smartphone, ArrowRight, CheckCircle, Camera, Zap, Database, HelpCircle, ChevronDown, Flask } from '../components/Icons';
 import { useLanguage } from '../i18n';
-import { PWAInstallPrompt } from '../components/PWAInstallPrompt';
 import { AuthModal } from '../components/AuthModal';
 import { LegalModal } from '../components/LegalModal';
 import { AboutModal } from '../components/AboutModal';
@@ -462,7 +461,6 @@ export const LandingPage: React.FC = () => {
         </footer>
       </div>
       
-      <PWAInstallPrompt />
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       <LegalModal 
         isOpen={legalModal.isOpen} 
