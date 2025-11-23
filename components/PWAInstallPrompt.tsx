@@ -11,10 +11,17 @@ export const PWAInstallPrompt: React.FC = () => {
   useEffect(() => {
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroidDevice = /android/.test(userAgent);
     // @ts-ignore
     const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
 
-    if (isIosDevice && !isStandalone) {
+    // Não mostra se já estiver instalado
+    if (isStandalone) {
+      return;
+    }
+
+    // Para iOS, sempre mostra após delay (mesmo sem beforeinstallprompt)
+    if (isIosDevice) {
       setIsIOS(true);
       setTimeout(() => setShowPrompt(true), 3000);
     }
@@ -27,10 +34,23 @@ export const PWAInstallPrompt: React.FC = () => {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
+    // Para Android, também tenta mostrar mesmo sem o evento
+    // (pode não aparecer, mas tenta)
+    if (isAndroidDevice && !isStandalone) {
+      // Verifica após um tempo se não recebeu o evento
+      setTimeout(() => {
+        if (!deferredPrompt && !showPrompt) {
+          // Mesmo sem o evento, mostra para que o usuário possa tentar
+          // O navegador pode mostrar o prompt nativo
+          setShowPrompt(true);
+        }
+      }, 5000);
+    }
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
-  }, []);
+  }, [deferredPrompt, showPrompt]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;

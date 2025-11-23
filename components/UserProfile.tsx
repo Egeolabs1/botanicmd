@@ -33,21 +33,30 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
   const [currentView, setCurrentView] = useState<ViewState>('main');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isIOS, setIsIOS] = useState(false);
+  const [showInstallButton, setShowInstallButton] = useState(false);
   
-  // Debug: log PWA status
+  // Verifica se deve mostrar o botão de instalar
   useEffect(() => {
+    // Verifica múltiplas formas de detectar PWA instalado
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
     const isIOSStandalone = (window.navigator as any).standalone === true;
     const isAndroidStandalone = document.referrer.includes('android-app://');
     
-    console.log('🔍 UserProfile Debug:');
+    const actuallyInstalled = isStandalone || isIOSStandalone || isAndroidStandalone;
+    
+    // Mostra o botão se NÃO estiver instalado
+    setShowInstallButton(!actuallyInstalled);
+    
+    // Debug
+    console.log('🔍 UserProfile - Install Button Check:');
     console.log('  - isPWA (hook):', isPWA);
     console.log('  - display-mode standalone:', isStandalone);
     console.log('  - iOS standalone:', isIOSStandalone);
     console.log('  - Android standalone:', isAndroidStandalone);
+    console.log('  - actuallyInstalled:', actuallyInstalled);
+    console.log('  - showInstallButton:', !actuallyInstalled);
     console.log('  - deferredPrompt:', !!deferredPrompt);
     console.log('  - isIOS:', isIOS);
-    console.log('  - should show install button:', !isPWA);
   }, [isPWA, deferredPrompt, isIOS]);
   const [editName, setEditName] = useState(user.name);
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
@@ -533,7 +542,7 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
             </button>
 
             {/* Install App - Only show if not installed */}
-            {!isPWA && (
+            {showInstallButton && (
               <button 
                 onClick={handleInstallClick}
                 className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-gray-700 transition-colors text-left"
