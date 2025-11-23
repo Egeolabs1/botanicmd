@@ -374,6 +374,20 @@ export const AppMain: React.FC = () => {
   }
 
   if (appState === AppState.ADMIN) {
+    // Verificar se o usuário é admin antes de mostrar o painel
+    if (!isAdmin(user)) {
+      // Usuário não é admin - redirecionar e mostrar alerta
+      alert('Acesso negado. Apenas administradores podem acessar este painel.');
+      setAppState(AppState.IDLE);
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-nature-50">
+          <div className="text-center">
+            <p className="text-gray-600">Redirecionando...</p>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <Suspense fallback={
         <div className="min-h-screen flex items-center justify-center bg-nature-50">

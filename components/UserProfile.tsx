@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { storage, SavedPlant } from '../services/storageService';
 import { historyService, HistoryEntry } from '../services/historyService';
 import { reminderService, Reminder } from '../services/reminderService';
+import { isAdmin } from '../services/adminAuthService';
 
 interface UserProfileProps {
   user: UserType;
@@ -364,15 +365,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
                <ArrowRight className="w-4 h-4 text-gray-300" />
             </button>
             
-             {/* Admin Button - Always visible for demo */}
-             <button 
-                onClick={() => { onClose(); if(onAdmin) onAdmin(); }}
-                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-gray-700 transition-colors text-left"
-            >
-               <div className="p-2 bg-gray-900 rounded-lg text-white"><LayoutDashboard className="w-5 h-5" /></div>
-               <span className="font-medium flex-1">Admin Panel</span>
-               <ArrowRight className="w-4 h-4 text-gray-300" />
-            </button>
+             {/* Admin Button - Only visible for admins */}
+             {isAdmin(user) && (
+               <button 
+                  onClick={() => { onClose(); if(onAdmin) onAdmin(); }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-gray-700 transition-colors text-left"
+              >
+                 <div className="p-2 bg-gray-900 rounded-lg text-white"><LayoutDashboard className="w-5 h-5" /></div>
+                 <span className="font-medium flex-1">Admin Panel</span>
+                 <ArrowRight className="w-4 h-4 text-gray-300" />
+              </button>
+             )}
 
             <button 
                 onClick={() => setCurrentView('settings')}
