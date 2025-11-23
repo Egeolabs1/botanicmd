@@ -92,6 +92,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
   useEffect(() => {
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    const isAndroidDevice = /android/.test(userAgent);
     
     if (isIosDevice) {
       setIsIOS(true);
@@ -102,7 +103,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
       setDeferredPrompt(e);
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    // Para Android, sempre permite mostrar a opção (deferredPrompt pode vir depois)
+    // Para iOS, sempre permite mostrar se não estiver instalado
+    if (isAndroidDevice || isIosDevice) {
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -470,7 +475,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
             </button>
 
             {/* Install App - Only show if not installed */}
-            {!isPWA && (deferredPrompt || isIOS) && (
+            {!isPWA && (
               <button 
                 onClick={handleInstallClick}
                 className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-gray-700 transition-colors text-left"
