@@ -34,7 +34,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
       id: 'problem' as const,
       title: 'Relatar Problema',
       description: 'Avise-nos sobre bugs ou problemas encontrados',
-      icon: AlertCircle,
+      icon: AlertTriangle,
       subject: 'Relatar Problema BotanicMD',
       body: 'Olá,\n\nEncontrei um problema:\n\nDescrição:\n\n'
     }
