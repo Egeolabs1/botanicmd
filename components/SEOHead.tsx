@@ -16,7 +16,7 @@ export const getOrganizationSchema = (t: any, language: string) => ({
   "sameAs": []
 });
 
-export export const getWebApplicationSchema = (t: any, language: string) => ({
+export const getWebApplicationSchema = (t: any, language: string) => ({
   "@context": "https://schema.org",
   "@type": "WebApplication",
   "name": "BotanicMD",
