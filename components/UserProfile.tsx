@@ -748,7 +748,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
         features: ['3 análises por mês', 'Identificação básica', 'Diagnóstico básico'],
         current: user.plan === 'free',
         badge: null,
-        equivalent: null
+        equivalent: null,
+        icon: '🌱'
       },
       {
         name: 'PRO Mensal',
@@ -758,17 +759,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
         current: user.plan === 'pro',
         badge: null,
         equivalent: null,
-        planType: 'monthly' as const
+        planType: 'monthly' as const,
+        icon: '⭐'
       },
       {
         name: 'PRO Anual',
         price: t('price_annual'),
         period: '/ano',
         features: commonProFeatures,
-        current: false, // Será verificado se o usuário tem plano anual
+        current: false,
         badge: 'Melhor valor',
         equivalent: t('per_month_equiv'),
-        planType: 'annual' as const
+        planType: 'annual' as const,
+        icon: '👑'
       },
       {
         name: 'PRO Vitalício',
@@ -778,104 +781,141 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
         current: false,
         badge: null,
         equivalent: null,
-        planType: 'lifetime' as const
+        planType: 'lifetime' as const,
+        icon: '💎'
       }
     ];
 
     return (
-      <div className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-full"><ArrowRight className="w-5 h-5 rotate-180" /></button>
-          <h3 className="text-lg font-bold text-gray-900">{t('subscription')}</h3>
+      <div className="p-4 md:p-6 pb-20">
+        <div className="flex items-center gap-3 mb-4 md:mb-6 sticky top-0 bg-white pb-2 z-10">
+          <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-full active:scale-95 transition-transform"><ArrowRight className="w-5 h-5 rotate-180" /></button>
+          <h3 className="text-lg md:text-xl font-bold text-gray-900">{t('subscription')}</h3>
         </div>
         
-        <div className="space-y-4">
+        {/* Mobile-optimized plan cards */}
+        <div className="space-y-3 md:space-y-4">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`border-2 rounded-2xl p-6 ${
+              className={`relative border-2 rounded-xl md:rounded-2xl overflow-hidden transition-all ${
                 plan.current
-                  ? 'border-nature-600 bg-nature-50'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  ? 'border-nature-600 bg-gradient-to-br from-nature-50 to-green-50 shadow-md'
+                  : plan.badge === 'Melhor valor'
+                  ? 'border-nature-500 bg-white shadow-lg'
+                  : 'border-gray-200 bg-white'
               }`}
             >
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-bold text-lg text-gray-900">{plan.name}</h4>
-                    {plan.badge && (
-                      <span className="bg-nature-600 text-white text-xs font-bold px-2 py-1 rounded-full">
-                        {plan.badge}
-                      </span>
-                    )}
-                    {plan.current && (
-                      <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">
-                        Atual
-                      </span>
+              {/* Badge for "Melhor valor" - positioned absolutely */}
+              {plan.badge === 'Melhor valor' && (
+                <div className="absolute top-3 right-3 z-10">
+                  <span className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-md">
+                    {plan.badge}
+                  </span>
+                </div>
+              )}
+
+              {/* Current plan badge */}
+              {plan.current && (
+                <div className="absolute top-3 right-3 z-10">
+                  <span className="bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-md">
+                    Atual
+                  </span>
+                </div>
+              )}
+
+              <div className="p-4 md:p-6">
+                {/* Header with icon, name and price */}
+                <div className="mb-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="text-2xl">{plan.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-base md:text-lg text-gray-900 leading-tight">{plan.name}</h4>
+                        {plan.equivalent && (
+                          <p className="text-xs text-nature-600 font-semibold mt-0.5">{plan.equivalent}</p>
+                        )}
+                      </div>
+                    </div>
+                    {plan.name.startsWith('PRO') && !plan.current && (
+                      <button
+                        onClick={() => {
+                          onClose();
+                          onUpgrade();
+                        }}
+                        className="bg-nature-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-bold text-xs md:text-sm hover:bg-nature-700 active:scale-95 transition-all flex items-center gap-1.5 shadow-md flex-shrink-0"
+                      >
+                        <Star className="w-3 h-3 md:w-4 md:h-4" /> 
+                        <span className="hidden sm:inline">Assinar</span>
+                      </button>
                     )}
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                  
+                  {/* Price */}
+                  <div className="mt-2">
+                    <p className="text-xl md:text-2xl font-bold text-gray-900">
                       {plan.price}
-                      {plan.period && <span className="text-sm text-gray-500 font-normal">{plan.period}</span>}
+                      {plan.period && <span className="text-sm md:text-base text-gray-500 font-normal">/{plan.period}</span>}
                     </p>
-                    {plan.equivalent && (
-                      <p className="text-xs text-nature-600 font-semibold mt-1">{plan.equivalent}</p>
-                    )}
                   </div>
                 </div>
+                
+                {/* Features - compact for mobile */}
+                <div className="space-y-1.5 md:space-y-2">
+                  {plan.features.slice(0, plan.name === 'PRO Vitalício' ? 7 : 5).map((feature, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs md:text-sm text-gray-700">
+                      <CheckCircle className={`w-3.5 h-3.5 md:w-4 md:h-4 flex-shrink-0 ${plan.current ? 'text-nature-600' : 'text-gray-400'}`} />
+                      <span className="leading-tight">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Show upgrade button at bottom for mobile if not PRO */}
                 {plan.name.startsWith('PRO') && !plan.current && (
                   <button
                     onClick={() => {
                       onClose();
                       onUpgrade();
                     }}
-                    className="bg-nature-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-nature-700 transition-colors flex items-center gap-2"
+                    className="w-full mt-4 bg-nature-600 text-white py-2.5 rounded-lg font-bold text-sm hover:bg-nature-700 active:scale-98 transition-all flex items-center justify-center gap-2 shadow-md sm:hidden"
                   >
-                    <Star className="w-4 h-4" /> Assinar
+                    <Star className="w-4 h-4" /> 
+                    Assinar Agora
                   </button>
                 )}
               </div>
-              
-              <ul className="space-y-2 mb-4">
-                {plan.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-center gap-2 text-sm text-gray-600">
-                    <CheckCircle className={`w-4 h-4 ${plan.current ? 'text-nature-600' : 'text-gray-400'}`} />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
             </div>
           ))}
         </div>
 
+        {/* Action buttons for PRO users */}
         {user.plan === 'pro' && (
-          <div className="mt-6 space-y-2">
+          <div className="mt-6 space-y-2 bg-gray-50 rounded-xl p-4">
             <button 
               onClick={() => {
                 onClose();
                 onUpgrade();
               }}
-              className="w-full text-center text-sm text-nature-600 hover:text-nature-800 font-medium"
+              className="w-full text-center text-sm text-nature-600 hover:text-nature-800 font-semibold py-2 bg-white rounded-lg border border-nature-200 active:scale-98 transition-transform"
             >
               Alterar plano
             </button>
-            <button className="w-full text-center text-sm text-gray-500 hover:text-gray-800 font-medium">
+            <button className="w-full text-center text-sm text-gray-600 hover:text-gray-800 font-medium py-2">
               {t('manage_sub')}
             </button>
             <button 
               onClick={handleCancelSubscription}
-              className="w-full text-center text-sm text-red-500 hover:text-red-700 font-medium"
+              className="w-full text-center text-sm text-red-500 hover:text-red-700 font-medium py-2"
             >
               {t('cancel_subscription')}
             </button>
           </div>
         )}
         
-        {/* Footer */}
-        <div className="mt-6 pt-4 border-t border-gray-100 text-center">
-          <p className="text-xs text-gray-400">
-            {t('developed_with_love')} <span className="text-red-500">♥</span> {t('footer_developed_by')}
+        {/* Info box */}
+        <div className="mt-6 bg-blue-50 border border-blue-100 rounded-xl p-4">
+          <p className="text-xs text-blue-800 text-center leading-relaxed">
+            💳 Pagamento seguro via Stripe • Renovação automática • Cancele quando quiser
           </p>
         </div>
       </div>
