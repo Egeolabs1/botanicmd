@@ -6,7 +6,7 @@ interface SupportModalProps {
   onClose: () => void;
 }
 
-const SUPPORT_EMAIL = 'suporte.botanicmd@egeolabs.com';
+const SUPPORT_EMAIL = 'suport.botanicmd@egeolabs.com';
 
 export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) => {
   const [selectedType, setSelectedType] = useState<'support' | 'suggestion' | 'problem'>('support');
