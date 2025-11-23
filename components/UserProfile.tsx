@@ -738,20 +738,47 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
   );
 
   const renderSubscriptionView = () => {
+    const commonProFeatures = ['Análises ilimitadas', 'Diagnóstico avançado', 'Plantas salvas', 'Histórico completo', 'Lembretes'];
+    
     const plans = [
       {
         name: 'Free',
         price: t('free'),
+        period: '',
         features: ['3 análises por mês', 'Identificação básica', 'Diagnóstico básico'],
         current: user.plan === 'free',
-        badge: null
+        badge: null,
+        equivalent: null
       },
       {
-        name: 'PRO',
+        name: 'PRO Mensal',
         price: t('price_monthly'),
-        features: ['Análises ilimitadas', 'Diagnóstico avançado', 'Plantas salvas', 'Histórico completo', 'Lembretes'],
+        period: '/mês',
+        features: commonProFeatures,
         current: user.plan === 'pro',
-        badge: 'Popular'
+        badge: null,
+        equivalent: null,
+        planType: 'monthly' as const
+      },
+      {
+        name: 'PRO Anual',
+        price: t('price_annual'),
+        period: '/ano',
+        features: commonProFeatures,
+        current: false, // Será verificado se o usuário tem plano anual
+        badge: 'Melhor valor',
+        equivalent: t('per_month_equiv'),
+        planType: 'annual' as const
+      },
+      {
+        name: 'PRO Vitalício',
+        price: t('price_lifetime'),
+        period: '',
+        features: [...commonProFeatures, 'Acesso permanente', 'Atualizações futuras'],
+        current: false,
+        badge: null,
+        equivalent: null,
+        planType: 'lifetime' as const
       }
     ];
 
@@ -787,14 +814,25 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
                       </span>
                     )}
                   </div>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{plan.price}</p>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                      {plan.price}
+                      {plan.period && <span className="text-sm text-gray-500 font-normal">{plan.period}</span>}
+                    </p>
+                    {plan.equivalent && (
+                      <p className="text-xs text-nature-600 font-semibold mt-1">{plan.equivalent}</p>
+                    )}
+                  </div>
                 </div>
-                {plan.name === 'PRO' && !plan.current && (
+                {plan.name.startsWith('PRO') && !plan.current && (
                   <button
-                    onClick={onUpgrade}
+                    onClick={() => {
+                      onClose();
+                      onUpgrade();
+                    }}
                     className="bg-nature-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-nature-700 transition-colors flex items-center gap-2"
                   >
-                    <Star className="w-4 h-4" /> Upgrade
+                    <Star className="w-4 h-4" /> Assinar
                   </button>
                 )}
               </div>
@@ -813,6 +851,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
 
         {user.plan === 'pro' && (
           <div className="mt-6 space-y-2">
+            <button 
+              onClick={() => {
+                onClose();
+                onUpgrade();
+              }}
+              className="w-full text-center text-sm text-nature-600 hover:text-nature-800 font-medium"
+            >
+              Alterar plano
+            </button>
             <button className="w-full text-center text-sm text-gray-500 hover:text-gray-800 font-medium">
               {t('manage_sub')}
             </button>
