@@ -32,7 +32,6 @@ const PLACEHOLDER_PLANT_IMAGE = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 export const AppMain: React.FC = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
-  const { t, language } = useLanguage();
   const { user, isAuthenticated, logout, incrementUsage, checkLimit, upgradeToPro, isLoading: isAuthLoading } = useAuth();
   
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
