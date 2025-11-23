@@ -13,7 +13,7 @@ self.addEventListener('install', (event) => {
 
 // Limpeza de caches antigos na ativação
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating Service Worker...');
+  console.log('[SW] Activating Service Worker v' + CACHE_VERSION + '...');
   event.waitUntil(
     Promise.all([
       // Limpa caches antigos
@@ -28,13 +28,7 @@ self.addEventListener('activate', (event) => {
         );
       }),
       // Força a ativação imediata para todos os clients
-      self.clients.claim(),
-      // Notifica os clients para recarregar
-      self.clients.matchAll().then((clients) => {
-        clients.forEach((client) => {
-          client.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION });
-        });
-      })
+      self.clients.claim()
     ])
   );
 });
