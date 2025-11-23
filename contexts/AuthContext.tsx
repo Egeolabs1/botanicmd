@@ -269,25 +269,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (signUpData.user) {
         console.log('Cadastro bem-sucedido:', signUpData.user.email);
         
-        // Verifica se precisa confirmar email
-        if (signUpData.user.email_confirmed_at === null) {
-          // Email precisa ser confirmado
+        // Verifica se há sessão disponível (pode estar disponível se email não precisa confirmar)
+        const { data: { session: signupSession } } = await supabase.auth.getSession();
+        
+        if (signupSession?.user) {
+          // Há sessão disponível - usuário já pode usar (email não precisa confirmar ou já foi confirmado)
+          console.log('✅ Sessão disponível após cadastro - logando automaticamente');
+          mapUser(signupSession.user);
+          
+          // Aguarda um pouco para garantir que a sessão foi salva
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+          // Verifica novamente se a sessão foi salva corretamente
+          const { data: { session: verifySession } } = await supabase.auth.getSession();
+          if (verifySession) {
+            console.log('✅ Sessão confirmada e salva após cadastro');
+            // Garante que o usuário está mapeado
+            if (!user || user.id !== verifySession.user.id) {
+              mapUser(verifySession.user);
+            }
+          } else {
+            console.warn('⚠️ Sessão não encontrada após cadastro');
+          }
+          
+          return;
+        } else if (signUpData.user.email_confirmed_at === null) {
+          // Não há sessão e email precisa ser confirmado
+          console.log('ℹ️ Email precisa ser confirmado');
           alert('Conta criada com sucesso! Verifique seu email para confirmar sua conta antes de fazer login.');
           return;
         } else {
-          // Email já confirmado - usuário já pode usar
-          // Mapeia o usuário imediatamente
-          mapUser(signUpData.user);
-          
-          // Aguarda um pouco para garantir que a sessão foi salva
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          // Verifica se a sessão foi salva corretamente
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            console.log('✅ Sessão confirmada após cadastro');
-          }
-          
+          // Email já confirmado mas sem sessão - algo deu errado
+          console.warn('⚠️ Email confirmado mas sem sessão disponível');
+          alert('Conta criada, mas não foi possível fazer login automaticamente. Tente fazer login manualmente.');
           return;
         }
       }
