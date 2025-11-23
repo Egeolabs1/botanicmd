@@ -197,7 +197,14 @@ const translations = {
     best_value: "BEST VALUE",
     unlock_urgency: "Save Your Plant Now",
     secure_payment: "Secure Payment via Store",
-    app_footer_credit: "Developed by Egeolabs 2025"
+    app_footer_credit: "Developed by Egeolabs 2025",
+    privacy_and_security: "Privacy and Security",
+    email_notifications: "Email Notifications",
+    change_password: "Change Password",
+    share_app: "Share App",
+    export_data: "Export Data",
+    help_and_support: "Help and Support",
+    developed_with_love: "Developed with"
   },
   pt: {
     app_name: "BotanicMD",
@@ -394,7 +401,14 @@ const translations = {
     best_value: "MELHOR VALOR",
     unlock_urgency: "Salvar Minha Planta Agora",
     secure_payment: "Pagamento Seguro via Store",
-    app_footer_credit: "Desenvolvido por Egeolabs 2025"
+    app_footer_credit: "Desenvolvido por Egeolabs 2025",
+    privacy_and_security: "Privacidade e Segurança",
+    email_notifications: "Notificações por Email",
+    change_password: "Alterar Senha",
+    share_app: "Compartilhar App",
+    export_data: "Exportar Dados",
+    help_and_support: "Ajuda e Suporte",
+    developed_with_love: "Desenvolvido com"
   },
 };
 

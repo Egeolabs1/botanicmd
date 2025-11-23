@@ -553,7 +553,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
             className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
           >
             <div className="p-2 bg-gray-100 rounded-lg text-gray-600"><Shield className="w-5 h-5" /></div>
-            <span className="font-medium flex-1">Privacidade e Segurança</span>
+            <span className="font-medium flex-1">{t('privacy_and_security')}</span>
             <ArrowRight className="w-4 h-4 text-gray-300" />
           </button>
           
@@ -562,7 +562,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
             className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
           >
             <div className="p-2 bg-gray-100 rounded-lg text-gray-600"><Mail className="w-5 h-5" /></div>
-            <span className="font-medium flex-1">Notificações por Email</span>
+            <span className="font-medium flex-1">{t('email_notifications')}</span>
             <ArrowRight className="w-4 h-4 text-gray-300" />
           </button>
           
@@ -571,7 +571,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
             className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
           >
             <div className="p-2 bg-gray-100 rounded-lg text-gray-600"><Lock className="w-5 h-5" /></div>
-            <span className="font-medium flex-1">Alterar Senha</span>
+            <span className="font-medium flex-1">{t('change_password')}</span>
             <ArrowRight className="w-4 h-4 text-gray-300" />
           </button>
           
@@ -580,7 +580,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
             className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
           >
             <div className="p-2 bg-gray-100 rounded-lg text-gray-600"><Share2 className="w-5 h-5" /></div>
-            <span className="font-medium flex-1">Compartilhar App</span>
+            <span className="font-medium flex-1">{t('share_app')}</span>
             <ArrowRight className="w-4 h-4 text-gray-300" />
           </button>
           
@@ -589,7 +589,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
             className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
           >
             <div className="p-2 bg-gray-100 rounded-lg text-gray-600"><FileDown className="w-5 h-5" /></div>
-            <span className="font-medium flex-1">Exportar Dados</span>
+            <span className="font-medium flex-1">{t('export_data')}</span>
             <ArrowRight className="w-4 h-4 text-gray-300" />
           </button>
           
@@ -598,7 +598,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
             className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
           >
             <div className="p-2 bg-gray-100 rounded-lg text-gray-600"><HelpCircle className="w-5 h-5" /></div>
-            <span className="font-medium flex-1">Ajuda e Suporte</span>
+            <span className="font-medium flex-1">{t('help_and_support')}</span>
             <ArrowRight className="w-4 h-4 text-gray-300" />
           </button>
         </div>
