@@ -33,6 +33,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
   const [currentView, setCurrentView] = useState<ViewState>('main');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isIOS, setIsIOS] = useState(false);
+  
+  // Debug: log PWA status
+  useEffect(() => {
+    console.log('🔍 UserProfile - isPWA:', isPWA);
+    console.log('🔍 UserProfile - deferredPrompt:', !!deferredPrompt);
+    console.log('🔍 UserProfile - isIOS:', isIOS);
+    console.log('🔍 UserProfile - should show install:', !isPWA);
+  }, [isPWA, deferredPrompt, isIOS]);
   const [editName, setEditName] = useState(user.name);
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
     try {
