@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f0fdf4;
+  overscroll-behavior-y: none; /* Previne o pull-to-refresh nativo em mobile que atrapalha apps */
+}
+
+/* Utilitário para esconder scrollbar mantendo funcionalidade */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+/* Estilos robustos para impressão/PDF */
+@media print {
+  body {
+    visibility: hidden;
+    background-color: white !important;
+  }
+  header, nav, button, .no-print {
+    display: none !important;
+  }
+  .print-card {
+    visibility: visible;
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 9999;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: white !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+  }
+  .print-card * {
+    visibility: visible;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .break-inside-avoid {
+    page-break-inside: avoid;
+  }
+}
