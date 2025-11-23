@@ -12,13 +12,13 @@ export const LandingPage: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const [activeFaq, setActiveFaq] = useState<number | null>(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
-  const [legalModal, setLegalModal] = useState<{ isOpen: boolean; type: 'privacy' | 'terms' }>({ 
-    isOpen: false, 
-    type: 'privacy' 
-  });
+    const [activeFaq, setActiveFaq] = useState<number | null>(null);
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+    const [legalModal, setLegalModal] = useState<{ isOpen: boolean; type: 'privacy' | 'terms' }>({ 
+      isOpen: false, 
+      type: 'privacy' 
+    });
 
   const toggleFaq = (idx: number) => {
     setActiveFaq(activeFaq === idx ? null : idx);
