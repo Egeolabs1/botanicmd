@@ -325,12 +325,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
     <>
         {/* Header Background */}
         <div className="h-32 bg-gradient-to-r from-nature-500 to-nature-700 relative flex-shrink-0">
-           <button 
-            onClick={onClose} 
-            className="absolute top-4 right-4 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Avatar & Info */}
@@ -1619,6 +1613,13 @@ Perguntas Frequentes - BotanicMD
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
       <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl relative transition-all duration-300 max-h-[85vh] overflow-y-auto">
+        {/* Fixed Close Button */}
+        <button 
+          onClick={onClose} 
+          className="fixed top-6 right-6 z-[70] bg-black/20 hover:bg-black/40 text-white p-2.5 rounded-full transition-colors backdrop-blur-sm shadow-lg"
+        >
+          <X className="w-5 h-5" />
+        </button>
         {renderContent()}
       </div>
     </div>
