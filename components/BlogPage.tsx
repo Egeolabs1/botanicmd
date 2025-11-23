@@ -176,7 +176,7 @@ export const BlogPage: React.FC = () => {
             <Leaf className="w-6 h-6" />
             <span className="font-bold text-xl text-gray-900">{t('app_name')}</span>
          </div>
-         <p className="text-gray-500 text-sm">© {new Date().getFullYear()} BotanicMD AI. {t('footer_rights')}</p>
+         <p className="text-gray-500 text-sm">© {new Date().getFullYear()} BotanicMD AI. Desenvolvido com ♥ por Egeolabs.</p>
       </footer>
     </div>
   );
