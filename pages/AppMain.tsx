@@ -59,13 +59,20 @@ export const AppMain: React.FC = () => {
 
   // Redirect to landing if not authenticated on mount
   useEffect(() => {
-    if (!isAuthLoading && !isAuthenticated && window.location.pathname === '/app') {
-      // Wait a bit to see if auth loads
+    // Só redireciona se terminou de carregar E não está autenticado
+    if (isAuthLoading) {
+      // Ainda carregando, aguarda
+      return;
+    }
+
+    if (!isAuthenticated && window.location.pathname === '/app') {
+      // Aguarda um pouco para garantir que a sessão foi verificada
       const timer = setTimeout(() => {
+        // Verifica novamente antes de redirecionar
         if (!isAuthenticated) {
           navigate('/');
         }
-      }, 500);
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [isAuthenticated, isAuthLoading, navigate]);
