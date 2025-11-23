@@ -153,7 +153,7 @@ const translations = {
     about_story_text: "BotanicMD started as a passion project by Egeolabs. We combined our love for nature with cutting-edge Artificial Intelligence to create the ultimate pocket companion for plant lovers.",
     about_vision: "The Vision",
     about_vision_text: "To build the world's most comprehensive digital botanical encyclopedia, fostering a global community connected by their love for nature and sustainability.",
-    footer_developed_by: "Developed by Egeolabs",
+    footer_developed_by: "by Egeolabs",
     // Luxometer
     lux_title: "Light Meter (Lux)",
     lux_desc: "Point your camera at the spot where you want to put your plant to measure light intensity.",
