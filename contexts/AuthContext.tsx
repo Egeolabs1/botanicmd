@@ -126,17 +126,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Escuta mudanças de auth (Login/Logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
+      console.log('Auth state changed:', event, session?.user?.email || 'no user');
       
       if (!mounted) return;
 
+      // Para INITIAL_SESSION, não limpa o usuário imediatamente
+      // Aguarda a verificação de sessão persistida
+      if (event === 'INITIAL_SESSION') {
+        if (session?.user) {
+          mapUser(session.user);
+        } else {
+          // Se INITIAL_SESSION não tem sessão, verifica se há sessão persistida
+          // e só então marca como não autenticado
+          const { data: { session: persistedSession } } = await supabase.auth.getSession();
+          if (persistedSession?.user) {
+            mapUser(persistedSession.user);
+          } else {
+            setUser(null);
+            setIsLoading(false);
+          }
+        }
+        return;
+      }
+
+      // Para outros eventos, processa normalmente
       if (session?.user) {
         mapUser(session.user);
-      } else {
-        // Sessão perdida ou logout
+      } else if (event === 'SIGNED_OUT') {
+        // Só limpa se for logout explícito
         setUser(null);
         setIsLoading(false);
       }
+      // Para outros eventos sem sessão, não limpa imediatamente
+      // Pode ser um refresh temporário do token
     });
 
     return () => {
@@ -196,13 +218,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (loginData.user && !loginError) {
         // O mapUser será chamado automaticamente via onAuthStateChange
         // Mas vamos garantir que a sessão seja mapeada imediatamente
+        console.log('Login bem-sucedido:', loginData.user.email);
         mapUser(loginData.user);
+        
+        // Aguarda um pouco para garantir que a sessão foi salva
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Verifica se a sessão foi salva corretamente
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          console.log('✅ Sessão confirmada após login');
+        }
+        
         return;
       }
 
-      // Se o erro não for "invalid credentials", pode ser outro problema
-      if (loginError && !loginError.message.includes('Invalid login credentials')) {
-        throw loginError;
+      // Trata erros específicos
+      if (loginError) {
+        console.error('Erro no login:', loginError);
+        
+        // Se for "invalid credentials", tenta cadastrar
+        if (loginError.message.includes('Invalid login credentials') || 
+            loginError.message.includes('Invalid login credentials')) {
+          // Continua para o fluxo de cadastro abaixo
+        } else if (loginError.message.includes('Email not confirmed')) {
+          throw new Error('Por favor, confirme seu email antes de fazer login. Verifique sua caixa de entrada.');
+        } else {
+          // Outros erros são lançados
+          throw loginError;
+        }
       }
 
       // Se chegou aqui, o usuário não existe, então vamos fazer cadastro
@@ -223,6 +267,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Se o signup foi bem-sucedido
       if (signUpData.user) {
+        console.log('Cadastro bem-sucedido:', signUpData.user.email);
+        
         // Verifica se precisa confirmar email
         if (signUpData.user.email_confirmed_at === null) {
           // Email precisa ser confirmado
@@ -232,6 +278,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Email já confirmado - usuário já pode usar
           // Mapeia o usuário imediatamente
           mapUser(signUpData.user);
+          
+          // Aguarda um pouco para garantir que a sessão foi salva
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Verifica se a sessão foi salva corretamente
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            console.log('✅ Sessão confirmada após cadastro');
+          }
+          
           return;
         }
       }
