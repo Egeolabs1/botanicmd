@@ -31,7 +31,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [passwordError, setPasswordError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
-  const [isResendEmail, setIsResendEmail] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
 
   // Redireciona para /app após login bem-sucedido
