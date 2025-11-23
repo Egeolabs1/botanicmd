@@ -1005,7 +1005,6 @@ const translations = {
     developed_with_love: "Entwickelt mit"
   },
   it: {
-    ...translations['en'],
     app_name: "BotanicMD",
     tagline: "Il Tuo Assistente Botanico Personale",
     hero_title: "Cura e Salva",
@@ -1204,7 +1203,6 @@ const translations = {
     developed_with_love: "Sviluppato con"
   },
   zh: {
-    ...translations['en'],
     app_name: "BotanicMD",
     tagline: "您的个人植物助手",
     hero_title: "治愈并拯救",
@@ -1403,7 +1401,6 @@ const translations = {
     developed_with_love: "由...开发"
   },
   ru: {
-    ...translations['en'],
     app_name: "BotanicMD",
     tagline: "Ваш Личный Ботанический Помощник",
     hero_title: "Исцеляйте и Спасайте",
@@ -1602,7 +1599,6 @@ const translations = {
     developed_with_love: "Разработано с"
   },
   hi: {
-    ...translations['en'],
     app_name: "BotanicMD",
     tagline: "आपका व्यक्तिगत वनस्पति सहायक",
     hero_title: "ठीक करें और बचाएं",
