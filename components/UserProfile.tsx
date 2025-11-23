@@ -11,6 +11,7 @@ import { isAdmin } from '../services/adminAuthService';
 import { uploadImageToStorage } from '../services/storageUploadService';
 import { supabase, isSupabaseConfigured } from '../services/supabase';
 import { FAQModal } from './FAQModal';
+import { SupportModal } from './SupportModal';
 
 interface UserProfileProps {
   user: UserType;
@@ -64,6 +65,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
   });
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isFAQModalOpen, setIsFAQModalOpen] = useState(false);
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [newReminder, setNewReminder] = useState({
     plantName: '',
     type: 'watering' as Reminder['type'],
@@ -1446,42 +1448,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
           <p className="text-sm text-gray-600">Respostas para dúvidas comuns</p>
         </button>
         <button 
-          onClick={(e) => {
-            e.preventDefault();
-            // Use setTimeout to make it async and non-blocking
-            setTimeout(() => {
-              // Modal simples para escolher o tipo de contato
-              const contactType = prompt('Escolha o tipo de contato:\n\n1 - Suporte Geral\n2 - Enviar Sugestão\n3 - Relatar Problema\n\nDigite o número (1, 2 ou 3):');
-              
-              let subject = 'Suporte BotanicMD';
-              let body = 'Olá,%0D%0A%0D%0A';
-              
-              if (contactType === '2') {
-                subject = 'Sugestão BotanicMD';
-                body = 'Olá,%0D%0A%0D%0ADesejo sugerir:%0D%0A%0D%0A';
-              } else if (contactType === '3') {
-                subject = 'Relatar Problema BotanicMD';
-                body = 'Olá,%0D%0A%0D%0AEncontrei um problema:%0D%0A%0D%0ADescrição:%0D%0A%0D%0A';
-              }
-              
-              if (contactType) {
-                window.location.href = `mailto:suporte.botanicmd@egeolabs.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-              }
-            }, 0);
-          }}
+          onClick={() => setIsSupportModalOpen(true)}
           className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <h4 className="font-semibold text-gray-900 mb-1">Contatar Suporte</h4>
           <p className="text-sm text-gray-600">Entre em contato, envie sugestões ou relate problemas</p>
         </button>
-        <div className="bg-nature-50 rounded-lg p-4 mt-4">
-          <p className="text-sm text-nature-700 mb-2">
-            <strong>Email:</strong> suporte.botanicmd@egeolabs.com
-          </p>
-          <p className="text-xs text-nature-600">
-            Horário de atendimento: Segunda a Sexta, 9h às 18h
-          </p>
-        </div>
       </div>
       
       {/* Footer */}
@@ -1594,6 +1566,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
       <FAQModal 
         isOpen={isFAQModalOpen} 
         onClose={() => setIsFAQModalOpen(false)} 
+      />
+      <SupportModal 
+        isOpen={isSupportModalOpen} 
+        onClose={() => setIsSupportModalOpen(false)} 
       />
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
         <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl relative transition-all duration-300 max-h-[85vh] overflow-y-auto">
