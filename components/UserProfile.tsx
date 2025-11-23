@@ -10,6 +10,7 @@ import { reminderService, Reminder } from '../services/reminderService';
 import { isAdmin } from '../services/adminAuthService';
 import { uploadImageToStorage } from '../services/storageUploadService';
 import { supabase, isSupabaseConfigured } from '../services/supabase';
+import { FAQModal } from './FAQModal';
 
 interface UserProfileProps {
   user: UserType;
@@ -62,6 +63,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
     }
   });
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isFAQModalOpen, setIsFAQModalOpen] = useState(false);
   const [newReminder, setNewReminder] = useState({
     plantName: '',
     type: 'watering' as Reminder['type'],
@@ -1437,34 +1439,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
           <p className="text-sm text-gray-600">Guia completo de uso do BotanicMD</p>
         </button>
         <button 
-          onClick={(e) => {
-            e.preventDefault();
-            // Use setTimeout to make it async and non-blocking
-            setTimeout(() => {
-              const faqContent = `Perguntas Frequentes - BotanicMD
-
-1. Como identificar uma planta?
-   - Tire uma foto ou digite o nome da planta
-   - O app usará IA para identificar e fornecer informações
-
-2. Preciso pagar para usar?
-   - O plano gratuito permite 3 análises por mês
-   - O plano PRO oferece análises ilimitadas
-
-3. Meus dados são seguros?
-   - Sim, seus dados são armazenados de forma segura
-   - Não compartilhamos informações com terceiros
-
-4. Como salvar plantas?
-   - Apenas usuários PRO podem salvar plantas
-   - Faça upgrade para acessar esta funcionalidade
-
-5. O app funciona offline?
-   - A identificação requer conexão com internet
-   - Plantas salvas podem ser visualizadas offline`;
-              alert(faqContent);
-            }, 0);
-          }}
+          onClick={() => setIsFAQModalOpen(true)}
           className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <h4 className="font-semibold text-gray-900 mb-1">Perguntas Frequentes</h4>
