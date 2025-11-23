@@ -6,6 +6,7 @@ import { AuthModal } from '../components/AuthModal';
 import { LegalModal } from '../components/LegalModal';
 import { AboutModal } from '../components/AboutModal';
 import { PWAInstallPrompt } from '../components/PWAInstallPrompt';
+import { SEOHead, getOrganizationSchema, getWebApplicationSchema } from '../components/SEOHead';
 import { useAuth } from '../contexts/AuthContext';
 
 export const LandingPage: React.FC = () => {
