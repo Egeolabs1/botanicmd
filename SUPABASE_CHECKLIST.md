@@ -204,11 +204,11 @@ Veja o guia completo em: [SUPABASE_OAUTH_SETUP.md](./SUPABASE_OAUTH_SETUP.md)
 No Supabase Dashboard, vá em **Authentication** → **URL Configuration**:
 
 **Site URL:**
-- `https://botanicmd.vercel.app` (ou seu domínio)
+- `https://botanicmd.com` (ou seu domínio)
 
 **Redirect URLs:**
-- `https://botanicmd.vercel.app/auth/callback`
-- `https://botanicmd.vercel.app/app`
+- `https://botanicmd.com/auth/callback`
+- `https://botanicmd.com/app`
 - `http://localhost:3000/auth/callback` (para desenvolvimento)
 - `http://localhost:3000/app` (para desenvolvimento)
 
