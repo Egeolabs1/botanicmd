@@ -137,6 +137,14 @@ export const AppMain: React.FC = () => {
 
   const getErrorMessage = (err: any) => {
     const msg = err?.message?.toLowerCase() || '';
+    
+    // Verifica se é erro de API não configurada
+    if (msg.includes('gemini api não está configurada') || msg.includes('gemini_api_key') || msg.includes('configure a variável')) {
+      return language === 'pt' 
+        ? '⚠️ API Gemini não configurada. Para usar as funcionalidades de IA, configure a variável VITE_GEMINI_API_KEY no Vercel Dashboard (Settings → Environment Variables).'
+        : '⚠️ Gemini API not configured. To use AI features, configure VITE_GEMINI_API_KEY in Vercel Dashboard (Settings → Environment Variables).';
+    }
+    
     if (msg.includes('network') || msg.includes('fetch') || msg.includes('connection')) return t('err_network');
     if (msg.includes('analyze') || msg.includes('model') || msg.includes('photo') || msg.includes('image')) return t('err_image_analyze');
     if (msg.includes('find') || msg.includes('found')) return t('err_plant_not_found');
