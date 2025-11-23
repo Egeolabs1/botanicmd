@@ -25,9 +25,29 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           try {
-            navigator.serviceWorker.register('/sw.js')
+            // Registra o Service Worker sem cache para sempre buscar a versão mais recente
+            navigator.serviceWorker.register('/sw.js?t=' + Date.now(), { updateViaCache: 'none' })
               .then(registration => {
                 console.log('SW registrado com sucesso:', registration.scope);
+                
+                // Verifica atualizações e força reload quando necessário
+                registration.addEventListener('updatefound', () => {
+                  const newWorker = registration.installing;
+                  if (newWorker) {
+                    newWorker.addEventListener('statechange', () => {
+                      if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        // Nova versão disponível - recarrega a página
+                        console.log('Nova versão do Service Worker disponível. Recarregando...');
+                        window.location.reload();
+                      }
+                    });
+                  }
+                });
+                
+                // Verifica atualizações periodicamente (a cada minuto)
+                setInterval(() => {
+                  registration.update();
+                }, 60000);
               })
               .catch(err => {
                 // Silencia erro em preview/iframe com origem diferente
@@ -41,6 +61,12 @@
              // Ignora erros de sandbox
              console.log('SW não suportado neste ambiente.');
           }
+        });
+        
+        // Escuta mudanças no controller do Service Worker
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          console.log('Service Worker controller mudou. Recarregando página...');
+          window.location.reload();
         });
       }
     </script>
