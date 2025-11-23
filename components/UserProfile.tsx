@@ -8,6 +8,8 @@ import { storage, SavedPlant } from '../services/storageService';
 import { historyService, HistoryEntry } from '../services/historyService';
 import { reminderService, Reminder } from '../services/reminderService';
 import { isAdmin } from '../services/adminAuthService';
+import { uploadImageToStorage } from '../services/storageUploadService';
+import { supabase, isSupabaseConfigured } from '../services/supabase';
 
 interface UserProfileProps {
   user: UserType;
@@ -52,6 +54,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [statistics, setStatistics] = useState<any>(null);
   const [showCreateReminder, setShowCreateReminder] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(`botanicmd_profile_image_${user.id}`) || null;
+    } catch {
+      return null;
+    }
+  });
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [newReminder, setNewReminder] = useState({
     plantName: '',
     type: 'watering' as Reminder['type'],
@@ -435,6 +445,65 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
     </>
   );
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecione uma imagem válida.');
+      return;
+    }
+
+    // Validar tamanho (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('A imagem deve ter no máximo 5MB. Por favor, selecione uma imagem menor.');
+      return;
+    }
+
+    setIsUploadingImage(true);
+
+    try {
+      let imageUrl: string | null = null;
+
+      // Se Supabase estiver configurado, faz upload
+      if (isSupabaseConfigured) {
+        try {
+          imageUrl = await uploadImageToStorage(file, user.id, 'profile');
+        } catch (error) {
+          console.error('Erro ao fazer upload para Supabase:', error);
+          // Se falhar, usa base64 local
+        }
+      }
+
+      // Se não fez upload ou falhou, converte para base64 e salva localmente
+      if (!imageUrl) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          setProfileImage(base64String);
+          localStorage.setItem(`botanicmd_profile_image_${user.id}`, base64String);
+          setIsUploadingImage(false);
+        };
+        reader.onerror = () => {
+          alert('Erro ao processar a imagem. Tente novamente.');
+          setIsUploadingImage(false);
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      // Se fez upload com sucesso
+      setProfileImage(imageUrl);
+      localStorage.setItem(`botanicmd_profile_image_${user.id}`, imageUrl);
+      setIsUploadingImage(false);
+    } catch (error: any) {
+      console.error('Erro ao fazer upload da imagem:', error);
+      alert('Erro ao fazer upload da imagem. Tente novamente.');
+      setIsUploadingImage(false);
+    }
+  };
+
   const renderProfileView = () => (
     <div className="p-6">
       <div className="flex items-center gap-3 mb-6">
@@ -442,6 +511,54 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
         <h3 className="text-lg font-bold text-gray-900">{t('edit_profile')}</h3>
       </div>
       <div className="space-y-4">
+        {/* Foto de Perfil */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full bg-gray-200 border-4 border-white shadow-lg overflow-hidden flex items-center justify-center">
+              {profileImage ? (
+                <img 
+                  src={profileImage} 
+                  alt="Foto de perfil" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-12 h-12 text-gray-400" />
+              )}
+            </div>
+            <label 
+              htmlFor="profile-image-upload"
+              className="absolute bottom-0 right-0 bg-nature-600 text-white rounded-full p-2 cursor-pointer hover:bg-nature-700 transition-colors shadow-lg"
+              title="Alterar foto"
+            >
+              <Camera className="w-4 h-4" />
+              <input
+                id="profile-image-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+                disabled={isUploadingImage}
+              />
+            </label>
+          </div>
+          {isUploadingImage && (
+            <p className="text-sm text-gray-500 mt-2">Enviando imagem...</p>
+          )}
+        </div>
+
+        {/* Email (somente leitura) */}
+        <div>
+          <label className="text-sm font-medium text-gray-600 block mb-1">Email</label>
+          <input 
+            type="email" 
+            value={user.email || ''}
+            disabled
+            className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+          />
+          <p className="text-xs text-gray-500 mt-1">O email não pode ser alterado</p>
+        </div>
+
+        {/* Nome */}
         <div>
           <label className="text-sm font-medium text-gray-600 block mb-1">{t('your_name')}</label>
           <input 
@@ -1184,6 +1301,24 @@ Perguntas Frequentes - BotanicMD
         >
           <h4 className="font-semibold text-gray-900 mb-1">Contatar Suporte</h4>
           <p className="text-sm text-gray-600">Entre em contato conosco</p>
+        </button>
+        <button 
+          onClick={() => {
+            window.location.href = `mailto:suporte@egeolabs.com?subject=Sugestão BotanicMD&body=Olá,%0D%0A%0D%0ADesejo sugerir:%0D%0A%0D%0A`;
+          }}
+          className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <h4 className="font-semibold text-gray-900 mb-1">Enviar Sugestão</h4>
+          <p className="text-sm text-gray-600">Compartilhe suas ideias para melhorar o app</p>
+        </button>
+        <button 
+          onClick={() => {
+            window.location.href = `mailto:suporte@egeolabs.com?subject=Relatar Problema BotanicMD&body=Olá,%0D%0A%0D%0AEncontrei um problema:%0D%0A%0D%0ADescrição:%0D%0A%0D%0A`;
+          }}
+          className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <h4 className="font-semibold text-gray-900 mb-1">Relatar Problema</h4>
+          <p className="text-sm text-gray-600">Avise-nos sobre bugs ou problemas encontrados</p>
         </button>
         <div className="bg-nature-50 rounded-lg p-4 mt-4">
           <p className="text-sm text-nature-700 mb-2">
