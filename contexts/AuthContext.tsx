@@ -14,6 +14,9 @@ interface AuthContextType {
   upgradeToPro: () => void;
   checkLimit: () => boolean;
   updateProfile: (name: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -307,8 +310,122 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    if (!isSupabaseConfigured) {
+      throw new Error('Funcionalidade disponível apenas com Supabase configurado.');
+    }
+
+    if (!user) {
+      throw new Error('Você precisa estar logado para alterar a senha.');
+    }
+
+    if (!currentPassword || !newPassword) {
+      throw new Error('Preencha todos os campos.');
+    }
+
+    if (newPassword.length < 6) {
+      throw new Error('A nova senha deve ter pelo menos 6 caracteres.');
+    }
+
+    try {
+      // Primeiro, verifica se a senha atual está correta fazendo login
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+
+      if (verifyError) {
+        throw new Error('Senha atual incorreta.');
+      }
+
+      // Se a senha atual está correta, atualiza para a nova senha
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        throw new Error(updateError.message || 'Erro ao alterar senha.');
+      }
+
+      // Sucesso - senha alterada
+    } catch (error: any) {
+      console.error('Erro ao alterar senha:', error);
+      throw new Error(error.message || 'Erro ao alterar senha. Tente novamente.');
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    if (!isSupabaseConfigured) {
+      throw new Error('Funcionalidade disponível apenas com Supabase configurado.');
+    }
+
+    if (!email || !isValidEmail(email)) {
+      throw new Error('Email inválido.');
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/callback?type=recovery&redirect=/app`,
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erro ao enviar email de recuperação.');
+      }
+
+      // Sucesso - email enviado
+    } catch (error: any) {
+      console.error('Erro ao recuperar senha:', error);
+      throw new Error(error.message || 'Erro ao enviar email de recuperação. Tente novamente.');
+    }
+  };
+
+  const updatePassword = async (newPassword: string) => {
+    if (!isSupabaseConfigured) {
+      throw new Error('Funcionalidade disponível apenas com Supabase configurado.');
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      throw new Error('A nova senha deve ter pelo menos 6 caracteres.');
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erro ao atualizar senha.');
+      }
+
+      // Sucesso - senha atualizada
+    } catch (error: any) {
+      console.error('Erro ao atualizar senha:', error);
+      throw new Error(error.message || 'Erro ao atualizar senha. Tente novamente.');
+    }
+  };
+
+  // Helper function para validar email
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, loginSocial, logout, incrementUsage, upgradeToPro, checkLimit, updateProfile }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated: !!user, 
+      isLoading, 
+      login, 
+      loginSocial, 
+      logout, 
+      incrementUsage, 
+      upgradeToPro, 
+      checkLimit, 
+      updateProfile,
+      changePassword,
+      resetPassword,
+      updatePassword
+    }}>
       {children}
     </AuthContext.Provider>
   );

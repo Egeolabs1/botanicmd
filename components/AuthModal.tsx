@@ -18,8 +18,9 @@ const isValidEmail = (email: string): boolean => {
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { login, loginSocial, isAuthenticated } = useAuth();
+  const { login, loginSocial, isAuthenticated, resetPassword } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,6 +29,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [nameError, setNameError] = useState<string>('');
   const [passwordError, setPasswordError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   // Redireciona para /app após login bem-sucedido
   React.useEffect(() => {
@@ -45,7 +47,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       setConfirmPassword('');
       setPasswordError('');
     }
-  }, [isLogin]);
+    if (isForgotPassword) {
+      setPassword('');
+      setConfirmPassword('');
+      setPasswordError('');
+      setResetSuccess(false);
+    }
+  }, [isLogin, isForgotPassword]);
 
   if (!isOpen) return null;
 
@@ -134,6 +142,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     onClose();
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email.trim()) {
+      setEmailError('Email é obrigatório');
+      return;
+    }
+
+    if (!isValidEmail(email.trim())) {
+      setEmailError('Email inválido');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setEmailError('');
+
+    try {
+      await resetPassword(email.trim());
+      setResetSuccess(true);
+    } catch (error: any) {
+      setEmailError(error.message || 'Erro ao enviar email de recuperação. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-nature-900/30 backdrop-blur-md animate-fade-in">
       <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative border border-white/50">
@@ -173,7 +207,84 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <div className="flex-grow border-t border-gray-100"></div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* View de Recuperação de Senha */}
+          {isForgotPassword ? (
+            <div className="space-y-4">
+              {resetSuccess ? (
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">Email enviado!</h3>
+                    <p className="text-sm text-gray-600">
+                      Enviamos um link de recuperação de senha para <strong>{email}</strong>
+                    </p>
+                    <p className="text-sm text-gray-500 mt-2">
+                      Verifique sua caixa de entrada e clique no link para redefinir sua senha.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsForgotPassword(false);
+                      setResetSuccess(false);
+                      setEmail('');
+                    }}
+                    className="w-full bg-nature-600 text-white py-3 rounded-2xl font-bold hover:bg-nature-700 transition-colors"
+                  >
+                    Voltar ao login
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="text-center mb-4">
+                    <p className="text-sm text-gray-600">
+                      Digite seu email e enviaremos um link para você redefinir sua senha.
+                    </p>
+                  </div>
+                  
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-nature-600 transition-colors">
+                      <Mail className="w-5 h-5" />
+                    </div>
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => handleEmailChange(e.target.value)}
+                      onBlur={() => {
+                        if (email && !isValidEmail(email.trim())) {
+                          setEmailError('Email inválido');
+                        }
+                      }}
+                      className={`w-full pl-12 pr-4 py-3.5 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white ${
+                        emailError 
+                          ? 'border-red-300 focus:ring-4 focus:ring-red-100 focus:border-red-500' 
+                          : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
+                      }`}
+                      placeholder="Email"
+                      disabled={isSubmitting}
+                    />
+                    {emailError && (
+                      <p className="text-red-500 text-xs mt-1 ml-1">{emailError}</p>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !email.trim() || !isValidEmail(email.trim())}
+                    className="w-full bg-nature-600 text-white py-4 rounded-2xl font-bold hover:bg-nature-700 transition-all shadow-lg shadow-nature-200 hover:shadow-nature-300 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {isSubmitting ? 'Enviando...' : 'Enviar link de recuperação'}
+                    {!isSubmitting && <ArrowRight className="w-5 h-5" />}
+                  </button>
+                </form>
+              )}
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
             {/* Campo de nome - apenas no cadastro */}
             {!isLogin && (
               <div className="relative group">
@@ -328,14 +439,52 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               {!isSubmitting && <ArrowRight className="w-5 h-5" />}
             </button>
           </form>
+          )}
 
-          <div className="mt-8 text-center">
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-nature-600 font-bold hover:text-nature-800 transition-colors"
-            >
-              {isLogin ? 'Criar uma nova conta' : 'Já tenho uma conta'}
-            </button>
+          <div className="mt-6 space-y-3 text-center">
+            {isLogin && !isForgotPassword && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(true);
+                  setPassword('');
+                  setPasswordError('');
+                }}
+                className="text-sm text-nature-600 hover:text-nature-800 transition-colors underline"
+              >
+                Esqueci minha senha
+              </button>
+            )}
+            
+            {!isForgotPassword && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setEmail('');
+                  setPassword('');
+                  setEmailError('');
+                  setPasswordError('');
+                }}
+                className="text-sm text-nature-600 font-bold hover:text-nature-800 transition-colors block w-full"
+              >
+                {isLogin ? 'Criar uma nova conta' : 'Já tenho uma conta'}
+              </button>
+            )}
+
+            {isForgotPassword && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setResetSuccess(false);
+                  setEmailError('');
+                }}
+                className="text-sm text-nature-600 hover:text-nature-800 transition-colors underline"
+              >
+                Voltar ao login
+              </button>
+            )}
           </div>
         </div>
       </div>

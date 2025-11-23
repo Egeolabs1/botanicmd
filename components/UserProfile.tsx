@@ -22,7 +22,7 @@ type ViewState = 'main' | 'profile' | 'settings' | 'subscription' | 'savedPlants
 
 export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogout, onUpgrade, onAdmin, onOpenAbout }) => {
   const { t, language, setLanguage } = useLanguage();
-  const { updateProfile } = useAuth();
+  const { updateProfile, changePassword } = useAuth();
   const [currentView, setCurrentView] = useState<ViewState>('main');
   const [editName, setEditName] = useState(user.name);
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
@@ -176,31 +176,43 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
     newPassword: '',
     confirmPassword: '',
   });
+  const [passwordError, setPasswordError] = useState<string>('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   
   const handleChangePassword = () => {
     setCurrentView('password');
   };
-  
-  const handleSavePassword = () => {
+
+  const handleSavePassword = async () => {
+    setPasswordError('');
+    
     if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
-      alert('Preencha todos os campos.');
+      setPasswordError('Preencha todos os campos.');
       return;
     }
     
     if (passwordData.newPassword.length < 6) {
-      alert('A nova senha deve ter pelo menos 6 caracteres.');
+      setPasswordError('A nova senha deve ter pelo menos 6 caracteres.');
       return;
     }
     
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('As senhas não coincidem.');
+      setPasswordError('As senhas não coincidem.');
       return;
     }
+
+    setIsChangingPassword(true);
     
-    // Em produção, aqui faria a chamada à API para alterar a senha
-    alert('Senha alterada com sucesso! (Funcionalidade em desenvolvimento - requer backend)');
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    setCurrentView('settings');
+    try {
+      await changePassword(passwordData.currentPassword, passwordData.newPassword);
+      alert('Senha alterada com sucesso!');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setCurrentView('settings');
+    } catch (error: any) {
+      setPasswordError(error.message || 'Erro ao alterar senha. Tente novamente.');
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
   
   const handleCreateReminder = () => {

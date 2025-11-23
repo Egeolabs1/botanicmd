@@ -135,6 +135,15 @@ const AuthCallback = () => {
             }
 
             if (data.session) {
+              // Verifica se é recuperação de senha - redireciona para página de redefinição
+              if (type === 'recovery') {
+                // Limpa o hash da URL para não expor tokens
+                window.history.replaceState(null, '', window.location.pathname + window.location.search);
+                // Redireciona para o app que vai mostrar o modal de redefinição de senha
+                navigate('/app?action=reset-password', { replace: true });
+                return;
+              }
+              
               // Verifica se é confirmação de email
               if (type === 'signup' || type === 'email') {
                 setStatus('success');

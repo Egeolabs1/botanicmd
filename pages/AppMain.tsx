@@ -7,6 +7,7 @@ import { PlantSelector } from '../components/PlantSelector';
 import { PWAInstallPrompt } from '../components/PWAInstallPrompt';
 import { AuthModal } from '../components/AuthModal';
 import { PricingModal } from '../components/PricingModal';
+import { ResetPasswordModal } from '../components/ResetPasswordModal';
 import { UserProfile } from '../components/UserProfile';
 import { LegalModal } from '../components/LegalModal';
 import { AboutModal } from '../components/AboutModal';
@@ -42,6 +43,7 @@ export const AppMain: React.FC = () => {
   // Modals
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isLuxometerOpen, setIsLuxometerOpen] = useState(false);
@@ -110,6 +112,21 @@ export const AppMain: React.FC = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [upgradeToPro, t, user, isAuthenticated, isAuthLoading]);
+
+  // Handle Password Reset Callback
+  useEffect(() => {
+    if (isAuthLoading) return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
+    
+    if (action === 'reset-password' && isAuthenticated && user) {
+      // Limpa a URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // Abre o modal de redefinição de senha
+      setIsResetPasswordModalOpen(true);
+    }
+  }, [isAuthLoading, isAuthenticated, user]);
 
   // Cycle tips during analysis
   useEffect(() => {
@@ -408,6 +425,7 @@ export const AppMain: React.FC = () => {
       <PWAInstallPrompt />
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       <PricingModal isOpen={isPricingModalOpen} onClose={() => setIsPricingModalOpen(false)} />
+      <ResetPasswordModal isOpen={isResetPasswordModalOpen} onClose={() => setIsResetPasswordModalOpen(false)} />
       <Luxometer isOpen={isLuxometerOpen} onClose={() => setIsLuxometerOpen(false)} />
       <LegalModal 
           isOpen={legalModal.isOpen} 
