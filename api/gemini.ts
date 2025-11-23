@@ -394,9 +394,11 @@ function getLanguageName(lang: string): string {
   const map: Record<string, string> = {
     en: "English",
     pt: "Portuguese (Brazil)",
+    es: "Spanish",
     fr: "French",
     de: "German",
-    es: "Spanish",
+    it: "Italian",
+    zh: "Chinese (Simplified)",
     ru: "Russian",
     hi: "Hindi"
   };

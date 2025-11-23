@@ -1,4 +1,4 @@
-export type SupportedLanguage = 'en' | 'pt' | 'fr' | 'de' | 'es' | 'ru' | 'hi';
+export type SupportedLanguage = 'en' | 'pt' | 'es' | 'fr' | 'de' | 'it' | 'zh' | 'ru' | 'hi';
 
 export type PlanType = 'free' | 'pro';
 
