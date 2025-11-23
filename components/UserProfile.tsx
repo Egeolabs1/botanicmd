@@ -29,7 +29,10 @@ type ViewState = 'main' | 'profile' | 'settings' | 'subscription' | 'savedPlants
 export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogout, onUpgrade, onAdmin, onOpenAbout, onOpenPrivacy }) => {
   const { t, language, setLanguage } = useLanguage();
   const { updateProfile, changePassword } = useAuth();
+  const isPWA = useIsPWA();
   const [currentView, setCurrentView] = useState<ViewState>('main');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isIOS, setIsIOS] = useState(false);
   const [editName, setEditName] = useState(user.name);
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
     try {
@@ -84,6 +87,47 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
     loadReminders();
     calculateStatistics();
   }, []);
+
+  // Detectar se pode instalar PWA
+  useEffect(() => {
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    
+    if (isIosDevice) {
+      setIsIOS(true);
+    }
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (isIOS) {
+      // Para iOS, mostra instruções
+      alert('Para instalar no iOS:\n\n1. Toque no botão Compartilhar (Share)\n2. Selecione "Adicionar à Tela de Início" (Add to Home Screen)');
+      return;
+    }
+
+    if (!deferredPrompt) {
+      alert('O app já está instalado ou não pode ser instalado neste dispositivo.');
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
   
   const loadSavedPlants = async () => {
     try {
@@ -424,6 +468,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
                <span className="font-medium flex-1">{t('about_us')}</span>
                <ArrowRight className="w-4 h-4 text-gray-300" />
             </button>
+
+            {/* Install App - Only show if not installed */}
+            {!isPWA && (deferredPrompt || isIOS) && (
+              <button 
+                onClick={handleInstallClick}
+                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-gray-700 transition-colors text-left"
+              >
+                <div className="p-2 bg-nature-100 rounded-lg text-nature-600"><Smartphone className="w-5 h-5" /></div>
+                <span className="font-medium flex-1">{t('install_btn')}</span>
+                <ArrowRight className="w-4 h-4 text-gray-300" />
+              </button>
+            )}
 
             <button 
                 onClick={() => { if(window.confirm(t('logout_confirm'))) { onLogout(); } }}
