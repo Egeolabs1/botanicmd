@@ -737,47 +737,103 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
     </div>
   );
 
-  const renderSubscriptionView = () => (
-    <div className="p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-full"><ArrowRight className="w-5 h-5 rotate-180" /></button>
-        <h3 className="text-lg font-bold text-gray-900">{t('subscription')}</h3>
-      </div>
-      <div className="bg-nature-50 border border-nature-200 rounded-2xl p-6 text-center">
-        <Trophy className="w-12 h-12 text-nature-600 mx-auto mb-4" />
-        <h4 className="font-bold text-lg text-gray-900">{t('current_plan')}: {user.plan === 'pro' ? 'PRO' : 'Free'}</h4>
-        {user.plan === 'pro' && (
-          <p className="text-sm text-gray-500 mt-1">{t('plan_renewal')} 2024-12-31</p>
-        )}
-        {user.plan === 'free' && (
-          <button 
-            onClick={onUpgrade}
-            className="mt-4 bg-nature-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:scale-105 transition-transform flex items-center gap-2 mx-auto"
-          >
-            <Star className="w-4 h-4" /> {t('upgrade_plan')}
-          </button>
-        )}
-      </div>
-      {user.plan === 'pro' && (
-         <div className="mt-4 space-y-2">
-            <button className="w-full text-center text-sm text-gray-500 hover:text-gray-800 font-medium">{t('manage_sub')}</button>
-            <button 
-               onClick={handleCancelSubscription}
-               className="w-full text-center text-sm text-red-500 hover:text-red-700 font-medium"
+  const renderSubscriptionView = () => {
+    const plans = [
+      {
+        name: 'Free',
+        price: t('free'),
+        features: ['3 análises por mês', 'Identificação básica', 'Diagnóstico básico'],
+        current: user.plan === 'free',
+        badge: null
+      },
+      {
+        name: 'PRO',
+        price: t('price_monthly'),
+        features: ['Análises ilimitadas', 'Diagnóstico avançado', 'Plantas salvas', 'Histórico completo', 'Lembretes'],
+        current: user.plan === 'pro',
+        badge: 'Popular'
+      }
+    ];
+
+    return (
+      <div className="p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-full"><ArrowRight className="w-5 h-5 rotate-180" /></button>
+          <h3 className="text-lg font-bold text-gray-900">{t('subscription')}</h3>
+        </div>
+        
+        <div className="space-y-4">
+          {plans.map((plan) => (
+            <div
+              key={plan.name}
+              className={`border-2 rounded-2xl p-6 ${
+                plan.current
+                  ? 'border-nature-600 bg-nature-50'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
             >
-               {t('cancel_subscription')}
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-bold text-lg text-gray-900">{plan.name}</h4>
+                    {plan.badge && (
+                      <span className="bg-nature-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                        {plan.badge}
+                      </span>
+                    )}
+                    {plan.current && (
+                      <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">
+                        Atual
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{plan.price}</p>
+                </div>
+                {plan.name === 'PRO' && !plan.current && (
+                  <button
+                    onClick={onUpgrade}
+                    className="bg-nature-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-nature-700 transition-colors flex items-center gap-2"
+                  >
+                    <Star className="w-4 h-4" /> Upgrade
+                  </button>
+                )}
+              </div>
+              
+              <ul className="space-y-2 mb-4">
+                {plan.features.map((feature, idx) => (
+                  <li key={idx} className="flex items-center gap-2 text-sm text-gray-600">
+                    <CheckCircle className={`w-4 h-4 ${plan.current ? 'text-nature-600' : 'text-gray-400'}`} />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        {user.plan === 'pro' && (
+          <div className="mt-6 space-y-2">
+            <button className="w-full text-center text-sm text-gray-500 hover:text-gray-800 font-medium">
+              {t('manage_sub')}
             </button>
-         </div>
-      )}
-      
-      {/* Footer */}
-      <div className="mt-6 pt-4 border-t border-gray-100 text-center">
-        <p className="text-xs text-gray-400">
-          {t('developed_with_love')} <span className="text-red-500">♥</span> {t('footer_developed_by')}
-        </p>
+            <button 
+              onClick={handleCancelSubscription}
+              className="w-full text-center text-sm text-red-500 hover:text-red-700 font-medium"
+            >
+              {t('cancel_subscription')}
+            </button>
+          </div>
+        )}
+        
+        {/* Footer */}
+        <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+          <p className="text-xs text-gray-400">
+            {t('developed_with_love')} <span className="text-red-500">♥</span> {t('footer_developed_by')}
+          </p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Render views for new functionalities
   const renderSavedPlantsView = () => (
