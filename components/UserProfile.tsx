@@ -669,7 +669,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
       {/* Footer */}
       <div className="mt-6 pt-4 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">
-          {t('developed_with_love')} <span className="text-red-500">♥</span> {t('footer_developed_by')}
+          {t('footer_developed_by')}
         </p>
       </div>
     </div>
@@ -769,7 +769,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
       {/* Footer */}
       <div className="mt-6 pt-4 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">
-          {t('developed_with_love')} <span className="text-red-500">♥</span> {t('footer_developed_by')}
+          {t('footer_developed_by')}
         </p>
       </div>
     </div>
@@ -991,7 +991,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
       {/* Footer */}
       <div className="mt-6 pt-4 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">
-          {t('developed_with_love')} <span className="text-red-500">♥</span> {t('footer_developed_by')}
+          {t('footer_developed_by')}
         </p>
       </div>
     </div>
@@ -1060,7 +1060,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
       {/* Footer */}
       <div className="mt-6 pt-4 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">
-          {t('developed_with_love')} <span className="text-red-500">♥</span> {t('footer_developed_by')}
+          {t('footer_developed_by')}
         </p>
       </div>
     </div>
@@ -1104,7 +1104,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
       {/* Footer */}
       <div className="mt-6 pt-4 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">
-          {t('developed_with_love')} <span className="text-red-500">♥</span> {t('footer_developed_by')}
+          {t('footer_developed_by')}
         </p>
       </div>
     </div>
@@ -1336,7 +1336,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
         {/* Footer */}
         <div className="mt-6 pt-4 border-t border-gray-100 text-center">
           <p className="text-xs text-gray-400">
-            {t('developed_with_love')} <span className="text-red-500">♥</span> {t('footer_developed_by')}
+            {t('footer_developed_by')}
           </p>
         </div>
       </div>
@@ -1391,7 +1391,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
       {/* Footer */}
       <div className="mt-6 pt-4 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">
-          {t('developed_with_love')} <span className="text-red-500">♥</span> {t('footer_developed_by')}
+          {t('footer_developed_by')}
         </p>
       </div>
     </div>
@@ -1419,7 +1419,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
       {/* Footer */}
       <div className="mt-6 pt-4 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">
-          {t('developed_with_love')} <span className="text-red-500">♥</span> {t('footer_developed_by')}
+          {t('footer_developed_by')}
         </p>
       </div>
     </div>
@@ -1514,7 +1514,7 @@ Perguntas Frequentes - BotanicMD
       {/* Footer */}
       <div className="mt-6 pt-4 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">
-          {t('developed_with_love')} <span className="text-red-500">♥</span> {t('footer_developed_by')}
+          {t('footer_developed_by')}
         </p>
       </div>
     </div>
@@ -1610,7 +1610,7 @@ Perguntas Frequentes - BotanicMD
       {/* Footer */}
       <div className="mt-6 pt-4 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">
-          {t('developed_with_love')} <span className="text-red-500">♥</span> {t('footer_developed_by')}
+          {t('footer_developed_by')}
         </p>
       </div>
     </div>
