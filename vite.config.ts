@@ -21,6 +21,22 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
-      }
+      },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              // Separa React e React DOM em um chunk separado
+              'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+              // Separa Google GenAI (é uma biblioteca grande)
+              'genai-vendor': ['@google/genai'],
+              // Separa Supabase
+              'supabase-vendor': ['@supabase/supabase-js'],
+            },
+          },
+        },
+        // Aumenta o limite de aviso para 600KB já que estamos dividindo em chunks
+        chunkSizeWarningLimit: 600,
+      },
     };
 });

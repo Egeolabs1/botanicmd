@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UploadSection } from '../components/UploadSection';
 import { ResultCard } from '../components/ResultCard';
 import { GardenGallery } from '../components/GardenGallery';
 import { PlantSelector } from '../components/PlantSelector';
-import { BlogPage } from '../components/BlogPage';
 import { PWAInstallPrompt } from '../components/PWAInstallPrompt';
 import { AuthModal } from '../components/AuthModal';
 import { PricingModal } from '../components/PricingModal';
@@ -12,7 +11,10 @@ import { UserProfile } from '../components/UserProfile';
 import { LegalModal } from '../components/LegalModal';
 import { AboutModal } from '../components/AboutModal';
 import { Luxometer } from '../components/Luxometer';
-import { AdminDashboard } from '../components/AdminDashboard';
+
+// Lazy load para componentes grandes (reduz bundle inicial)
+const AdminDashboard = lazy(() => import('../components/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
+const BlogPage = lazy(() => import('../components/BlogPage').then(module => ({ default: module.BlogPage })));
 import { analyzePlantImage, identifyPlantByName, searchPlantOptions } from '../services/geminiService';
 import { fetchPlantImage } from '../services/imageService';
 import { PlantData, AppState, PlantCandidate } from '../types';
@@ -346,7 +348,16 @@ export const AppMain: React.FC = () => {
 
   if (appState === AppState.ADMIN) {
     return (
-      <AdminDashboard onExit={() => navigate('/')} />
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-nature-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-nature-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Carregando painel admin...</p>
+          </div>
+        </div>
+      }>
+        <AdminDashboard onExit={() => navigate('/')} />
+      </Suspense>
     );
   }
 
