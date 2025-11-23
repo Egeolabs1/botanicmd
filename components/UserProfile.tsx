@@ -94,6 +94,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
     const isAndroidDevice = /android/.test(userAgent);
     
+    // Detecta iOS imediatamente
     if (isIosDevice) {
       setIsIOS(true);
     }
@@ -101,13 +102,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      console.log('✅ beforeinstallprompt capturado');
     };
 
-    // Para Android, sempre permite mostrar a opção (deferredPrompt pode vir depois)
-    // Para iOS, sempre permite mostrar se não estiver instalado
-    if (isAndroidDevice || isIosDevice) {
-      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    }
+    // Adiciona listener para capturar o prompt quando disponível
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Verifica se já existe um prompt salvo (pode ter sido capturado antes)
+    // Isso não é possível diretamente, mas podemos tentar forçar a detecção
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -484,13 +486,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
                 <span className="font-medium flex-1">{t('install_btn')}</span>
                 <ArrowRight className="w-4 h-4 text-gray-300" />
               </button>
-            )}
-            
-            {/* Debug - remover depois */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="text-xs text-gray-400 p-2">
-                Debug: isPWA={isPWA ? 'true' : 'false'}, isIOS={isIOS ? 'true' : 'false'}, hasPrompt={deferredPrompt ? 'true' : 'false'}
-              </div>
             )}
 
             <button 
