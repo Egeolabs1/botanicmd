@@ -505,16 +505,23 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
   };
 
   const renderProfileView = () => (
-    <div className="p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-full"><ArrowRight className="w-5 h-5 rotate-180" /></button>
-        <h3 className="text-lg font-bold text-gray-900">{t('edit_profile')}</h3>
+    <div className="p-4 md:p-6 pb-20">
+      {/* Sticky Header */}
+      <div className="flex items-center gap-3 mb-4 md:mb-6 sticky top-0 bg-white pb-2 z-10">
+        <button 
+          onClick={handleBack} 
+          className="p-2 hover:bg-gray-100 rounded-full active:scale-95 transition-transform"
+        >
+          <ArrowRight className="w-5 h-5 rotate-180" />
+        </button>
+        <h3 className="text-lg md:text-xl font-bold text-gray-900">{t('edit_profile')}</h3>
       </div>
-      <div className="space-y-4">
-        {/* Foto de Perfil */}
+      
+      <div className="space-y-5 md:space-y-6">
+        {/* Foto de Perfil - Mobile Optimized */}
         <div className="flex flex-col items-center mb-6">
           <div className="relative">
-            <div className="w-24 h-24 rounded-full bg-gray-200 border-4 border-white shadow-lg overflow-hidden flex items-center justify-center">
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border-4 border-white shadow-xl overflow-hidden flex items-center justify-center">
               {profileImage ? (
                 <img 
                   src={profileImage} 
@@ -522,15 +529,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <User className="w-12 h-12 text-gray-400" />
+                <User className="w-10 h-10 md:w-12 md:h-12 text-gray-400" />
               )}
             </div>
             <label 
               htmlFor="profile-image-upload"
-              className="absolute bottom-0 right-0 bg-nature-600 text-white rounded-full p-2 cursor-pointer hover:bg-nature-700 transition-colors shadow-lg"
+              className="absolute bottom-0 right-0 bg-nature-600 text-white rounded-full p-2.5 md:p-3 cursor-pointer hover:bg-nature-700 active:scale-95 transition-all shadow-lg"
               title="Alterar foto"
             >
-              <Camera className="w-4 h-4" />
+              <Camera className="w-4 h-4 md:w-5 md:h-5" />
               <input
                 id="profile-image-upload"
                 type="file"
@@ -542,87 +549,118 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
             </label>
           </div>
           {isUploadingImage && (
-            <p className="text-sm text-gray-500 mt-2">Enviando imagem...</p>
+            <div className="mt-3 flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-nature-600 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-sm text-gray-600">Enviando imagem...</p>
+            </div>
+          )}
+          {!isUploadingImage && !profileImage && (
+            <p className="text-xs text-gray-500 mt-2 text-center">Toque no ícone da câmera para adicionar foto</p>
           )}
         </div>
 
-        {/* Email (somente leitura) */}
-        <div>
-          <label className="text-sm font-medium text-gray-600 block mb-1">Email</label>
-          <input 
-            type="email" 
-            value={user.email || ''}
-            disabled
-            className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
-          />
-          <p className="text-xs text-gray-500 mt-1">O email não pode ser alterado</p>
-        </div>
+        {/* Campos de perfil - Mobile optimized */}
+        <div className="space-y-4">
+          {/* Nome - Primeiro */}
+          <div>
+            <label className="text-sm font-semibold text-gray-700 block mb-2">
+              {t('your_name')}
+            </label>
+            <input 
+              type="text" 
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="Seu nome"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-nature-500 focus:border-nature-500 transition-all text-base"
+            />
+            {nameError && (
+              <p className="text-xs text-red-600 mt-1">{nameError}</p>
+            )}
+          </div>
 
-        {/* Nome */}
-        <div>
-          <label className="text-sm font-medium text-gray-600 block mb-1">{t('your_name')}</label>
-          <input 
-            type="text" 
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-nature-300"
-          />
+          {/* Email (somente leitura) - Segundo */}
+          <div>
+            <label className="text-sm font-semibold text-gray-700 block mb-2">
+              Email
+            </label>
+            <div className="relative">
+              <input 
+                type="email" 
+                value={user.email || ''}
+                disabled
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-100 text-gray-600 cursor-not-allowed text-base"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Lock className="w-4 h-4 text-gray-400" />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+              <Lock className="w-3 h-3" />
+              O email não pode ser alterado
+            </p>
+          </div>
         </div>
         
-        {/* Additional Profile Options */}
-        <div className="space-y-2 pt-4 border-t border-gray-100">
-          <button 
-            onClick={() => setCurrentView('savedPlants')}
-            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
-          >
-            <div className="p-2 bg-nature-100 rounded-lg text-nature-600"><Bookmark className="w-5 h-5" /></div>
-            <div className="flex-1">
-              <span className="font-medium block">Plantas Salvas</span>
-              <span className="text-xs text-gray-500">{savedPlants.length} plantas</span>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300" />
-          </button>
-          
-          <button 
-            onClick={() => setCurrentView('history')}
-            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
-          >
-            <div className="p-2 bg-blue-100 rounded-lg text-blue-600"><Clock className="w-5 h-5" /></div>
-            <div className="flex-1">
-              <span className="font-medium block">Histórico</span>
-              <span className="text-xs text-gray-500">{history.length} análises</span>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300" />
-          </button>
-          
-          <button 
-            onClick={() => setCurrentView('statistics')}
-            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
-          >
-            <div className="p-2 bg-purple-100 rounded-lg text-purple-600"><TrendingUp className="w-5 h-5" /></div>
-            <div className="flex-1">
-              <span className="font-medium block">Estatísticas</span>
-              <span className="text-xs text-gray-500">Visualizar dados</span>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300" />
-          </button>
-          
-          <button 
-            onClick={() => setCurrentView('reminders')}
-            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
-          >
-            <div className="p-2 bg-green-100 rounded-lg text-green-600"><Calendar className="w-5 h-5" /></div>
-            <div className="flex-1">
-              <span className="font-medium block">Lembretes</span>
-              <span className="text-xs text-gray-500">Gerenciar lembretes</span>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300" />
-          </button>
+        {/* Additional Profile Options - Mobile optimized */}
+        <div className="pt-2 border-t-2 border-gray-100">
+          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-1">
+            Meus Dados
+          </h4>
+          <div className="space-y-2">
+            <button 
+              onClick={() => setCurrentView('savedPlants')}
+              className="w-full flex items-center gap-3 p-3.5 rounded-xl hover:bg-gray-50 active:scale-98 text-gray-700 transition-all text-left bg-white border border-gray-100"
+            >
+              <div className="p-2.5 bg-nature-100 rounded-xl text-nature-600 flex-shrink-0"><Bookmark className="w-5 h-5" /></div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold block text-sm">Plantas Salvas</span>
+                <span className="text-xs text-gray-500">{savedPlants.length} plantas</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+            </button>
+            
+            <button 
+              onClick={() => setCurrentView('history')}
+              className="w-full flex items-center gap-3 p-3.5 rounded-xl hover:bg-gray-50 active:scale-98 text-gray-700 transition-all text-left bg-white border border-gray-100"
+            >
+              <div className="p-2.5 bg-blue-100 rounded-xl text-blue-600 flex-shrink-0"><Clock className="w-5 h-5" /></div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold block text-sm">Histórico</span>
+                <span className="text-xs text-gray-500">{history.length} análises</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+            </button>
+            
+            <button 
+              onClick={() => setCurrentView('statistics')}
+              className="w-full flex items-center gap-3 p-3.5 rounded-xl hover:bg-gray-50 active:scale-98 text-gray-700 transition-all text-left bg-white border border-gray-100"
+            >
+              <div className="p-2.5 bg-purple-100 rounded-xl text-purple-600 flex-shrink-0"><TrendingUp className="w-5 h-5" /></div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold block text-sm">Estatísticas</span>
+                <span className="text-xs text-gray-500">Visualizar dados</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+            </button>
+            
+            <button 
+              onClick={() => setCurrentView('reminders')}
+              className="w-full flex items-center gap-3 p-3.5 rounded-xl hover:bg-gray-50 active:scale-98 text-gray-700 transition-all text-left bg-white border border-gray-100"
+            >
+              <div className="p-2.5 bg-green-100 rounded-xl text-green-600 flex-shrink-0"><Calendar className="w-5 h-5" /></div>
+              <div className="flex-1 min-w-0">
+                <span className="font-semibold block text-sm">Lembretes</span>
+                <span className="text-xs text-gray-500">Gerenciar lembretes</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+            </button>
+          </div>
         </div>
         
+        {/* Save Button - Mobile optimized */}
         <button 
           onClick={handleSaveProfile}
-          className="w-full bg-nature-600 text-white py-3 rounded-lg font-bold hover:bg-nature-700 transition-colors mt-4"
+          className="w-full bg-nature-600 text-white py-4 rounded-xl font-bold text-base hover:bg-nature-700 active:scale-98 transition-all shadow-lg shadow-nature-200 mt-6"
         >
           {t('save_changes')}
         </button>
