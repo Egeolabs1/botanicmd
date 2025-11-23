@@ -109,10 +109,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setPasswordError('');
 
     try {
-      await login(email.trim(), isLogin ? undefined : name.trim());
-      onClose();
+      // Passa a senha e o nome (apenas no cadastro)
+      await login(email.trim(), password.trim(), !isLogin ? name.trim() : undefined);
+      
+      // Só fecha o modal se não for cadastro que precisa confirmar email
+      // (se for cadastro, o usuário vai receber um alerta para confirmar email)
+      if (isLogin) {
+        onClose();
+      }
     } catch (error: any) {
-      setEmailError(error.message || 'Erro ao fazer login. Tente novamente.');
+      // Se for erro específico de email ou senha, mostra no campo correspondente
+      if (error.message?.includes('senha') || error.message?.includes('password')) {
+        setPasswordError(error.message);
+      } else {
+        setEmailError(error.message || 'Erro ao fazer login. Tente novamente.');
+      }
     } finally {
       setIsSubmitting(false);
     }

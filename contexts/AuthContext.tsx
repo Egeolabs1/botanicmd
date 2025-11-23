@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, name?: string) => Promise<void>;
+  login: (email: string, password: string, name?: string) => Promise<void>;
   loginSocial: (provider: 'google') => Promise<void>;
   logout: () => void;
   incrementUsage: () => void;
@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  const login = async (email: string, name?: string) => {
+  const login = async (email: string, password: string, name?: string) => {
     if (!isSupabaseConfigured) {
       // MODO DEMO: Cria um usuário fictício imediatamente
       const userId = 'demo-user-' + email.replace(/[^a-zA-Z0-9]/g, '');
@@ -120,12 +120,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    // Magic Link do Supabase (Login sem senha)
-    const { error } = await supabase.auth.signInWithOtp({ email });
-    if (error) {
-        alert('Erro ao enviar link: ' + error.message);
-    } else {
-        alert('Verifique seu email para o link de login!');
+    try {
+      // Tenta fazer login primeiro (caso o usuário já exista)
+      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
+      });
+
+      // Se login funcionou, retorna sucesso
+      if (loginData.user && !loginError) {
+        // O mapUser será chamado automaticamente via onAuthStateChange
+        return;
+      }
+
+      // Se o erro não for "invalid credentials", pode ser outro problema
+      if (loginError && !loginError.message.includes('Invalid login credentials')) {
+        throw loginError;
+      }
+
+      // Se chegou aqui, o usuário não existe, então vamos fazer cadastro
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password,
+        options: {
+          data: {
+            full_name: name?.trim() || email.split('@')[0] || 'Jardineiro',
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback?redirect=/app`,
+        },
+      });
+
+      if (signUpError) {
+        throw signUpError;
+      }
+
+      // Se o signup foi bem-sucedido
+      if (signUpData.user) {
+        // Verifica se precisa confirmar email
+        if (signUpData.user.email_confirmed_at === null) {
+          // Email precisa ser confirmado
+          alert('Conta criada com sucesso! Verifique seu email para confirmar sua conta antes de fazer login.');
+          return;
+        } else {
+          // Email já confirmado - usuário já pode usar
+          // O mapUser será chamado automaticamente via onAuthStateChange
+          return;
+        }
+      }
+
+    } catch (error: any) {
+      console.error('Erro na autenticação:', error);
+      
+      // Tratamento de erros específicos
+      if (error.message?.includes('User already registered')) {
+        throw new Error('Este email já está cadastrado. Faça login com sua senha.');
+      } else if (error.message?.includes('Invalid login credentials')) {
+        throw new Error('Email ou senha incorretos.');
+      } else if (error.message?.includes('Password should be at least')) {
+        throw new Error('A senha deve ter pelo menos 6 caracteres.');
+      } else {
+        throw new Error(error.message || 'Erro ao fazer login ou cadastro. Tente novamente.');
+      }
     }
   };
 
