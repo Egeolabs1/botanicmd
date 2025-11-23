@@ -50,12 +50,6 @@ export const AppMain: React.FC = () => {
   
   // Loading Scan Effect
   const [loadingTipIndex, setLoadingTipIndex] = useState(0);
-  
-  // Legal Modals State
-  const [legalModal, setLegalModal] = useState<{ isOpen: boolean; type: 'privacy' | 'terms' }>({ 
-    isOpen: false, 
-    type: 'privacy' 
-  });
 
   // Redirect to landing if not authenticated on mount
   useEffect(() => {
