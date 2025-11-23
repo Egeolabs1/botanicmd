@@ -54,45 +54,11 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onImageSelected, o
   const { t } = useLanguage();
   const { user } = useAuth();
   const [mode, setMode] = useState<Mode>('photo');
-  const [isDragging, setIsDragging] = useState(false);
   const [searchText, setSearchText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const isPro = user?.plan === 'pro';
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      
-      // Validação de tamanho (max 10MB)
-      const maxSize = 10 * 1024 * 1024; // 10MB
-      if (file.size > maxSize) {
-        alert('Arquivo muito grande. Por favor, selecione uma imagem menor que 10MB.');
-        return;
-      }
-
-      // Validação de tipo de arquivo e magic bytes
-      const isValid = await isValidImageFile(file);
-      if (!isValid) {
-        alert('Arquivo inválido. Por favor, selecione uma imagem válida (JPEG, PNG, WebP ou GIF).');
-        return;
-      }
-      
-      onImageSelected(file);
-    }
-  };
 
   const handleFileChange = async (file: File) => {
     // Validação de tamanho (max 10MB)
@@ -176,7 +142,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onImageSelected, o
       {mode === 'photo' && (
         <>
           {/* Botões de Ação - Mobile First */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-2 gap-4">
             <button
               onClick={handleCameraClick}
               className="flex flex-col items-center justify-center gap-3 p-6 bg-gradient-to-br from-nature-500 to-nature-600 text-white rounded-2xl shadow-lg shadow-nature-500/30 hover:shadow-nature-500/50 hover:scale-105 transition-all duration-300 group"
@@ -196,40 +162,6 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onImageSelected, o
               </div>
               <span className="font-bold text-sm">{t('gallery')}</span>
             </button>
-          </div>
-
-          {/* Área de Drag & Drop - Desktop */}
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`hidden md:block relative border-2 border-dashed rounded-3xl p-8 text-center transition-all duration-300 cursor-pointer group animate-fade-in
-              ${isDragging 
-                ? 'border-nature-500 bg-nature-50 scale-105' 
-                : 'border-nature-300 bg-white hover:border-nature-400 hover:bg-nature-50'
-              }
-            `}
-            onClick={handleGalleryClick}
-          >
-            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-nature-100 p-3 rounded-full border-4 border-white shadow-sm">
-              <Leaf className="w-8 h-8 text-nature-600" />
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <div className="flex justify-center">
-                <div className="bg-nature-100 p-4 rounded-full group-hover:scale-110 transition-transform duration-300">
-                  <UploadCloud className="w-8 h-8 text-nature-600" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">
-                  {t('drag_drop')}
-                </h3>
-                <p className="text-sm text-gray-500 mt-2">
-                  {t('drag_drop_sub')}
-                </p>
-              </div>
-            </div>
           </div>
             
           {/* Inputs ocultos */}
