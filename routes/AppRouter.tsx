@@ -5,6 +5,7 @@ import { LandingPage } from '../pages/LandingPage';
 import { AuthProvider } from '../contexts/AuthContext';
 import { LanguageProvider } from '../i18n';
 import { useIsPWA } from '../hooks/useIsPWA';
+import { trackingService } from '../services/trackingService';
 
 // Lazy loading para componentes grandes e reduzir bundle inicial
 const AppMain = lazy(() => import('../pages/AppMain').then(module => ({ default: module.AppMain })));
@@ -26,6 +27,11 @@ const PWARedirect = () => {
 };
 
 export const AppRouter = () => {
+  // Initialize tracking scripts on app load
+  useEffect(() => {
+    trackingService.initialize();
+  }, []);
+
   return (
     <LanguageProvider>
       <AuthProvider>
