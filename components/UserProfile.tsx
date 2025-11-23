@@ -1450,43 +1450,33 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
             e.preventDefault();
             // Use setTimeout to make it async and non-blocking
             setTimeout(() => {
-              window.location.href = `mailto:suporte@egeolabs.com?subject=Suporte BotanicMD&body=Olá,%0D%0A%0D%0A`;
+              // Modal simples para escolher o tipo de contato
+              const contactType = prompt('Escolha o tipo de contato:\n\n1 - Suporte Geral\n2 - Enviar Sugestão\n3 - Relatar Problema\n\nDigite o número (1, 2 ou 3):');
+              
+              let subject = 'Suporte BotanicMD';
+              let body = 'Olá,%0D%0A%0D%0A';
+              
+              if (contactType === '2') {
+                subject = 'Sugestão BotanicMD';
+                body = 'Olá,%0D%0A%0D%0ADesejo sugerir:%0D%0A%0D%0A';
+              } else if (contactType === '3') {
+                subject = 'Relatar Problema BotanicMD';
+                body = 'Olá,%0D%0A%0D%0AEncontrei um problema:%0D%0A%0D%0ADescrição:%0D%0A%0D%0A';
+              }
+              
+              if (contactType) {
+                window.location.href = `mailto:suporte.botanicmd@egeolabs.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+              }
             }, 0);
           }}
           className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
           <h4 className="font-semibold text-gray-900 mb-1">Contatar Suporte</h4>
-          <p className="text-sm text-gray-600">Entre em contato conosco</p>
-        </button>
-        <button 
-          onClick={(e) => {
-            e.preventDefault();
-            // Use setTimeout to make it async and non-blocking
-            setTimeout(() => {
-              window.location.href = `mailto:suporte@egeolabs.com?subject=Sugestão BotanicMD&body=Olá,%0D%0A%0D%0ADesejo sugerir:%0D%0A%0D%0A`;
-            }, 0);
-          }}
-          className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          <h4 className="font-semibold text-gray-900 mb-1">Enviar Sugestão</h4>
-          <p className="text-sm text-gray-600">Compartilhe suas ideias para melhorar o app</p>
-        </button>
-        <button 
-          onClick={(e) => {
-            e.preventDefault();
-            // Use setTimeout to make it async and non-blocking
-            setTimeout(() => {
-              window.location.href = `mailto:suporte@egeolabs.com?subject=Relatar Problema BotanicMD&body=Olá,%0D%0A%0D%0AEncontrei um problema:%0D%0A%0D%0ADescrição:%0D%0A%0D%0A`;
-            }, 0);
-          }}
-          className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          <h4 className="font-semibold text-gray-900 mb-1">Relatar Problema</h4>
-          <p className="text-sm text-gray-600">Avise-nos sobre bugs ou problemas encontrados</p>
+          <p className="text-sm text-gray-600">Entre em contato, envie sugestões ou relate problemas</p>
         </button>
         <div className="bg-nature-50 rounded-lg p-4 mt-4">
           <p className="text-sm text-nature-700 mb-2">
-            <strong>Email:</strong> suporte@egeolabs.com
+            <strong>Email:</strong> suporte.botanicmd@egeolabs.com
           </p>
           <p className="text-xs text-nature-600">
             Horário de atendimento: Segunda a Sexta, 9h às 18h
