@@ -1,6 +1,7 @@
 // ⚠️ IMPORTANTE: Incremente a versão do cache quando houver mudanças significativas
 // Isso força a atualização do cache para todos os usuários
-const CACHE_VERSION = 'botanicmd-v2';
+// Incrementado para v3 para forçar limpeza do loop infinito anterior
+const CACHE_VERSION = 'botanicmd-v3';
 const CACHE_NAME = CACHE_VERSION;
 
 // Estratégia: Network First para assets dinâmicos (com hash), Cache First para arquivos estáticos
