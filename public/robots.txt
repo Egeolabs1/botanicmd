@@ -1,5 +1,5 @@
 # robots.txt for BotanicMD
-# https://botanicmd.vercel.app/robots.txt
+# https://botanicmd.com/robots.txt
 
 User-agent: *
 Allow: /
@@ -11,7 +11,7 @@ Disallow: /admin
 Disallow: /auth/
 
 # Sitemap
-Sitemap: https://botanicmd.vercel.app/sitemap.xml
+Sitemap: https://botanicmd.com/sitemap.xml
 
 # Crawl-delay (optional, helps prevent server overload)
 Crawl-delay: 1

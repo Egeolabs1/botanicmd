@@ -6,8 +6,8 @@ export const getOrganizationSchema = (t: any, language: string) => ({
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "BotanicMD",
-  "url": "https://botanicmd.vercel.app",
-  "logo": "https://botanicmd.vercel.app/icon.svg",
+  "url": "https://botanicmd.com",
+  "logo": "https://botanicmd.com/icon.svg",
   "description": t('seo_org_description'),
   "founder": {
     "@type": "Organization",
@@ -20,7 +20,7 @@ export const getWebApplicationSchema = (t: any, language: string) => ({
   "@context": "https://schema.org",
   "@type": "WebApplication",
   "name": "BotanicMD",
-  "url": "https://botanicmd.vercel.app",
+  "url": "https://botanicmd.com",
   "description": t('seo_app_description'),
   "applicationCategory": "UtilitiesApplication",
   "operatingSystem": "Any",
@@ -53,8 +53,8 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
   title,
   description,
   keywords,
-  image = 'https://botanicmd.vercel.app/icon.svg',
-  url = 'https://botanicmd.vercel.app/',
+  image = 'https://botanicmd.com/icon.svg',
+  url = 'https://botanicmd.com/',
   type = 'website',
   noindex = false,
   structuredData
@@ -175,7 +175,7 @@ export const blogPostSchema = (title: string, description: string, author: strin
     "name": "BotanicMD",
     "logo": {
       "@type": "ImageObject",
-      "url": "https://botanicmd.vercel.app/icon.svg"
+      "url": "https://botanicmd.com/icon.svg"
     }
   }
 });

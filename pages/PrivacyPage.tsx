@@ -102,7 +102,7 @@ export const PrivacyPage: React.FC = () => {
           ? "Política de Privacidade do BotanicMD - Saiba como coletamos, usamos e protegemos seus dados pessoais."
           : "BotanicMD Privacy Policy - Learn how we collect, use, and protect your personal data."
         }
-        url="https://botanicmd.vercel.app/privacy"
+        url="https://botanicmd.com/privacy"
       />
       
       <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">

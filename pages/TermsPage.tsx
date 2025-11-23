@@ -132,7 +132,7 @@ export const TermsPage: React.FC = () => {
           ? "Termos de Serviço do BotanicMD - Leia os termos e condições de uso do aplicativo."
           : "BotanicMD Terms of Service - Read the terms and conditions of use of the application."
         }
-        url="https://botanicmd.vercel.app/terms"
+        url="https://botanicmd.com/terms"
       />
       
       <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">

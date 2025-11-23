@@ -424,7 +424,7 @@ export const AppMain: React.FC = () => {
     <div className="min-h-screen bg-white text-gray-800 font-sans pb-20 md:pb-12 selection:bg-nature-200">
       <SEOHead 
         structuredData={getWebApplicationSchema(t, language)}
-        url="https://botanicmd.vercel.app/app"
+        url="https://botanicmd.com/app"
       />
       <PWAInstallPrompt />
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />

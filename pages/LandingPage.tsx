@@ -43,7 +43,7 @@ export const LandingPage: React.FC = () => {
           getOrganizationSchema(t, language),
           getWebApplicationSchema(t, language)
         ]}
-        url="https://botanicmd.vercel.app/"
+        url="https://botanicmd.com/"
       />
       <div className="min-h-screen bg-white font-sans selection:bg-nature-200 selection:text-nature-900 overflow-x-hidden">
         
