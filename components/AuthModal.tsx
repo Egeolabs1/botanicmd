@@ -23,8 +23,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [emailError, setEmailError] = useState<string>('');
   const [nameError, setNameError] = useState<string>('');
+  const [passwordError, setPasswordError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redireciona para /app após login bem-sucedido
@@ -40,6 +42,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     if (isLogin) {
       setName('');
       setNameError('');
+      setConfirmPassword('');
+      setPasswordError('');
     }
   }, [isLogin]);
 
@@ -76,9 +80,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       return;
     }
 
+    if (!password.trim()) {
+      setPasswordError('Senha é obrigatória');
+      return;
+    }
+
+    if (password.trim().length < 6) {
+      setPasswordError('Senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+
+    // Validação de confirmação de senha apenas no cadastro
+    if (!isLogin) {
+      if (!confirmPassword.trim()) {
+        setPasswordError('Confirme sua senha');
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setPasswordError('As senhas não coincidem');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setEmailError('');
     setNameError('');
+    setPasswordError('');
 
     try {
       await login(email.trim(), isLogin ? undefined : name.trim());
@@ -206,17 +234,83 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 type="password"
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500 outline-none transition-all bg-gray-50 focus:bg-white disabled:opacity-50"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (passwordError && e.target.value.trim()) {
+                    setPasswordError('');
+                  }
+                }}
+                onBlur={() => {
+                  if (password.trim() && password.trim().length < 6) {
+                    setPasswordError('Senha deve ter pelo menos 6 caracteres');
+                  } else if (!isLogin && confirmPassword && password !== confirmPassword) {
+                    setPasswordError('As senhas não coincidem');
+                  }
+                }}
+                className={`w-full pl-12 pr-4 py-3.5 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white disabled:opacity-50 ${
+                  passwordError 
+                    ? 'border-red-300 focus:ring-4 focus:ring-red-100 focus:border-red-500' 
+                    : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
+                }`}
                 placeholder="Senha"
                 disabled={isSubmitting}
                 minLength={6}
               />
             </div>
 
+            {/* Campo de confirmação de senha - apenas no cadastro */}
+            {!isLogin && (
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-nature-600 transition-colors">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <input
+                  type="password"
+                  required={!isLogin}
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    if (passwordError && e.target.value.trim()) {
+                      // Verifica se as senhas coincidem ao digitar
+                      if (password === e.target.value) {
+                        setPasswordError('');
+                      } else {
+                        setPasswordError('As senhas não coincidem');
+                      }
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!confirmPassword.trim()) {
+                      setPasswordError('Confirme sua senha');
+                    } else if (password !== confirmPassword) {
+                      setPasswordError('As senhas não coincidem');
+                    }
+                  }}
+                  className={`w-full pl-12 pr-4 py-3.5 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white disabled:opacity-50 ${
+                    passwordError 
+                      ? 'border-red-300 focus:ring-4 focus:ring-red-100 focus:border-red-500' 
+                      : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
+                  }`}
+                  placeholder="Confirmar senha"
+                  disabled={isSubmitting}
+                  minLength={6}
+                />
+              </div>
+            )}
+
+            {/* Mensagem de erro de senha */}
+            {passwordError && (
+              <p className="text-red-500 text-xs mt-1 ml-1">{passwordError}</p>
+            )}
+
             <button
               type="submit"
-              disabled={isSubmitting || !email.trim() || !password.trim() || (!isLogin && !name.trim())}
+              disabled={
+                isSubmitting || 
+                !email.trim() || 
+                !password.trim() || 
+                (!isLogin && (!name.trim() || !confirmPassword.trim() || password !== confirmPassword))
+              }
               className="w-full bg-nature-600 text-white py-4 rounded-2xl font-bold hover:bg-nature-700 transition-all shadow-lg shadow-nature-200 hover:shadow-nature-300 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {isSubmitting ? 'Processando...' : (isLogin ? 'Entrar' : 'Cadastrar')} 
