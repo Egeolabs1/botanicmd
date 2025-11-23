@@ -12,6 +12,18 @@ Este guia te levará passo a passo para configurar **TUDO** no Supabase para o B
 
 ---
 
+## ⚙️ ETAPA 0: Configurar Autenticação (IMPORTANTE)
+
+### 0.1 Configurar Confirmação de Email (Opcional)
+
+Por padrão, o Supabase pode exigir confirmação de email. Para testes rápidos, você pode desabilitar:
+
+1. No Dashboard do Supabase, vá em **Authentication** → **Providers** → **Email**
+2. Desabilite **"Confirm email"** se quiser login imediato após cadastro
+3. Ou mantenha habilitado para maior segurança (usuário precisa confirmar email)
+
+**Nota:** Se a confirmação estiver habilitada, o usuário só terá sessão após clicar no link de confirmação no email.
+
 ## ✅ ETAPA 1: Obter Credenciais do Supabase
 
 ### 1.1 Acessar o Dashboard
