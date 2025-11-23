@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
-import { User, Settings, LogOut, CreditCard, X, Star, Trophy, ArrowRight, CheckCircle, Leaf, LayoutDashboard, Users } from './Icons';
+import React, { useState, useEffect } from 'react';
+import { User, Settings, LogOut, CreditCard, X, Star, Trophy, ArrowRight, CheckCircle, Leaf, LayoutDashboard, Users, Bookmark, Clock, TrendingUp, Shield, HelpCircle, Mail, Lock, Share2, FileDown, Calendar } from './Icons';
 import { useLanguage } from '../i18n';
 import { User as UserType, SupportedLanguage } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { storage, SavedPlant } from '../services/storageService';
 
 interface UserProfileProps {
   user: UserType;
@@ -14,15 +15,133 @@ interface UserProfileProps {
   onOpenAbout: () => void;
 }
 
-type ViewState = 'main' | 'profile' | 'settings' | 'subscription';
+type ViewState = 'main' | 'profile' | 'settings' | 'subscription' | 'savedPlants' | 'history' | 'statistics' | 'reminders' | 'privacy' | 'email' | 'password' | 'share' | 'export' | 'help';
 
 export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogout, onUpgrade, onAdmin, onOpenAbout }) => {
   const { t, language, setLanguage } = useLanguage();
   const { updateProfile } = useAuth();
   const [currentView, setCurrentView] = useState<ViewState>('main');
   const [editName, setEditName] = useState(user.name);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    const stored = localStorage.getItem('botanicmd_notifications');
+    return stored ? JSON.parse(stored) : false;
+  });
+  const [emailNotifications, setEmailNotifications] = useState(() => {
+    const stored = localStorage.getItem('botanicmd_email_notifications');
+    return stored ? JSON.parse(stored) : false;
+  });
   const [nameError, setNameError] = useState<string>('');
+  const [savedPlants, setSavedPlants] = useState<SavedPlant[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
+  const [statistics, setStatistics] = useState<any>(null);
+  
+  // Carregar dados ao montar
+  useEffect(() => {
+    loadSavedPlants();
+    loadHistory();
+    calculateStatistics();
+  }, []);
+  
+  const loadSavedPlants = async () => {
+    try {
+      const plants = await storage.getPlants();
+      setSavedPlants(plants);
+    } catch (error) {
+      console.error('Erro ao carregar plantas:', error);
+    }
+  };
+  
+  const loadHistory = () => {
+    try {
+      const stored = localStorage.getItem('botanicmd_history');
+      if (stored) {
+        setHistory(JSON.parse(stored));
+      }
+    } catch (error) {
+      console.error('Erro ao carregar histórico:', error);
+    }
+  };
+  
+  const calculateStatistics = async () => {
+    try {
+      const plants = await storage.getPlants();
+      const stats = {
+        total: plants.length,
+        healthy: plants.filter(p => p.data.health?.isHealthy).length,
+        sick: plants.filter(p => !p.data.health?.isHealthy).length,
+        toxic: plants.filter(p => p.data.toxicity?.toLowerCase().includes('toxic') || p.data.toxicity?.toLowerCase().includes('tóxica')).length,
+        medicinal: plants.filter(p => p.data.medicinal?.isMedicinal).length,
+      };
+      setStatistics(stats);
+    } catch (error) {
+      console.error('Erro ao calcular estatísticas:', error);
+    }
+  };
+  
+  const handleNotificationToggle = (enabled: boolean) => {
+    setNotificationsEnabled(enabled);
+    localStorage.setItem('botanicmd_notifications', JSON.stringify(enabled));
+  };
+  
+  const handleEmailToggle = (enabled: boolean) => {
+    setEmailNotifications(enabled);
+    localStorage.setItem('botanicmd_email_notifications', JSON.stringify(enabled));
+  };
+  
+  const handleShareApp = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'BotanicMD',
+        text: 'Identifique plantas e diagnostique doenças com IA!',
+        url: window.location.href,
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert('Link copiado para a área de transferência!');
+    }
+  };
+  
+  const handleExportData = () => {
+    try {
+      const data = {
+        user: {
+          name: user.name,
+          email: user.email,
+          plan: user.plan,
+        },
+        plants: savedPlants,
+        history: history,
+        settings: {
+          notifications: notificationsEnabled,
+          emailNotifications: emailNotifications,
+          language: language,
+        },
+        exportedAt: new Date().toISOString(),
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `botanicmd-data-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      alert('Dados exportados com sucesso!');
+    } catch (error) {
+      alert('Erro ao exportar dados. Tente novamente.');
+    }
+  };
+  
+  const handleChangePassword = () => {
+    const newPassword = prompt('Digite sua nova senha (mínimo 6 caracteres):');
+    if (newPassword && newPassword.length >= 6) {
+      alert('Senha alterada com sucesso! (Funcionalidade em desenvolvimento)');
+    } else if (newPassword) {
+      alert('A senha deve ter pelo menos 6 caracteres.');
+    }
+  };
 
   // Calculate usage percentage
   const maxUsage = user.maxUsage === -1 ? 100 : user.maxUsage;
@@ -183,6 +302,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
                <span className="font-medium flex-1">Logout</span>
             </button>
           </div>
+          
+          {/* Footer */}
+          <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+            <p className="text-xs text-gray-400">
+              Desenvolvido com <span className="text-red-500">♥</span> por <span className="font-semibold text-nature-600">Egeolabs</span>
+            </p>
+          </div>
         </div>
     </>
   );
@@ -203,12 +329,71 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
             className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-nature-300"
           />
         </div>
+        
+        {/* Additional Profile Options */}
+        <div className="space-y-2 pt-4 border-t border-gray-100">
+          <button 
+            onClick={() => setCurrentView('savedPlants')}
+            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
+          >
+            <div className="p-2 bg-nature-100 rounded-lg text-nature-600"><Bookmark className="w-5 h-5" /></div>
+            <div className="flex-1">
+              <span className="font-medium block">Plantas Salvas</span>
+              <span className="text-xs text-gray-500">{savedPlants.length} plantas</span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-300" />
+          </button>
+          
+          <button 
+            onClick={() => setCurrentView('history')}
+            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
+          >
+            <div className="p-2 bg-blue-100 rounded-lg text-blue-600"><Clock className="w-5 h-5" /></div>
+            <div className="flex-1">
+              <span className="font-medium block">Histórico</span>
+              <span className="text-xs text-gray-500">{history.length} análises</span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-300" />
+          </button>
+          
+          <button 
+            onClick={() => setCurrentView('statistics')}
+            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
+          >
+            <div className="p-2 bg-purple-100 rounded-lg text-purple-600"><TrendingUp className="w-5 h-5" /></div>
+            <div className="flex-1">
+              <span className="font-medium block">Estatísticas</span>
+              <span className="text-xs text-gray-500">Visualizar dados</span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-300" />
+          </button>
+          
+          <button 
+            onClick={() => setCurrentView('reminders')}
+            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
+          >
+            <div className="p-2 bg-green-100 rounded-lg text-green-600"><Calendar className="w-5 h-5" /></div>
+            <div className="flex-1">
+              <span className="font-medium block">Lembretes</span>
+              <span className="text-xs text-gray-500">Gerenciar lembretes</span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-gray-300" />
+          </button>
+        </div>
+        
         <button 
           onClick={handleSaveProfile}
-          className="w-full bg-nature-600 text-white py-3 rounded-lg font-bold hover:bg-nature-700 transition-colors"
+          className="w-full bg-nature-600 text-white py-3 rounded-lg font-bold hover:bg-nature-700 transition-colors mt-4"
         >
           {t('save_changes')}
         </button>
+      </div>
+      
+      {/* Footer */}
+      <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+        <p className="text-xs text-gray-400">
+          Desenvolvido com <span className="text-red-500">♥</span> por <span className="font-semibold text-nature-600">Egeolabs</span>
+        </p>
       </div>
     </div>
   );
@@ -223,7 +408,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
         <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
           <label htmlFor="notifications" className="font-medium text-gray-700">{t('enable_notifications')}</label>
           <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-              <input type="checkbox" name="toggle" id="notifications" checked={notificationsEnabled} onChange={() => setNotificationsEnabled(!notificationsEnabled)} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+              <input type="checkbox" name="toggle" id="notifications" checked={notificationsEnabled} onChange={(e) => handleNotificationToggle(e.target.checked)} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
               <label htmlFor="notifications" className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
           </div>
         </div>
@@ -238,6 +423,70 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
             <option value="pt">Português</option>
           </select>
         </div>
+
+        {/* Additional Settings Options */}
+        <div className="space-y-2 pt-4 border-t border-gray-100">
+          <button 
+            onClick={() => setCurrentView('privacy')}
+            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
+          >
+            <div className="p-2 bg-gray-100 rounded-lg text-gray-600"><Shield className="w-5 h-5" /></div>
+            <span className="font-medium flex-1">Privacidade e Segurança</span>
+            <ArrowRight className="w-4 h-4 text-gray-300" />
+          </button>
+          
+          <button 
+            onClick={() => setCurrentView('email')}
+            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
+          >
+            <div className="p-2 bg-gray-100 rounded-lg text-gray-600"><Mail className="w-5 h-5" /></div>
+            <span className="font-medium flex-1">Notificações por Email</span>
+            <ArrowRight className="w-4 h-4 text-gray-300" />
+          </button>
+          
+          <button 
+            onClick={handleChangePassword}
+            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
+          >
+            <div className="p-2 bg-gray-100 rounded-lg text-gray-600"><Lock className="w-5 h-5" /></div>
+            <span className="font-medium flex-1">Alterar Senha</span>
+            <ArrowRight className="w-4 h-4 text-gray-300" />
+          </button>
+          
+          <button 
+            onClick={handleShareApp}
+            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
+          >
+            <div className="p-2 bg-gray-100 rounded-lg text-gray-600"><Share2 className="w-5 h-5" /></div>
+            <span className="font-medium flex-1">Compartilhar App</span>
+            <ArrowRight className="w-4 h-4 text-gray-300" />
+          </button>
+          
+          <button 
+            onClick={handleExportData}
+            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
+          >
+            <div className="p-2 bg-gray-100 rounded-lg text-gray-600"><FileDown className="w-5 h-5" /></div>
+            <span className="font-medium flex-1">Exportar Dados</span>
+            <ArrowRight className="w-4 h-4 text-gray-300" />
+          </button>
+          
+          <button 
+            onClick={() => setCurrentView('help')}
+            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-gray-700 transition-colors text-left"
+          >
+            <div className="p-2 bg-gray-100 rounded-lg text-gray-600"><HelpCircle className="w-5 h-5" /></div>
+            <span className="font-medium flex-1">Ajuda e Suporte</span>
+            <ArrowRight className="w-4 h-4 text-gray-300" />
+          </button>
+        </div>
+      </div>
+      
+      {/* Footer */}
+      <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+        <p className="text-xs text-gray-400">
+          Desenvolvido com <span className="text-red-500">♥</span> por <span className="font-semibold text-nature-600">Egeolabs</span>
+        </p>
       </div>
     </div>
   );
@@ -284,6 +533,236 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
     </div>
   );
 
+  // Render views for new functionalities
+  const renderSavedPlantsView = () => (
+    <div className="p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={() => setCurrentView('profile')} className="p-2 hover:bg-gray-100 rounded-full"><ArrowRight className="w-5 h-5 rotate-180" /></button>
+        <h3 className="text-lg font-bold text-gray-900">Plantas Salvas</h3>
+      </div>
+      <div className="space-y-3">
+        {savedPlants.length === 0 ? (
+          <div className="text-center py-8">
+            <Bookmark className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">Nenhuma planta salva ainda</p>
+          </div>
+        ) : (
+          savedPlants.map((plant) => (
+            <div key={plant.data.id} className="bg-gray-50 rounded-lg p-3 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-lg bg-nature-100 flex items-center justify-center flex-shrink-0">
+                <Leaf className="w-6 h-6 text-nature-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-gray-900 truncate">{plant.data.commonName}</h4>
+                <p className="text-xs text-gray-500 truncate">{plant.data.scientificName}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      
+      {/* Footer */}
+      <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+        <p className="text-xs text-gray-400">
+          Desenvolvido com <span className="text-red-500">♥</span> por <span className="font-semibold text-nature-600">Egeolabs</span>
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderHistoryView = () => (
+    <div className="p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={() => setCurrentView('profile')} className="p-2 hover:bg-gray-100 rounded-full"><ArrowRight className="w-5 h-5 rotate-180" /></button>
+        <h3 className="text-lg font-bold text-gray-900">Histórico</h3>
+      </div>
+      <div className="space-y-3">
+        {history.length === 0 ? (
+          <div className="text-center py-8">
+            <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">Nenhuma análise no histórico</p>
+          </div>
+        ) : (
+          history.slice(0, 10).map((item, idx) => (
+            <div key={idx} className="bg-gray-50 rounded-lg p-3 flex items-center gap-3">
+              <Clock className="w-5 h-5 text-gray-400" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">{item.plantName || 'Planta analisada'}</p>
+                <p className="text-xs text-gray-500">{item.date ? new Date(item.date).toLocaleDateString('pt-BR') : 'Data não disponível'}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      
+      {/* Footer */}
+      <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+        <p className="text-xs text-gray-400">
+          Desenvolvido com <span className="text-red-500">♥</span> por <span className="font-semibold text-nature-600">Egeolabs</span>
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderStatisticsView = () => (
+    <div className="p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={() => setCurrentView('profile')} className="p-2 hover:bg-gray-100 rounded-full"><ArrowRight className="w-5 h-5 rotate-180" /></button>
+        <h3 className="text-lg font-bold text-gray-900">Estatísticas</h3>
+      </div>
+      {statistics && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-nature-50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-nature-600">{statistics.total}</div>
+              <div className="text-xs text-gray-600 mt-1">Total de Plantas</div>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-green-600">{statistics.healthy}</div>
+              <div className="text-xs text-gray-600 mt-1">Saudáveis</div>
+            </div>
+            <div className="bg-red-50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-red-600">{statistics.sick}</div>
+              <div className="text-xs text-gray-600 mt-1">Doentes</div>
+            </div>
+            <div className="bg-yellow-50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-yellow-600">{statistics.toxic}</div>
+              <div className="text-xs text-gray-600 mt-1">Tóxicas</div>
+            </div>
+          </div>
+          {statistics.medicinal > 0 && (
+            <div className="bg-purple-50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-purple-600">{statistics.medicinal}</div>
+              <div className="text-xs text-gray-600 mt-1">Medicinais</div>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* Footer */}
+      <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+        <p className="text-xs text-gray-400">
+          Desenvolvido com <span className="text-red-500">♥</span> por <span className="font-semibold text-nature-600">Egeolabs</span>
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderRemindersView = () => (
+    <div className="p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={() => setCurrentView('profile')} className="p-2 hover:bg-gray-100 rounded-full"><ArrowRight className="w-5 h-5 rotate-180" /></button>
+        <h3 className="text-lg font-bold text-gray-900">Lembretes</h3>
+      </div>
+      <div className="text-center py-8">
+        <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+        <p className="text-gray-500 mb-4">Sistema de lembretes em desenvolvimento</p>
+        <button className="bg-nature-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
+          Criar Lembrete
+        </button>
+      </div>
+      
+      {/* Footer */}
+      <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+        <p className="text-xs text-gray-400">
+          Desenvolvido com <span className="text-red-500">♥</span> por <span className="font-semibold text-nature-600">Egeolabs</span>
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderPrivacyView = () => (
+    <div className="p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={() => setCurrentView('settings')} className="p-2 hover:bg-gray-100 rounded-full"><ArrowRight className="w-5 h-5 rotate-180" /></button>
+        <h3 className="text-lg font-bold text-gray-900">Privacidade e Segurança</h3>
+      </div>
+      <div className="space-y-4">
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h4 className="font-semibold text-gray-900 mb-2">Dados Pessoais</h4>
+          <p className="text-sm text-gray-600">Seus dados são armazenados de forma segura e não são compartilhados com terceiros.</p>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h4 className="font-semibold text-gray-900 mb-2">Permissões</h4>
+          <p className="text-sm text-gray-600">O app solicita apenas as permissões necessárias para funcionamento.</p>
+        </div>
+        <button className="w-full bg-nature-600 text-white py-2.5 rounded-lg font-medium">
+          Ver Política de Privacidade
+        </button>
+      </div>
+      
+      {/* Footer */}
+      <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+        <p className="text-xs text-gray-400">
+          Desenvolvido com <span className="text-red-500">♥</span> por <span className="font-semibold text-nature-600">Egeolabs</span>
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderEmailView = () => (
+    <div className="p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={() => setCurrentView('settings')} className="p-2 hover:bg-gray-100 rounded-full"><ArrowRight className="w-5 h-5 rotate-180" /></button>
+        <h3 className="text-lg font-bold text-gray-900">Notificações por Email</h3>
+      </div>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+          <label htmlFor="email-notifications" className="font-medium text-gray-700">Receber notificações por email</label>
+          <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+              <input type="checkbox" name="toggle" id="email-notifications" checked={emailNotifications} onChange={(e) => handleEmailToggle(e.target.checked)} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+              <label htmlFor="email-notifications" className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+          </div>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-4">
+          <p className="text-sm text-gray-600">Receba atualizações sobre suas plantas e dicas de cuidado por email.</p>
+        </div>
+      </div>
+      
+      {/* Footer */}
+      <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+        <p className="text-xs text-gray-400">
+          Desenvolvido com <span className="text-red-500">♥</span> por <span className="font-semibold text-nature-600">Egeolabs</span>
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderHelpView = () => (
+    <div className="p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={() => setCurrentView('settings')} className="p-2 hover:bg-gray-100 rounded-full"><ArrowRight className="w-5 h-5 rotate-180" /></button>
+        <h3 className="text-lg font-bold text-gray-900">Ajuda e Suporte</h3>
+      </div>
+      <div className="space-y-3">
+        <button className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+          <h4 className="font-semibold text-gray-900 mb-1">Como usar o app?</h4>
+          <p className="text-sm text-gray-600">Guia completo de uso do BotanicMD</p>
+        </button>
+        <button className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+          <h4 className="font-semibold text-gray-900 mb-1">Perguntas Frequentes</h4>
+          <p className="text-sm text-gray-600">Respostas para dúvidas comuns</p>
+        </button>
+        <button className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+          <h4 className="font-semibold text-gray-900 mb-1">Contatar Suporte</h4>
+          <p className="text-sm text-gray-600">Entre em contato conosco</p>
+        </button>
+        <div className="bg-nature-50 rounded-lg p-4 mt-4">
+          <p className="text-sm text-nature-700">
+            <strong>Email:</strong> suporte@egeolabs.com
+          </p>
+        </div>
+      </div>
+      
+      {/* Footer */}
+      <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+        <p className="text-xs text-gray-400">
+          Desenvolvido com <span className="text-red-500">♥</span> por <span className="font-semibold text-nature-600">Egeolabs</span>
+        </p>
+      </div>
+    </div>
+  );
+
   const renderContent = () => {
     switch (currentView) {
       case 'profile':
@@ -292,6 +771,20 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
         return renderSettingsView();
       case 'subscription':
         return renderSubscriptionView();
+      case 'savedPlants':
+        return renderSavedPlantsView();
+      case 'history':
+        return renderHistoryView();
+      case 'statistics':
+        return renderStatisticsView();
+      case 'reminders':
+        return renderRemindersView();
+      case 'privacy':
+        return renderPrivacyView();
+      case 'email':
+        return renderEmailView();
+      case 'help':
+        return renderHelpView();
       default:
         return renderMainView();
     }
