@@ -128,10 +128,110 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       case 'generateText': {
-        const { prompt, language, temperature = 0.3, responseMimeType, responseSchema } = params;
+        const { prompt, language, temperature = 0.3, responseMimeType, schemaType } = params;
         
         if (!prompt) {
           return res.status(400).json({ error: 'Prompt é obrigatório' });
+        }
+
+        // Define schemas baseado no tipo solicitado
+        let responseSchema: any = undefined;
+        
+        if (schemaType === 'plant') {
+          responseSchema = {
+            type: Type.OBJECT,
+            properties: {
+              commonName: { type: Type.STRING },
+              scientificName: { type: Type.STRING },
+              description: { type: Type.STRING },
+              funFact: { type: Type.STRING, description: "A fun fact or historical fact." },
+              toxicity: { type: Type.STRING, description: "Ex: Toxic to cats, safe for humans." },
+              propagation: { type: Type.STRING, description: "Ex: Cuttings in water." },
+              imageUrl: { type: Type.STRING, description: "Optional: Leave empty." },
+              wateringFrequencyDays: { type: Type.INTEGER, description: "Integer representing ideal watering frequency in days (ex: 3 for every 3 days). Use 0 if variable." },
+              care: {
+                type: Type.OBJECT,
+                properties: {
+                  water: { type: Type.STRING },
+                  light: { type: Type.STRING },
+                  soil: { type: Type.STRING },
+                  temperature: { type: Type.STRING },
+                },
+                required: ["water", "light", "soil", "temperature"]
+              },
+              health: {
+                type: Type.OBJECT,
+                properties: {
+                  isHealthy: { type: Type.BOOLEAN },
+                  diagnosis: { type: Type.STRING },
+                  symptoms: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                  },
+                  treatment: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                  }
+                },
+                required: ["isHealthy", "diagnosis", "symptoms", "treatment"]
+              },
+              medicinal: {
+                type: Type.OBJECT,
+                properties: {
+                  isMedicinal: { type: Type.BOOLEAN },
+                  benefits: { type: Type.STRING, description: "List of health benefits if medicinal." },
+                  usage: { type: Type.STRING, description: "How to prepare or use (e.g., tea, poultice)." }
+                },
+                required: ["isMedicinal", "benefits", "usage"]
+              }
+            },
+            required: ["commonName", "scientificName", "description", "funFact", "toxicity", "propagation", "wateringFrequencyDays", "care", "health", "medicinal"]
+          };
+        } else if (schemaType === 'candidates') {
+          responseSchema = {
+            type: Type.OBJECT,
+            properties: {
+              candidates: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    commonName: { type: Type.STRING },
+                    scientificName: { type: Type.STRING },
+                    imageUrl: { type: Type.STRING, description: "Leave empty, handled externally." }
+                  },
+                  required: ["commonName", "scientificName"]
+                }
+              }
+            }
+          };
+        } else if (schemaType === 'blog') {
+          responseSchema = {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              excerpt: { type: Type.STRING },
+              content: { type: Type.STRING, description: "HTML formatted content (use h3, p, ul, li tags)" },
+              category: { type: Type.STRING, description: "One of: Care Guides, Beginners, Science, Technology, Wellness, Design" },
+              author: { type: Type.STRING },
+              imageSearchQuery: { type: Type.STRING, description: "A specific plant name or botanical term to search for an image on Wikipedia (e.g. 'Monstera', 'Succulent', 'Soil')." }
+            },
+            required: ["title", "excerpt", "content", "category", "author", "imageSearchQuery"]
+          };
+        }
+
+        const config: any = {
+          systemInstruction: `You are a helpful, accurate, and friendly gardening assistant. Respond in ${getLanguageName(language)}.`,
+          temperature: temperature,
+          safetySettings: SAFETY_SETTINGS,
+        };
+
+        if (responseMimeType) {
+          config.responseMimeType = responseMimeType;
+        }
+
+        if (responseSchema) {
+          config.responseSchema = responseSchema;
         }
 
         const response = await ai.models.generateContent({
@@ -141,13 +241,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               parts: [{ text: prompt }]
             }
           ],
-          config: {
-            systemInstruction: `You are a helpful, accurate, and friendly gardening assistant. Respond in ${getLanguageName(language)}.`,
-            temperature: temperature,
-            responseMimeType: responseMimeType || "text/plain",
-            responseSchema: responseSchema,
-            safetySettings: SAFETY_SETTINGS,
-          },
+          config: config,
         });
 
         const text = response.text;
