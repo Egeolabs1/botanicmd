@@ -36,10 +36,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
   
   // Debug: log PWA status
   useEffect(() => {
-    console.log('🔍 UserProfile - isPWA:', isPWA);
-    console.log('🔍 UserProfile - deferredPrompt:', !!deferredPrompt);
-    console.log('🔍 UserProfile - isIOS:', isIOS);
-    console.log('🔍 UserProfile - should show install:', !isPWA);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isIOSStandalone = (window.navigator as any).standalone === true;
+    const isAndroidStandalone = document.referrer.includes('android-app://');
+    
+    console.log('🔍 UserProfile Debug:');
+    console.log('  - isPWA (hook):', isPWA);
+    console.log('  - display-mode standalone:', isStandalone);
+    console.log('  - iOS standalone:', isIOSStandalone);
+    console.log('  - Android standalone:', isAndroidStandalone);
+    console.log('  - deferredPrompt:', !!deferredPrompt);
+    console.log('  - isIOS:', isIOS);
+    console.log('  - should show install button:', !isPWA);
   }, [isPWA, deferredPrompt, isIOS]);
   const [editName, setEditName] = useState(user.name);
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
