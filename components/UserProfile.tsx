@@ -126,21 +126,61 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
 
   const handleInstallClick = async () => {
     if (isIOS) {
-      // Para iOS, mostra instruções
-      alert('Para instalar no iOS:\n\n1. Toque no botão Compartilhar (Share)\n2. Selecione "Adicionar à Tela de Início" (Add to Home Screen)');
+      // Para iOS, mostra instruções detalhadas
+      const instructions = `Para instalar o BotanicMD no iOS:
+
+1. Toque no botão de Compartilhar (Share) na parte inferior da tela (ícone de quadrado com seta para cima)
+
+2. Role para baixo e toque em "Adicionar à Tela de Início" (Add to Home Screen)
+
+3. Toque em "Adicionar" para confirmar
+
+Pronto! O app estará disponível na sua tela inicial.`;
+
+      alert(instructions);
       return;
     }
 
-    if (!deferredPrompt) {
-      alert('O app já está instalado ou não pode ser instalado neste dispositivo.');
-      return;
-    }
+    // Para Android
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        
+        if (outcome === 'accepted') {
+          setDeferredPrompt(null);
+          alert('App instalado com sucesso! ✅');
+        } else {
+          console.log('Usuário cancelou a instalação');
+        }
+      } catch (error) {
+        console.error('Erro ao mostrar prompt de instalação:', error);
+        // Fallback: mostra instruções manuais
+        const instructions = `Para instalar o BotanicMD:
 
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
+1. Toque no menu do navegador (3 pontos no canto superior direito)
+
+2. Procure por "Instalar app" ou "Adicionar à tela inicial"
+
+3. Siga as instruções para instalar
+
+Alternativamente, alguns navegadores mostram um banner na parte superior da tela para instalar o app.`;
+
+        alert(instructions);
+      }
+    } else {
+      // Se não tem deferredPrompt, mostra instruções manuais
+      const instructions = `Para instalar o BotanicMD:
+
+1. Toque no menu do navegador (3 pontos no canto superior direito)
+
+2. Procure por "Instalar app" ou "Adicionar à tela inicial"
+
+3. Siga as instruções para instalar
+
+Alternativamente, alguns navegadores mostram um banner na parte superior da tela para instalar o app.`;
+
+      alert(instructions);
     }
   };
   
