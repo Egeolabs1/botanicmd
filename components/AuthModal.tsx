@@ -18,9 +18,10 @@ const isValidEmail = (email: string): boolean => {
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { login, loginSocial, isAuthenticated, resetPassword } = useAuth();
+  const { login, loginSocial, isAuthenticated, resetPassword, resendConfirmationEmail } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isResendEmail, setIsResendEmail] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,6 +31,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [passwordError, setPasswordError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [isResendEmail, setIsResendEmail] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   // Redireciona para /app após login bem-sucedido
   React.useEffect(() => {
@@ -174,6 +178,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       setResetSuccess(true);
     } catch (error: any) {
       setEmailError(error.message || 'Erro ao enviar email de recuperação. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendConfirmation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email.trim()) {
+      setEmailError('Email é obrigatório');
+      return;
+    }
+
+    if (!isValidEmail(email.trim())) {
+      setEmailError('Email inválido');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setEmailError('');
+
+    try {
+      await resendConfirmationEmail(email.trim());
+      setResendSuccess(true);
+    } catch (error: any) {
+      setEmailError(error.message || 'Erro ao reenviar email de confirmação. Tente novamente.');
     } finally {
       setIsSubmitting(false);
     }
@@ -453,18 +483,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           )}
 
           <div className="mt-6 space-y-3 text-center">
-            {isLogin && !isForgotPassword && (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsForgotPassword(true);
-                  setPassword('');
-                  setPasswordError('');
-                }}
-                className="text-sm text-nature-600 hover:text-nature-800 transition-colors underline"
-              >
-                Esqueci minha senha
-              </button>
+            {isLogin && !isForgotPassword && !isResendEmail && (
+                <div className="flex flex-col items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsForgotPassword(true);
+                            setPassword('');
+                            setPasswordError('');
+                        }}
+                        className="text-sm text-nature-600 hover:text-nature-800 transition-colors underline"
+                    >
+                        Esqueci minha senha
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsResendEmail(true);
+                            setPassword('');
+                            setPasswordError('');
+                        }}
+                        className="text-sm text-gray-600 hover:text-gray-800 transition-colors underline"
+                    >
+                        Reenviar email de confirmação
+                    </button>
+                </div>
             )}
             
             {!isForgotPassword && (
