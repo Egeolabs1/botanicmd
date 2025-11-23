@@ -17,9 +17,23 @@ export const isSupabaseConfigured =
 // Cria cliente Supabase apenas se as credenciais estiverem configuradas
 // Caso contrário, o app funcionará em modo demo/offline
 export const supabase = isSupabaseConfigured 
-  ? createClient(SUPABASE_URL, SUPABASE_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        // Configura persistência da sessão
+        storage: window.localStorage,
+        storageKey: 'botanicmd-auth-token',
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      }
+    })
   : (() => {
       console.warn('Supabase não configurado. Modo demo ativado.');
       // Retorna um cliente mock para evitar erros
-      return createClient('https://placeholder.supabase.co', 'placeholder-key');
+      return createClient('https://placeholder.supabase.co', 'placeholder-key', {
+        auth: {
+          storage: window.localStorage,
+          persistSession: false
+        }
+      });
     })();
