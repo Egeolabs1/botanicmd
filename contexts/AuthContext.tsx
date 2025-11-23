@@ -32,22 +32,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    // Em Supabase, podemos salvar metadados do usuário na tabela 'profiles' ou no metadata do auth
-    // Aqui, usamos localStorage para simular a persistência do plano por simplicidade
-    const storedData = localStorage.getItem(`botanicmd_data_${sbUser.id}`);
-    const extraData = storedData ? JSON.parse(storedData) : { plan: 'free', usageCount: 0, maxUsage: 3 };
+    try {
+      // Em Supabase, podemos salvar metadados do usuário na tabela 'profiles' ou no metadata do auth
+      // Aqui, usamos localStorage para simular a persistência do plano por simplicidade
+      const storedData = localStorage.getItem(`botanicmd_data_${sbUser.id}`);
+      let extraData = { plan: 'free' as PlanType, usageCount: 0, maxUsage: 3 };
+      
+      if (storedData) {
+        try {
+          extraData = JSON.parse(storedData);
+        } catch (e) {
+          console.warn('Erro ao parsear dados do usuário:', e);
+        }
+      }
 
-    const appUser: User = {
-      id: sbUser.id,
-      name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'Jardineiro',
-      email: sbUser.email || '',
-      plan: extraData.plan,
-      usageCount: extraData.usageCount,
-      maxUsage: extraData.plan === 'pro' ? -1 : 3
-    };
+      const appUser: User = {
+        id: sbUser.id,
+        name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'Jardineiro',
+        email: sbUser.email || '',
+        plan: extraData.plan || 'free',
+        usageCount: extraData.usageCount || 0,
+        maxUsage: extraData.plan === 'pro' ? -1 : 3
+      };
 
-    setUser(appUser);
-    setIsLoading(false);
+      setUser(appUser);
+      setIsLoading(false);
+      
+      // Garante que os dados sejam salvos
+      const dataToSave = {
+        plan: appUser.plan,
+        usageCount: appUser.usageCount,
+        maxUsage: appUser.maxUsage
+      };
+      localStorage.setItem(`botanicmd_data_${sbUser.id}`, JSON.stringify(dataToSave));
+    } catch (error) {
+      console.error('Erro ao mapear usuário:', error);
+      setUser(null);
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -67,20 +89,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    // Verifica sessão atual do Supabase
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      mapUser(session?.user ?? null);
-    }).catch(err => {
-      console.error("Erro de conexão Auth:", err);
-      setIsLoading(false);
-    });
+    let mounted = true;
+
+    // Função para verificar e recuperar sessão
+    const initializeAuth = async () => {
+      try {
+        // Primeiro, verifica se há uma sessão persistida
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+
+        if (error) {
+          console.error("Erro ao recuperar sessão:", error);
+          setIsLoading(false);
+          return;
+        }
+
+        // Se há uma sessão, mapeia o usuário
+        if (session?.user) {
+          mapUser(session.user);
+        } else {
+          // Não há sessão - usuário não está logado
+          setUser(null);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error("Erro de conexão Auth:", err);
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    // Inicializa a autenticação
+    initializeAuth();
 
     // Escuta mudanças de auth (Login/Logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      mapUser(session?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
+      
+      if (!mounted) return;
+
+      if (session?.user) {
+        mapUser(session.user);
+      } else {
+        // Sessão perdida ou logout
+        setUser(null);
+        setIsLoading(false);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Salva uso localmente para persistência do plano/contagem
