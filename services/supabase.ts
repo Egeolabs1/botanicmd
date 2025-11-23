@@ -20,11 +20,13 @@ export const supabase = isSupabaseConfigured
   ? createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: {
         // Configura persistência da sessão
-        storage: window.localStorage,
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
         storageKey: 'botanicmd-auth-token',
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: true
+        detectSessionInUrl: true,
+        // Configurações adicionais para melhor persistência
+        flowType: 'pkce'
       }
     })
   : (() => {
@@ -32,8 +34,19 @@ export const supabase = isSupabaseConfigured
       // Retorna um cliente mock para evitar erros
       return createClient('https://placeholder.supabase.co', 'placeholder-key', {
         auth: {
-          storage: window.localStorage,
+          storage: typeof window !== 'undefined' ? window.localStorage : undefined,
           persistSession: false
         }
       });
     })();
+
+// Debug: Verifica se a sessão está sendo persistida
+if (typeof window !== 'undefined' && isSupabaseConfigured) {
+  // Verifica se há uma sessão salva
+  const savedSession = localStorage.getItem('botanicmd-auth-token');
+  if (savedSession) {
+    console.log('✅ Sessão encontrada no localStorage');
+  } else {
+    console.log('ℹ️ Nenhuma sessão encontrada no localStorage');
+  }
+}
