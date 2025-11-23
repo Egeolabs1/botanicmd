@@ -111,11 +111,8 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
           </div>
 
           <div className="bg-nature-50 rounded-lg p-4 mb-6">
-            <p className="text-sm text-nature-700 mb-1">
+            <p className="text-sm text-nature-700">
               <strong>Email:</strong> {SUPPORT_EMAIL}
-            </p>
-            <p className="text-xs text-nature-600">
-              Horário de atendimento: Segunda a Sexta, 9h às 18h
             </p>
           </div>
 
