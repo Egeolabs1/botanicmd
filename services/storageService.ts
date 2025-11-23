@@ -95,13 +95,21 @@ class StorageService {
           if (uploadedUrl) {
             imageUrl = uploadedUrl;
           } else {
-            // Se o upload falhar mas Supabase estiver configurado, mantém base64 como fallback
-            // (com aviso sobre limite de tamanho)
-            console.warn('Upload de imagem falhou. Salvando como base64 (pode ter limite de tamanho).');
+            // Se o upload falhar, não salva base64 no banco (muito grande)
+            // Em vez disso, tenta novamente ou usa placeholder
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('Upload de imagem falhou. A imagem não será salva no banco de dados.');
+            }
+            // Usa um placeholder ou remove a imagem
+            imageUrl = ''; // Remove base64 para evitar problemas de tamanho
           }
         } catch (uploadError) {
-          console.error('Erro ao fazer upload da imagem:', uploadError);
-          // Continua salvando como base64 se o upload falhar
+          // Log apenas em desenvolvimento
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Erro ao fazer upload da imagem:', uploadError);
+          }
+          // Não salva base64 no banco, remove a referência
+          imageUrl = '';
         }
       }
 

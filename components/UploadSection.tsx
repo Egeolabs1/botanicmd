@@ -1,7 +1,46 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, Leaf, MessageCircle, Lock } from './Icons';
+import { UploadCloud, Leaf, MessageCircle, Lock, Camera } from './Icons';
 import { useLanguage } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
+
+// Validação de magic bytes para garantir que é realmente uma imagem
+const isValidImageFile = async (file: File): Promise<boolean> => {
+  // Validação básica de tipo MIME
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  if (!allowedTypes.includes(file.type.toLowerCase())) {
+    return false;
+  }
+
+  // Validação de magic bytes (assinatura do arquivo)
+  try {
+    const buffer = await file.slice(0, 12).arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    
+    // JPEG: FF D8 FF
+    if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return true;
+    
+    // PNG: 89 50 4E 47 0D 0A 1A 0A
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return true;
+    
+    // GIF: 47 49 46 38 (GIF8)
+    if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) return true;
+    
+    // WebP: RIFF...WEBP (verifica os primeiros 4 bytes como RIFF e depois WEBP)
+    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+      // Verifica se contém WEBP mais adiante
+      const webpCheck = await file.slice(8, 12).arrayBuffer();
+      const webpBytes = new Uint8Array(webpCheck);
+      if (webpBytes[0] === 0x57 && webpBytes[1] === 0x45 && webpBytes[2] === 0x42 && webpBytes[3] === 0x50) {
+        return true;
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    // Em caso de erro, retorna false para segurança
+    return false;
+  }
+};
 
 interface UploadSectionProps {
   onImageSelected: (file: File) => void;
@@ -18,6 +57,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onImageSelected, o
   const [isDragging, setIsDragging] = useState(false);
   const [searchText, setSearchText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const isPro = user?.plan === 'pro';
 
@@ -30,22 +70,23 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onImageSelected, o
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       
-      // Validação de tipo de arquivo
-      if (!file.type.startsWith('image/')) {
-        alert('Por favor, solte apenas arquivos de imagem.');
-        return;
-      }
-      
       // Validação de tamanho (max 10MB)
       const maxSize = 10 * 1024 * 1024; // 10MB
       if (file.size > maxSize) {
         alert('Arquivo muito grande. Por favor, selecione uma imagem menor que 10MB.');
+        return;
+      }
+
+      // Validação de tipo de arquivo e magic bytes
+      const isValid = await isValidImageFile(file);
+      if (!isValid) {
+        alert('Arquivo inválido. Por favor, selecione uma imagem válida (JPEG, PNG, WebP ou GIF).');
         return;
       }
       
@@ -53,25 +94,38 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onImageSelected, o
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      
-      // Validação de tipo de arquivo
-      if (!file.type.startsWith('image/')) {
-        alert('Por favor, selecione apenas arquivos de imagem.');
-        return;
-      }
-      
-      // Validação de tamanho (max 10MB)
-      const maxSize = 10 * 1024 * 1024; // 10MB
-      if (file.size > maxSize) {
-        alert('Arquivo muito grande. Por favor, selecione uma imagem menor que 10MB.');
-        return;
-      }
-      
-      onImageSelected(file);
+  const handleFileChange = async (file: File) => {
+    // Validação de tamanho (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      alert('Arquivo muito grande. Por favor, selecione uma imagem menor que 10MB.');
+      return;
     }
+
+    // Validação de tipo de arquivo e magic bytes
+    const isValid = await isValidImageFile(file);
+    if (!isValid) {
+      alert('Arquivo inválido. Por favor, selecione uma imagem válida (JPEG, PNG, WebP ou GIF).');
+      return;
+    }
+    
+    onImageSelected(file);
+  };
+
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      await handleFileChange(e.target.files[0]);
+      // Limpa o input para permitir selecionar o mesmo arquivo novamente
+      e.target.value = '';
+    }
+  };
+
+  const handleCameraClick = () => {
+    cameraInputRef.current?.click();
+  };
+
+  const handleGalleryClick = () => {
+    fileInputRef.current?.click();
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -121,17 +175,41 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onImageSelected, o
       {/* Photo Mode */}
       {mode === 'photo' && (
         <>
+          {/* Botões de Ação - Mobile First */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <button
+              onClick={handleCameraClick}
+              className="flex flex-col items-center justify-center gap-3 p-6 bg-gradient-to-br from-nature-500 to-nature-600 text-white rounded-2xl shadow-lg shadow-nature-500/30 hover:shadow-nature-500/50 hover:scale-105 transition-all duration-300 group"
+            >
+              <div className="bg-white/20 p-4 rounded-full group-hover:bg-white/30 transition-colors">
+                <Camera className="w-8 h-8" />
+              </div>
+              <span className="font-bold text-sm">{t('take_photo')}</span>
+            </button>
+
+            <button
+              onClick={handleGalleryClick}
+              className="flex flex-col items-center justify-center gap-3 p-6 bg-white border-2 border-nature-200 text-nature-700 rounded-2xl shadow-sm hover:shadow-md hover:border-nature-300 hover:scale-105 transition-all duration-300 group"
+            >
+              <div className="bg-nature-100 p-4 rounded-full group-hover:bg-nature-200 transition-colors">
+                <UploadCloud className="w-8 h-8 text-nature-600" />
+              </div>
+              <span className="font-bold text-sm">{t('gallery')}</span>
+            </button>
+          </div>
+
+          {/* Área de Drag & Drop - Desktop */}
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`relative border-2 border-dashed rounded-3xl p-8 text-center transition-all duration-300 cursor-pointer group animate-fade-in
+            className={`hidden md:block relative border-2 border-dashed rounded-3xl p-8 text-center transition-all duration-300 cursor-pointer group animate-fade-in
               ${isDragging 
                 ? 'border-nature-500 bg-nature-50 scale-105' 
                 : 'border-nature-300 bg-white hover:border-nature-400 hover:bg-nature-50'
               }
             `}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={handleGalleryClick}
           >
             <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-nature-100 p-3 rounded-full border-4 border-white shadow-sm">
               <Leaf className="w-8 h-8 text-nature-600" />
@@ -152,15 +230,26 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ onImageSelected, o
                 </p>
               </div>
             </div>
-            
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleChange}
-            />
           </div>
+            
+          {/* Inputs ocultos */}
+          {/* Input para câmera - usa capture para abrir câmera diretamente em mobile */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleChange}
+          />
+          {/* Input para galeria - sem capture para permitir escolher da galeria */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleChange}
+          />
         </>
       )}
 

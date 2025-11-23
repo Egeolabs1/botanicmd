@@ -195,27 +195,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const upgradeToPro = () => {
     if (user) {
-      console.log('🔄 Fazendo upgrade para Pro...');
-      console.log('Usuário antes:', { id: user.id, plan: user.plan, maxUsage: user.maxUsage });
-      
       // Atualiza no context
       const updatedUser = { ...user, plan: 'pro' as PlanType, maxUsage: -1 };
       setUser(updatedUser);
       
-      console.log('Usuário depois:', { id: updatedUser.id, plan: updatedUser.plan, maxUsage: updatedUser.maxUsage });
-      
       // Atualiza no Admin DB também
       try {
         adminService.updateUserPlan(user.id, 'pro');
-        console.log('✅ Upgrade salvo no Admin DB');
       } catch (error) {
-        console.error('❌ Erro ao salvar no Admin DB:', error);
+        // Log apenas em desenvolvimento
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Erro ao salvar upgrade no Admin DB:', error);
+        }
       }
       
       // Se for usuário demo, atualiza localStorage também
       if (!isSupabaseConfigured && user.id.startsWith('demo-')) {
         localStorage.setItem('botanicmd_demo_user', JSON.stringify(updatedUser));
-        console.log('✅ Upgrade salvo no localStorage (modo demo)');
       }
       
       // Salva dados do usuário
@@ -225,9 +221,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         maxUsage: -1
       };
       localStorage.setItem(`botanicmd_data_${user.id}`, JSON.stringify(dataToSave));
-      console.log('✅ Dados salvos no localStorage');
-    } else {
-      console.error('❌ Não foi possível fazer upgrade: usuário não encontrado');
     }
   };
 

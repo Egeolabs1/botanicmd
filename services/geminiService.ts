@@ -1,6 +1,7 @@
 import { PlantData, PlantCandidate, SupportedLanguage, BlogPost } from "../types";
 import { fetchPlantImage } from "./imageService";
 import { Type } from "@google/genai";
+import { z } from "zod";
 
 // ⚠️ IMPORTANTE: A API Key agora é armazenada SEGURAMENTE no servidor (Vercel Edge Function)
 // Configure GEMINI_API_KEY (SEM prefixo VITE_) no Vercel Dashboard
@@ -11,6 +12,35 @@ const API_URL = '/api/gemini';
 
 // Modelo Gemini
 const MODEL_NAME = "gemini-3-pro-preview";
+
+// Schema de validação para PlantData usando Zod
+const PlantDataSchema = z.object({
+  commonName: z.string().min(1),
+  scientificName: z.string().min(1),
+  description: z.string().min(1),
+  funFact: z.string(),
+  toxicity: z.string(),
+  propagation: z.string(),
+  imageUrl: z.string().optional(),
+  wateringFrequencyDays: z.number().int().min(0),
+  care: z.object({
+    water: z.string(),
+    light: z.string(),
+    soil: z.string(),
+    temperature: z.string(),
+  }),
+  health: z.object({
+    isHealthy: z.boolean(),
+    diagnosis: z.string(),
+    symptoms: z.array(z.string()),
+    treatment: z.array(z.string()),
+  }),
+  medicinal: z.object({
+    isMedicinal: z.boolean(),
+    benefits: z.string(),
+    usage: z.string(),
+  }),
+});
 
 const getLanguageName = (lang: SupportedLanguage) => {
   const map: Record<SupportedLanguage, string> = {
@@ -110,11 +140,31 @@ const CANDIDATES_SCHEMA = {
 // Helper para fazer chamadas à API route
 async function callGeminiAPI(action: string, params: any): Promise<any> {
   try {
+    // Obter token de autenticação do Supabase se disponível
+    const { supabase, isSupabaseConfigured } = await import('./supabase');
+    let authToken: string | null = null;
+    
+    if (isSupabaseConfigured) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        authToken = session?.access_token || null;
+      } catch (error) {
+        // Se não conseguir obter sessão, continua sem token (modo demo)
+      }
+    }
+
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    // Adiciona token de autenticação se disponível
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
     const response = await fetch(API_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({ action, ...params }),
     });
 
@@ -164,8 +214,6 @@ export const analyzePlantImage = async (base64Image: string, mimeType: string, l
   `;
 
   try {
-    console.log(`Iniciando análise com modelo ${MODEL_NAME}...`);
-    
     const plantData = await callGeminiAPI('analyzeImage', {
       base64Image,
       mimeType,
@@ -173,15 +221,23 @@ export const analyzePlantImage = async (base64Image: string, mimeType: string, l
       prompt,
     });
 
-    // Valida campos obrigatórios
-    if (!plantData.commonName || !plantData.scientificName || !plantData.description) {
-      throw new Error("Resposta da IA incompleta. Campos obrigatórios faltando.");
+    // Validação de schema usando Zod
+    try {
+      const validatedData = PlantDataSchema.parse(plantData);
+      return validatedData as PlantData;
+    } catch (validationError) {
+      // Log apenas em desenvolvimento
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Erro de validação de schema:", validationError);
+      }
+      throw new Error("Resposta da IA incompleta ou inválida. Campos obrigatórios faltando ou formato incorreto.");
     }
 
-    return plantData as PlantData;
-
   } catch (error: any) {
-    console.error("Analysis error:", error);
+    // Log apenas em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.error("Analysis error:", error);
+    }
     
     // Re-throw erros customizados
     if (error.message && !error.message.includes('Resposta') && !error.message.includes('HTTP')) {
@@ -216,7 +272,10 @@ export const searchPlantOptions = async (query: string, language: SupportedLangu
     
     return response.candidates || [];
   } catch (e) {
-    console.error("Error searching options:", e);
+    // Log apenas em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.error("Error searching options:", e);
+    }
     return [];
   }
 };
@@ -252,15 +311,23 @@ export const identifyPlantByName = async (plantName: string, language: Supported
       schemaType: 'plant',
     });
 
-    // Valida campos obrigatórios
-    if (!plantData.commonName || !plantData.scientificName || !plantData.description) {
-      throw new Error("Resposta da IA incompleta. Campos obrigatórios faltando.");
+    // Validação de schema usando Zod
+    try {
+      const validatedData = PlantDataSchema.parse(plantData);
+      return validatedData as PlantData;
+    } catch (validationError) {
+      // Log apenas em desenvolvimento
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Erro de validação de schema:", validationError);
+      }
+      throw new Error("Resposta da IA incompleta ou inválida. Campos obrigatórios faltando ou formato incorreto.");
     }
 
-    return plantData as PlantData;
-
   } catch (error: any) {
-    console.error("Search by name error:", error);
+    // Log apenas em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.error("Search by name error:", error);
+    }
     
     // Re-throw erros customizados
     if (error.message && !error.message.includes('Resposta') && !error.message.includes('HTTP')) {
@@ -301,7 +368,10 @@ export const askPlantExpert = async (plantContext: PlantData, question: string, 
     
     return response || "Desculpe, não foi possível formular uma resposta.";
   } catch (error: any) {
-    console.error("Chat error:", error);
+    // Log apenas em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.error("Chat error:", error);
+    }
     return `Desculpe, ocorreu um erro: ${error.message || 'Erro desconhecido'}`;
   }
 };
@@ -351,7 +421,10 @@ export const generateBlogPost = async (language: SupportedLanguage): Promise<Omi
     };
 
   } catch (error: any) {
-    console.error("Blog generation error:", error);
+    // Log apenas em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.error("Blog generation error:", error);
+    }
     throw new Error(`Failed to generate blog post: ${error.message || 'Erro desconhecido'}`);
   }
 };

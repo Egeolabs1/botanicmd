@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 import { Leaf, ArrowRight, Calendar, User, Clock, X } from './Icons';
 import { useLanguage } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
@@ -57,7 +58,10 @@ export const BlogPage: React.FC = () => {
         <div className="max-w-3xl mx-auto px-6 py-16">
           <div 
             className="prose prose-lg prose-green max-w-none text-gray-700 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: selectedPost.content }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedPost.content, { 
+              ALLOWED_TAGS: ['h3', 'p', 'ul', 'li', 'ol', 'strong', 'em', 'a'],
+              ALLOWED_ATTR: ['href', 'target', 'rel']
+            }) }}
           />
           
           <hr className="my-12 border-gray-100" />

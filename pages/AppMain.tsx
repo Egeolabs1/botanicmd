@@ -84,21 +84,19 @@ export const AppMain: React.FC = () => {
     const simulated = params.get('simulated');
     
     if (status === 'success') {
-      console.log('✅ Pagamento detectado! Tentando fazer upgrade para Pro...');
-      console.log('Usuário atual:', user);
-      console.log('Autenticado:', isAuthenticated);
-      
       // Se o usuário não estiver carregado, tenta novamente após um delay
       if (!user || !isAuthenticated) {
-        console.warn('⚠️ Usuário ainda não carregado, aguardando...');
         const retryTimer = setTimeout(() => {
           if (user && isAuthenticated) {
             upgradeToPro();
-            alert(t('profile_updated') + " Você agora é PRO! 🌟");
+            // Usar notificação mais amigável (pode ser substituído por toast)
+            if (simulated) {
+              // Apenas em modo desenvolvimento
+              if (process.env.NODE_ENV === 'development') {
+                alert("✨ Simulação de pagamento bem-sucedida! Você agora é PRO! 🌟");
+              }
+            }
             window.history.replaceState({}, document.title, window.location.pathname);
-          } else {
-            console.error('❌ Não foi possível fazer upgrade: usuário não autenticado');
-            alert('Erro: Por favor, faça login antes de fazer o pagamento.');
           }
         }, 1000);
         return () => clearTimeout(retryTimer);
@@ -106,7 +104,6 @@ export const AppMain: React.FC = () => {
       
       // Usuário está carregado, faz o upgrade
       upgradeToPro();
-      alert(simulated ? "✨ Simulação de pagamento bem-sucedida! Você agora é PRO! 🌟" : (t('profile_updated') + " Você agora é PRO! 🌟"));
       // Limpa a URL para não reprocessar ao atualizar
       window.history.replaceState({}, document.title, window.location.pathname);
     }

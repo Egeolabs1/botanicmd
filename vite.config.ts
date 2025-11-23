@@ -8,13 +8,23 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        proxy: {
+          // Proxy para API routes em desenvolvimento
+          // Redireciona /api/* para o servidor de API na porta 3001
+          '/api': {
+            target: 'http://localhost:3001',
+            changeOrigin: true,
+            secure: false,
+            rewrite: (path) => path, // Mantém o path original
+          },
+        },
       },
       plugins: [react()],
       publicDir: 'public',
       define: {
-        // Mantém compatibilidade com process.env
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY),
+        // ⚠️ IMPORTANTE: GEMINI_API_KEY NÃO deve ser exposta no cliente
+        // Apenas variáveis com prefixo VITE_ são expostas no cliente
+        // GEMINI_API_KEY deve estar apenas no servidor (Vercel Edge Function)
         'process.env.REACT_APP_SUPABASE_URL': JSON.stringify(env.REACT_APP_SUPABASE_URL || env.VITE_SUPABASE_URL),
         'process.env.REACT_APP_SUPABASE_KEY': JSON.stringify(env.REACT_APP_SUPABASE_KEY || env.VITE_SUPABASE_KEY),
       },
