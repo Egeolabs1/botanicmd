@@ -7,6 +7,10 @@
       "destination": "/assets/:path*"
     },
     {
+      "source": "/(manifest\\.json|sw\\.js|icon\\.svg)",
+      "destination": "/$1"
+    },
+    {
       "source": "/:file(\\..+)$",
       "destination": "/:file"
     },
