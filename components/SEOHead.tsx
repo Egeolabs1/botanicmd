@@ -1,6 +1,43 @@
 import { useEffect } from 'react';
 import { useLanguage } from '../i18n';
 
+// Helper functions to get translated schemas
+export const getOrganizationSchema = (t: any, language: string) => ({
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "BotanicMD",
+  "url": "https://botanicmd.vercel.app",
+  "logo": "https://botanicmd.vercel.app/icon.svg",
+  "description": t('seo_org_description'),
+  "founder": {
+    "@type": "Organization",
+    "name": "Egeolabs"
+  },
+  "sameAs": []
+});
+
+export export const getWebApplicationSchema = (t: any, language: string) => ({
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "BotanicMD",
+  "url": "https://botanicmd.vercel.app",
+  "description": t('seo_app_description'),
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": language === 'pt' ? 'BRL' : 'USD'
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.8",
+    "ratingCount": "10000",
+    "bestRating": "5",
+    "worstRating": "1"
+  }
+});
+
 interface SEOHeadProps {
   title?: string;
   description?: string;
@@ -51,7 +88,8 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
 
     // Basic meta tags
     updateMetaTag('description', finalDescription);
-    if (keywords) updateMetaTag('keywords', keywords);
+    const finalKeywords = keywords || t('seo_keywords');
+    if (finalKeywords) updateMetaTag('keywords', finalKeywords);
     if (noindex) {
       updateMetaTag('robots', 'noindex, nofollow');
     } else {
@@ -83,17 +121,20 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
 
     // Structured Data (JSON-LD)
     if (structuredData) {
-      const scriptId = 'structured-data';
-      let script = document.getElementById(scriptId) as HTMLScriptElement;
+      // Remove old structured data scripts
+      const oldScripts = document.querySelectorAll('script[type="application/ld+json"]');
+      oldScripts.forEach(script => script.remove());
       
-      if (!script) {
-        script = document.createElement('script');
+      // Add new structured data (can be array or single object)
+      const dataArray = Array.isArray(structuredData) ? structuredData : [structuredData];
+      dataArray.forEach((data, index) => {
+        const scriptId = `structured-data-${index}`;
+        const script = document.createElement('script');
         script.id = scriptId;
         script.type = 'application/ld+json';
+        script.textContent = JSON.stringify(data);
         document.head.appendChild(script);
-      }
-      
-      script.textContent = JSON.stringify(structuredData);
+      });
     }
 
     // HTML lang attribute
@@ -104,42 +145,6 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
   return null; // This component doesn't render anything
 };
 
-// Predefined structured data schemas
-export const organizationSchema = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "BotanicMD",
-  "url": "https://botanicmd.vercel.app",
-  "logo": "https://botanicmd.vercel.app/icon.svg",
-  "description": "Advanced AI-powered plant identification and diagnosis platform",
-  "founder": {
-    "@type": "Organization",
-    "name": "Egeolabs"
-  },
-  "sameAs": []
-};
-
-export const webApplicationSchema = {
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "BotanicMD",
-  "url": "https://botanicmd.vercel.app",
-  "description": "Identify plants instantly, diagnose diseases and receive personalized treatments with advanced AI",
-  "applicationCategory": "UtilitiesApplication",
-  "operatingSystem": "Any",
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "USD"
-  },
-  "aggregateRating": {
-    "@type": "AggregateRating",
-    "ratingValue": "4.8",
-    "ratingCount": "10000",
-    "bestRating": "5",
-    "worstRating": "1"
-  }
-};
 
 export const faqSchema = (faqs: Array<{ question: string; answer: string }>) => ({
   "@context": "https://schema.org",

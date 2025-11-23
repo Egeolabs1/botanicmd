@@ -9,7 +9,7 @@ import { PWAInstallPrompt } from '../components/PWAInstallPrompt';
 import { useAuth } from '../contexts/AuthContext';
 
 export const LandingPage: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
     const [activeFaq, setActiveFaq] = useState<number | null>(null);
@@ -43,6 +43,13 @@ export const LandingPage: React.FC = () => {
 
   return (
     <>
+      <SEOHead 
+        structuredData={[
+          getOrganizationSchema(t, language),
+          getWebApplicationSchema(t, language)
+        ]}
+        url="https://botanicmd.vercel.app/"
+      />
       <div className="min-h-screen bg-white font-sans selection:bg-nature-200 selection:text-nature-900 overflow-x-hidden">
         
         {/* Background Pattern */}

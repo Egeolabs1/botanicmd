@@ -204,7 +204,11 @@ const translations = {
     share_app: "Share App",
     export_data: "Export Data",
     help_and_support: "Help and Support",
-    developed_with_love: "Developed with"
+    developed_with_love: "Developed with",
+    // SEO translations
+    seo_org_description: "Advanced AI-powered plant identification and diagnosis platform",
+    seo_app_description: "Identify plants instantly, diagnose diseases and receive personalized treatments with advanced AI",
+    seo_keywords: "identify plants, plant identification, plant recognition, plant diagnosis, plant diseases, plant treatment, gardening, botany, AI plants, plant app, plant care, medicinal plants, toxic plants"
   },
   pt: {
     app_name: "BotanicMD",
@@ -408,7 +412,11 @@ const translations = {
     share_app: "Compartilhar App",
     export_data: "Exportar Dados",
     help_and_support: "Ajuda e Suporte",
-    developed_with_love: ""
+    developed_with_love: "",
+    // SEO translations
+    seo_org_description: "Plataforma avançada de identificação e diagnóstico de plantas com IA",
+    seo_app_description: "Identifique plantas instantaneamente, diagnostique doenças e receba tratamentos personalizados com IA avançada",
+    seo_keywords: "identificar plantas, identificação de plantas, reconhecimento de plantas, diagnóstico de plantas, doenças de plantas, tratamento de plantas, jardinagem, botânica, IA plantas, app plantas, cuidados com plantas, plantas medicinais, plantas tóxicas"
   },
   es: {
     app_name: "BotanicMD",
@@ -606,7 +614,11 @@ const translations = {
     share_app: "Compartir App",
     export_data: "Exportar Datos",
     help_and_support: "Ayuda y Soporte",
-    developed_with_love: "Desarrollado con"
+    developed_with_love: "Desarrollado con",
+    // SEO translations
+    seo_org_description: "Plataforma avanzada de identificación y diagnóstico de plantas con IA",
+    seo_app_description: "Identifica plantas instantáneamente, diagnostica enfermedades y recibe tratamientos personalizados con IA avanzada",
+    seo_keywords: "identificar plantas, identificación de plantas, reconocimiento de plantas, diagnóstico de plantas, enfermedades de plantas, tratamiento de plantas, jardinería, botánica, IA plantas, app plantas, cuidados de plantas, plantas medicinales, plantas tóxicas"
   },
   fr: {
     app_name: "BotanicMD",
@@ -804,7 +816,11 @@ const translations = {
     share_app: "Partager l'App",
     export_data: "Exporter les Données",
     help_and_support: "Aide et Support",
-    developed_with_love: "Développé avec"
+    developed_with_love: "Développé avec",
+    // SEO translations
+    seo_org_description: "Plateforme avancée d'identification et de diagnostic de plantes avec IA",
+    seo_app_description: "Identifiez les plantes instantanément, diagnostiquez les maladies et recevez des traitements personnalisés avec une IA avancée",
+    seo_keywords: "identifier les plantes, identification des plantes, reconnaissance des plantes, diagnostic des plantes, maladies des plantes, traitement des plantes, jardinage, botanique, IA plantes, app plantes, soins des plantes, plantes médicinales, plantes toxiques"
   },
   de: {
     app_name: "BotanicMD",
@@ -1002,7 +1018,11 @@ const translations = {
     share_app: "App Teilen",
     export_data: "Daten Exportieren",
     help_and_support: "Hilfe und Support",
-    developed_with_love: "Entwickelt mit"
+    developed_with_love: "Entwickelt mit",
+    // SEO translations
+    seo_org_description: "Fortgeschrittene KI-gestützte Plattform zur Pflanzenidentifizierung und -diagnose",
+    seo_app_description: "Identifizieren Sie Pflanzen sofort, diagnostizieren Sie Krankheiten und erhalten Sie personalisierte Behandlungen mit fortgeschrittener KI",
+    seo_keywords: "Pflanzen identifizieren, Pflanzenidentifizierung, Pflanzenerkennung, Pflanzendiagnose, Pflanzenkrankheiten, Pflanzenbehandlung, Gartenbau, Botanik, KI Pflanzen, Pflanzen App, Pflanzenpflege, Heilpflanzen, giftige Pflanzen"
   },
   it: {
     app_name: "BotanicMD",
@@ -1200,7 +1220,11 @@ const translations = {
     share_app: "Condividi App",
     export_data: "Esporta Dati",
     help_and_support: "Aiuto e Supporto",
-    developed_with_love: "Sviluppato con"
+    developed_with_love: "Sviluppato con",
+    // SEO translations
+    seo_org_description: "Piattaforma avanzata di identificazione e diagnosi delle piante con IA",
+    seo_app_description: "Identifica le piante istantaneamente, diagnostica le malattie e ricevi trattamenti personalizzati con IA avanzata",
+    seo_keywords: "identificare le piante, identificazione delle piante, riconoscimento delle piante, diagnosi delle piante, malattie delle piante, trattamento delle piante, giardinaggio, botanica, IA piante, app piante, cura delle piante, piante medicinali, piante tossiche"
   },
   zh: {
     app_name: "BotanicMD",
@@ -1398,7 +1422,11 @@ const translations = {
     share_app: "分享应用",
     export_data: "导出数据",
     help_and_support: "帮助和支持",
-    developed_with_love: "由...开发"
+    developed_with_love: "由...开发",
+    // SEO translations
+    seo_org_description: "先进的AI驱动植物识别和诊断平台",
+    seo_app_description: "即时识别植物，诊断疾病并使用先进的AI获得个性化治疗方案",
+    seo_keywords: "识别植物，植物识别，植物辨认，植物诊断，植物疾病，植物治疗，园艺，植物学，AI植物，植物应用，植物护理，药用植物，有毒植物"
   },
   ru: {
     app_name: "BotanicMD",
@@ -1596,7 +1624,11 @@ const translations = {
     share_app: "Поделиться Приложением",
     export_data: "Экспортировать Данные",
     help_and_support: "Помощь и Поддержка",
-    developed_with_love: "Разработано с"
+    developed_with_love: "Разработано с",
+    // SEO translations
+    seo_org_description: "Передовая платформа для идентификации и диагностики растений на основе ИИ",
+    seo_app_description: "Мгновенно определяйте растения, диагностируйте болезни и получайте персонализированные методы лечения с помощью передового ИИ",
+    seo_keywords: "определить растения, идентификация растений, распознавание растений, диагностика растений, болезни растений, лечение растений, садоводство, ботаника, ИИ растения, приложение растений, уход за растениями, лекарственные растения, ядовитые растения"
   },
   hi: {
     app_name: "BotanicMD",
