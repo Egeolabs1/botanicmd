@@ -299,10 +299,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           alert('Conta criada com sucesso! Verifique seu email para confirmar sua conta antes de fazer login.');
           return;
         } else {
-          // Email já confirmado mas sem sessão - algo deu errado
-          console.warn('⚠️ Email confirmado mas sem sessão disponível');
-          alert('Conta criada, mas não foi possível fazer login automaticamente. Tente fazer login manualmente.');
-          return;
+          // Email já confirmado mas sem sessão - tenta fazer login automaticamente
+          console.log('ℹ️ Email confirmado mas sem sessão - tentando login automático...');
+          
+          try {
+            // Tenta fazer login com as mesmas credenciais para criar a sessão
+            const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+              email: email.trim(),
+              password: password,
+            });
+            
+            if (loginData.user && !loginError) {
+              console.log('✅ Login automático bem-sucedido após cadastro');
+              mapUser(loginData.user);
+              
+              // Aguarda um pouco para garantir que a sessão foi salva
+              await new Promise(resolve => setTimeout(resolve, 200));
+              
+              // Verifica se a sessão foi salva
+              const { data: { session: finalSession } } = await supabase.auth.getSession();
+              if (finalSession) {
+                console.log('✅ Sessão confirmada após login automático');
+                return;
+              }
+            } else {
+              console.error('Erro no login automático:', loginError);
+              throw loginError || new Error('Não foi possível fazer login automaticamente');
+            }
+          } catch (autoLoginError: any) {
+            console.error('Falha no login automático:', autoLoginError);
+            // Se o login automático falhar, informa o usuário
+            alert('Conta criada com sucesso! Por favor, faça login manualmente com seu email e senha.');
+            return;
+          }
         }
       }
 
