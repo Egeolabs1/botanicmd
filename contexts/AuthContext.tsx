@@ -333,24 +333,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   console.warn('⚠️ Sessão não encontrada após login automático');
                 }
               } else {
-                // Se o login falhar, pode ser que o email realmente precise ser confirmado
-                // mesmo que o código pense que não precisa
+                // Se o login falhar, o email provavelmente precisa ser confirmado
+                const errorMsg = loginError?.message || 'Credenciais inválidas';
                 console.error('Erro no login automático:', loginError);
-                console.log('ℹ️ Login automático falhou - usuário precisará confirmar email ou fazer login manual');
+                console.log('ℹ️ Login automático falhou - usuário precisará confirmar email');
                 
-                // Informa o usuário de forma mais clara
-                alert('Conta criada com sucesso! Por favor, verifique seu email para confirmar a conta. Depois, faça login manualmente com seu email e senha.');
+                // Se for erro de credenciais inválidas, é porque precisa confirmar email
+                if (errorMsg.includes('Invalid login credentials') || 
+                    errorMsg.includes('Email not confirmed')) {
+                  alert('Conta criada com sucesso! 📧\n\nVerifique seu email e clique no link de confirmação. Depois, faça login manualmente.');
+                } else {
+                  alert('Conta criada com sucesso! ✅\n\nPor favor, faça login manualmente com seu email e senha.');
+                }
                 return;
               }
             } catch (autoLoginError: any) {
               console.error('Falha no login automático:', autoLoginError);
               
-              // Se o erro for de credenciais inválidas, provavelmente o email precisa ser confirmado
-              if (autoLoginError?.message?.includes('Invalid login credentials') || 
-                  autoLoginError?.message?.includes('Email not confirmed')) {
-                alert('Conta criada com sucesso! Por favor, verifique seu email para confirmar a conta. Depois, faça login manualmente.');
+              // Se o erro for de credenciais inválidas, o email provavelmente precisa ser confirmado
+              // Isso acontece mesmo quando email_confirmed_at não é null inicialmente
+              const errorMessage = autoLoginError?.message || '';
+              
+              if (errorMessage.includes('Invalid login credentials') || 
+                  errorMessage.includes('Email not confirmed') ||
+                  errorMessage.includes('email not confirmed')) {
+                console.log('ℹ️ Login falhou - email precisa ser confirmado');
+                alert('Conta criada com sucesso! 📧\n\nVerifique seu email e clique no link de confirmação. Depois, faça login manualmente com seu email e senha.');
               } else {
-                alert('Conta criada com sucesso! Por favor, faça login manualmente com seu email e senha.');
+                console.log('ℹ️ Login automático falhou por outro motivo:', errorMessage);
+                alert('Conta criada com sucesso! ✅\n\nPor favor, faça login manualmente com seu email e senha.');
               }
               return;
             }
