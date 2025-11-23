@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string) => Promise<void>;
+  login: (email: string, name?: string) => Promise<void>;
   loginSocial: (provider: 'google') => Promise<void>;
   logout: () => void;
   incrementUsage: () => void;
@@ -99,13 +99,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  const login = async (email: string) => {
+  const login = async (email: string, name?: string) => {
     if (!isSupabaseConfigured) {
       // MODO DEMO: Cria um usuário fictício imediatamente
       const userId = 'demo-user-' + email.replace(/[^a-zA-Z0-9]/g, '');
       const demoUser: User = {
         id: userId,
-        name: email.split('@')[0] || 'Visitante',
+        name: name?.trim() || email.split('@')[0] || 'Visitante',
         email: email,
         plan: 'free',
         usageCount: 0,

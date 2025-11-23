@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Leaf, ArrowRight, Google, Mail, Lock } from './Icons';
+import { X, Leaf, ArrowRight, Google, Mail, Lock, User } from './Icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n';
 
@@ -20,9 +20,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { login, loginSocial, isAuthenticated } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState<string>('');
+  const [nameError, setNameError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redireciona para /app após login bem-sucedido
@@ -32,6 +34,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       navigate('/app');
     }
   }, [isAuthenticated, isOpen, navigate, onClose]);
+
+  // Limpa campos quando alterna entre login e cadastro
+  React.useEffect(() => {
+    if (isLogin) {
+      setName('');
+      setNameError('');
+    }
+  }, [isLogin]);
 
   if (!isOpen) return null;
 
@@ -46,6 +56,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     e.preventDefault();
     
     // Validações
+    if (!isLogin && !name.trim()) {
+      setNameError('Nome é obrigatório');
+      return;
+    }
+
+    if (name.trim() && name.trim().length < 2) {
+      setNameError('Nome deve ter pelo menos 2 caracteres');
+      return;
+    }
+
     if (!email.trim()) {
       setEmailError('Email é obrigatório');
       return;
@@ -58,9 +78,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
     setIsSubmitting(true);
     setEmailError('');
+    setNameError('');
 
     try {
-      await login(email.trim());
+      await login(email.trim(), isLogin ? undefined : name.trim());
       onClose();
     } catch (error: any) {
       setEmailError(error.message || 'Erro ao fazer login. Tente novamente.');
@@ -114,6 +135,42 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Campo de nome - apenas no cadastro */}
+            {!isLogin && (
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-nature-600 transition-colors">
+                  <User className="w-5 h-5" />
+                </div>
+                <input
+                  type="text"
+                  required={!isLogin}
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (nameError && e.target.value.trim()) {
+                      setNameError('');
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!isLogin && name.trim() && name.trim().length < 2) {
+                      setNameError('Nome deve ter pelo menos 2 caracteres');
+                    }
+                  }}
+                  className={`w-full pl-12 pr-4 py-3.5 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white ${
+                    nameError 
+                      ? 'border-red-300 focus:ring-4 focus:ring-red-100 focus:border-red-500' 
+                      : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
+                  }`}
+                  placeholder="Seu nome"
+                  disabled={isSubmitting}
+                  minLength={2}
+                />
+                {nameError && (
+                  <p className="text-red-500 text-xs mt-1 ml-1">{nameError}</p>
+                )}
+              </div>
+            )}
+
             <div className="relative group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-nature-600 transition-colors">
                 <Mail className="w-5 h-5" />
@@ -159,7 +216,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
             <button
               type="submit"
-              disabled={isSubmitting || !email.trim() || !password.trim()}
+              disabled={isSubmitting || !email.trim() || !password.trim() || (!isLogin && !name.trim())}
               className="w-full bg-nature-600 text-white py-4 rounded-2xl font-bold hover:bg-nature-700 transition-all shadow-lg shadow-nature-200 hover:shadow-nature-300 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {isSubmitting ? 'Processando...' : (isLogin ? 'Entrar' : 'Cadastrar')} 
