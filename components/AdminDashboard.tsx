@@ -33,13 +33,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
   const [trackingConfig, setTrackingConfig] = useState<TrackingConfig>(trackingService.getConfig());
   const [isSaving, setIsSaving] = useState(false);
 
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
   useEffect(() => {
     loadData();
   }, []);
 
-  const loadData = () => {
+  const loadData = async () => {
     setPosts(blogService.getPosts());
-    setUsers(adminService.getUsers());
+    setIsLoadingUsers(true);
+    try {
+      const fetchedUsers = await adminService.getUsers();
+      setUsers(fetchedUsers);
+    } catch (error) {
+      console.error('Erro ao carregar usuários:', error);
+      // Fallback para modo local
+      setUsers(adminService.getUsersSync());
+    } finally {
+      setIsLoadingUsers(false);
+    }
   };
 
   // --- Blog Handlers ---
@@ -98,20 +110,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
   };
 
   // --- User Handlers ---
-  const handlePlanChange = (userId: string, newPlan: string) => {
+  const handlePlanChange = async (userId: string, newPlan: string) => {
     try {
-      adminService.updateUserPlan(userId, newPlan as PlanType);
+      await adminService.updateUserPlan(userId, newPlan as PlanType);
       loadData(); // Refresh list
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert('Failed to update plan');
+      alert(`Failed to update plan: ${e.message || 'Erro desconhecido'}`);
     }
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      adminService.deleteUser(userId);
-      loadData();
+      try {
+        await adminService.deleteUser(userId);
+        loadData();
+      } catch (e: any) {
+        console.error(e);
+        alert(`Failed to delete user: ${e.message || 'Erro desconhecido'}`);
+      }
     }
   };
 
@@ -163,7 +180,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
   const stats = {
     posts: posts.length,
     users: users.length,
-    proUsers: users.filter(u => u.plan === 'pro').length
+    proUsers: users.filter(u => u.plan === 'pro').length,
+    freeUsers: users.filter(u => u.plan === 'free').length
   };
 
   return (
@@ -347,7 +365,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {filteredUsers.map(user => (
+                      {isLoadingUsers ? (
+                        <tr>
+                          <td colSpan={5} className="p-8 text-center text-gray-500">
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="w-5 h-5 border-2 border-nature-500 border-t-transparent rounded-full animate-spin"></div>
+                              Carregando usuários do Supabase...
+                            </div>
+                          </td>
+                        </tr>
+                      ) : filteredUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="p-8 text-center text-gray-500">
+                            {users.length === 0 
+                              ? "Nenhum usuário encontrado. Os usuários aparecerão aqui após fazerem login."
+                              : "Nenhum usuário encontrado com essa busca."}
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredUsers.map(user => (
                         <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                           <td className="p-4">
                               <div className="flex items-center gap-3">
@@ -356,7 +392,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                  </div>
                                  <div>
                                     <div className="font-bold text-gray-900">{user.name}</div>
-                                    <div className="text-xs text-gray-500">{user.email}</div>
+                                    <div className="text-xs text-gray-500">{user.email || user.id}</div>
                                  </div>
                               </div>
                           </td>
@@ -395,13 +431,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                              </button>
                           </td>
                         </tr>
-                      ))}
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
-                {filteredUsers.length === 0 && (
-                   <div className="p-8 text-center text-gray-500">No users found matching your search.</div>
-                )}
               </div>
             </div>
           )}

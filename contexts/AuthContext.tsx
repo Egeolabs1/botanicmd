@@ -152,13 +152,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Aguarda a verificação de sessão persistida
       if (event === 'INITIAL_SESSION') {
         if (session?.user) {
-          mapUser(session.user);
+          await mapUser(session.user);
         } else {
           // Se INITIAL_SESSION não tem sessão, verifica se há sessão persistida
           // e só então marca como não autenticado
           const { data: { session: persistedSession } } = await supabase.auth.getSession();
           if (persistedSession?.user) {
-            mapUser(persistedSession.user);
+            await mapUser(persistedSession.user);
           } else {
             setUser(null);
             setIsLoading(false);
@@ -169,7 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Para outros eventos, processa normalmente
       if (session?.user) {
-        mapUser(session.user);
+        await mapUser(session.user);
       } else if (event === 'SIGNED_OUT') {
         // Só limpa se for logout explícito
         setUser(null);
