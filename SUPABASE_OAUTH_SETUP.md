@@ -51,13 +51,30 @@ Significa que o provider Google OAuth não está habilitado no seu projeto Supab
    d) **Configure a Tela de Consentimento OAuth**
       - Vá para "APIs e Serviços" → "Tela de Consentimento OAuth"
       - Escolha "Externo" (para desenvolvimento)
-      - Preencha as informações obrigatórias:
-        - Nome do app: BotanicMD
+      - **Informações do App (Etapa 1):**
+        - Nome do app: **BotanicMD**
         - Email de suporte: seu email
         - Email do desenvolvedor: seu email
+        - Logo do app (opcional): Faça upload do logo do BotanicMD
+        - Domínio do app: **botanicmd.com**
+        - Página inicial do app: **https://botanicmd.com**
+        - Política de privacidade: **https://botanicmd.com/privacy**
+        - Termos de serviço: **https://botanicmd.com/terms**
       - Clique em "Salvar e Continuar"
-      - Adicione escopos (email, perfil) se necessário
+      - **Escopos (Etapa 2):**
+        - Adicione os escopos necessários:
+          - `email`
+          - `profile`
+          - `openid`
       - Clique em "Salvar e Continuar"
+      - **Domínios autorizados (Etapa 3):**
+        - Clique em "+ ADICIONAR DOMÍNIO"
+        - Adicione: **botanicmd.com**
+        - (O domínio do Supabase já está autorizado automaticamente)
+      - Clique em "Salvar e Continuar"
+      - **Informações de contato (Etapa 4):**
+        - Preencha com seu email
+        - Clique em "Voltar ao painel"
    
    e) **Crie as Credenciais OAuth**
       - Vá para "APIs e Serviços" → "Credenciais"
@@ -100,6 +117,17 @@ No Supabase Dashboard:
 - **URL de callback**: `https://[projeto-id].supabase.co/auth/v1/callback`
 
 ## ⚠️ Problemas Comuns
+
+### Problema: Mostra "khvurdptdkkzkzwhasnd.supabase.co" ao invés de "BotanicMD" na tela de login
+- **Solução**: Isso acontece porque o domínio autorizado não está configurado corretamente
+- **Passos para corrigir:**
+  1. Vá para Google Cloud Console → "APIs e Serviços" → "Tela de Consentimento OAuth"
+  2. Na seção "Domínios autorizados", adicione: **botanicmd.com**
+  3. Certifique-se de que o "Nome do app" está como **BotanicMD**
+  4. Adicione o "Domínio do app" como **botanicmd.com**
+  5. Salve as alterações
+  6. Aguarde alguns minutos para as alterações propagarem
+  7. Teste o login novamente
 
 ### Erro: "redirect_uri_mismatch"
 - **Solução**: Verifique se a URL de redirecionamento no Google Cloud Console está exatamente igual à URL do Supabase
