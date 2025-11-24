@@ -440,8 +440,25 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
     }
   };
   
-  const handleCancelSubscription = () => {
-    alert(t('cancel_subscription_info'));
+  const handleCancelSubscription = async () => {
+    if (!isSupabaseConfigured) {
+      alert(t('cancel_subscription_info'));
+      return;
+    }
+
+    try {
+      const { createPortalSession } = await import('../services/subscriptionService');
+      const portalUrl = await createPortalSession(`${window.location.origin}/app?view=subscription`);
+      
+      if (portalUrl) {
+        window.location.href = portalUrl;
+      } else {
+        throw new Error('Não foi possível criar sessão do portal');
+      }
+    } catch (error) {
+      console.error('Erro ao abrir portal do Stripe:', error);
+      alert('Erro ao abrir portal de gerenciamento. Tente novamente mais tarde.');
+    }
   };
 
   const handleBack = () => setCurrentView('main');

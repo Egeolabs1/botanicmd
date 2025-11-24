@@ -69,3 +69,4 @@
    console.log('KEY:', import.meta.env.VITE_SUPABASE_KEY ? 'Configurada' : 'Não configurada');
    ```
 
+

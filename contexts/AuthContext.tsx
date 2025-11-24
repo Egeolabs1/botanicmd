@@ -26,7 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const mapUser = (sbUser: any) => {
+  const mapUser = async (sbUser: any) => {
     if (!sbUser) {
       setUser(null);
       setIsLoading(false);
@@ -34,9 +34,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-    // Em Supabase, podemos salvar metadados do usuário na tabela 'profiles' ou no metadata do auth
-    // Aqui, usamos localStorage para simular a persistência do plano por simplicidade
-    const storedData = localStorage.getItem(`botanicmd_data_${sbUser.id}`);
+      // Buscar dados do localStorage primeiro (fallback rápido)
+      const storedData = localStorage.getItem(`botanicmd_data_${sbUser.id}`);
       let extraData = { plan: 'free' as PlanType, usageCount: 0, maxUsage: 3 };
       
       if (storedData) {
@@ -47,17 +46,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-    const appUser: User = {
-      id: sbUser.id,
-      name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'Jardineiro',
-      email: sbUser.email || '',
-        plan: extraData.plan || 'free',
-        usageCount: extraData.usageCount || 0,
-      maxUsage: extraData.plan === 'pro' ? -1 : 3
-    };
+      // Se Supabase está configurado, buscar assinatura do banco
+      let userPlan: PlanType = extraData.plan || 'free';
+      if (isSupabaseConfigured) {
+        try {
+          const { syncUserPlan } = await import('../services/subscriptionService');
+          const planFromSubscription = await syncUserPlan();
+          if (planFromSubscription) {
+            userPlan = planFromSubscription;
+            // Atualiza localStorage com o plano do banco
+            extraData.plan = userPlan;
+            extraData.maxUsage = userPlan === 'pro' ? -1 : 3;
+          }
+        } catch (error) {
+          console.warn('Erro ao sincronizar plano do banco:', error);
+          // Continua com o plano do localStorage em caso de erro
+        }
+      }
 
-    setUser(appUser);
-    setIsLoading(false);
+      const appUser: User = {
+        id: sbUser.id,
+        name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'Jardineiro',
+        email: sbUser.email || '',
+        plan: userPlan,
+        usageCount: extraData.usageCount || 0,
+        maxUsage: userPlan === 'pro' ? -1 : 3
+      };
+
+      setUser(appUser);
+      setIsLoading(false);
       
       // Garante que os dados sejam salvos
       const dataToSave = {
@@ -108,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Se há uma sessão, mapeia o usuário
         if (session?.user) {
-          mapUser(session.user);
+          await mapUser(session.user);
         } else {
           // Não há sessão - usuário não está logado
           setUser(null);

@@ -1,5 +1,5 @@
 
-import { supabase } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 import { SupportedLanguage } from '../types';
 
 export type PlanType = 'monthly' | 'annual' | 'lifetime';
@@ -12,14 +12,14 @@ export type Currency = 'BRL' | 'USD';
 
 const STRIPE_PRICES = {
   BRL: {
-    monthly: 'price_1SVjjkQxkNQpny1LIElriKgq', // Cole aqui o ID do plano mensal em R$ 19,90
-    annual: 'price_1SVjksQxkNQpny1LP0OjkvIQ',  // Cole aqui o ID do plano anual em R$ 99,90
-    lifetime: 'price_1SVjmTQxkNQpny1LrK08bJCm' // Cole aqui o ID do plano vitalício (pagamento único) em R$ 289,90
+    monthly: 'price_1SVjjkQxkNQpny1LIElriKgq', // ID do plano mensal em R$ 19,90
+    annual: 'price_1SVjksQxkNQpny1LP0OjkvIQ',  // ID do plano anual em R$ 99,90
+    lifetime: 'price_1SVjmTQxkNQpny1LrK08bJCm' // ID do plano vitalício (pagamento único) em R$ 289,90
   },
   USD: {
-    monthly: 'price_1SVjpzQxkNQpny1LJ7VEUF26', // Cole aqui o ID do plano mensal em $ 5.99
-    annual: 'price_1SVjpzQxkNQpny1L1qsQ6QNy',  // Cole aqui o ID do plano anual em $ 29.99
-    lifetime: 'price_1SVjpzQxkNQpny1LoiRKgepC' // Cole aqui o ID do plano vitalício (pagamento único) em $ 79.99
+    monthly: 'price_1SVjpzQxkNQpny1LJ7VEUF26', // ID do plano mensal em $ 5.99
+    annual: 'price_1SVjpzQxkNQpny1L1qsQ6QNy',  // ID do plano anual em $ 29.99
+    lifetime: 'price_1SVjpzQxkNQpny1LoiRKgepC' // ID do plano vitalício (pagamento único) em $ 79.99
   }
 };
 
@@ -28,15 +28,34 @@ export const getCurrencyByLanguage = (lang: SupportedLanguage): Currency => {
   return lang === 'pt' ? 'BRL' : 'USD';
 };
 
-export const initiateCheckout = async (plan: PlanType, language: SupportedLanguage) => {
+/**
+ * Inicia o processo de checkout do Stripe
+ */
+export const initiateCheckout = async (plan: PlanType, language: SupportedLanguage): Promise<void> => {
+  // Verificar se Supabase está configurado
+  if (!isSupabaseConfigured) {
+    const errorMsg = 'Stripe não está configurado. Configure o Supabase primeiro.';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  // Verificar se o usuário está autenticado
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Você precisa estar logado para fazer uma assinatura.');
+  }
+
   const currency = getCurrencyByLanguage(language);
   
   // Seleciona o ID correto baseado na moeda e no tipo de plano
   const priceId = STRIPE_PRICES[currency][plan];
 
+  if (!priceId) {
+    throw new Error(`Preço não encontrado para o plano ${plan} em ${currency}.`);
+  }
+
   try {
-    // Tenta chamar a Supabase Edge Function 'create-checkout'
-    // O bloco try/catch captura erros de rede (fetch failed) e erros da função
+    // Chama a Supabase Edge Function 'create-checkout'
     const { data, error } = await supabase.functions.invoke('create-checkout', {
       body: {
         priceId,
@@ -48,38 +67,40 @@ export const initiateCheckout = async (plan: PlanType, language: SupportedLangua
     });
 
     if (error) {
-      // Lança erro explicitamente para ser pego pelo catch abaixo
-      throw new Error(`Function Error: ${error.message}`);
+      throw new Error(error.message || 'Erro ao criar sessão de checkout.');
     }
 
-    if (data?.url) {
-      // Redireciona o usuário para o Checkout do Stripe
-      window.location.href = data.url;
-    } else {
+    if (!data?.url) {
       throw new Error('O servidor de pagamento não retornou um link válido.');
     }
 
-  } catch (error: any) {
-    // Log discreto para debug
-    console.warn('BotanicMD: Backend de pagamento não conectado ou erro na função.', error.message);
-    
-    // --- MODO DE SIMULAÇÃO (DEV) ---
-    // Como o backend (Edge Function) pode não estar configurado neste ambiente de demonstração,
-    // oferecemos uma simulação para que o fluxo possa ser testado.
-    const shouldSimulate = window.confirm(
-      "Ambiente de Demonstração: A conexão com o Stripe (Edge Function) não está configurada.\n\nDeseja SIMULAR um pagamento bem-sucedido para liberar o acesso Pro?"
-    );
+    // Redireciona o usuário para o Checkout do Stripe
+    window.location.href = data.url;
 
-    if (shouldSimulate) {
-      // Simula o redirecionamento de sucesso
-      // Adicionamos um pequeno delay para parecer processamento
-      setTimeout(() => {
-         // Redireciona para /app para garantir que o AppMain processe o sucesso
-         window.location.href = `${window.location.origin}/app?status=success&simulated=true`;
-      }, 500);
-    } else {
-      console.log("Simulação de pagamento cancelada.");
+  } catch (error: any) {
+    console.error('Erro ao iniciar checkout:', error);
+    
+    // Em desenvolvimento, oferece modo de simulação apenas se o erro for de conexão
+    if (process.env.NODE_ENV === 'development' && error.message?.includes('fetch')) {
+      const shouldSimulate = window.confirm(
+        "Ambiente de Desenvolvimento: A Edge Function não está disponível.\n\n" +
+        "Deseja SIMULAR um pagamento bem-sucedido para testar o fluxo?"
+      );
+
+      if (shouldSimulate) {
+        setTimeout(() => {
+          window.location.href = `${window.location.origin}/app?status=success&simulated=true`;
+        }, 500);
+        return;
+      }
     }
-    // Não lançamos o erro novamente para não travar a UI do modal
+    
+    // Em produção ou se o usuário não quiser simular, lança o erro
+    throw error;
   }
 };
+
+/**
+ * Obtém os preços configurados (útil para exibir na UI)
+ */
+export const getStripePrices = () => STRIPE_PRICES;

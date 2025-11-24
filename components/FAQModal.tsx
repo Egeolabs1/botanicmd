@@ -90,3 +90,4 @@ export const FAQModal: React.FC<FAQModalProps> = ({ isOpen, onClose }) => {
   );
 };
 
+

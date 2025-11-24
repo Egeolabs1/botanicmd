@@ -86,33 +86,71 @@ export const AppMain: React.FC = () => {
     
     const params = new URLSearchParams(window.location.search);
     const status = params.get('status');
+    const sessionId = params.get('session_id');
     const simulated = params.get('simulated');
     
     if (status === 'success') {
-      // Se o usuário não estiver carregado, tenta novamente após um delay
-      if (!user || !isAuthenticated) {
-        const retryTimer = setTimeout(() => {
-          if (user && isAuthenticated) {
-            upgradeToPro();
-            // Usar notificação mais amigável (pode ser substituído por toast)
-            if (simulated) {
-              // Apenas em modo desenvolvimento
-              if (process.env.NODE_ENV === 'development') {
-                alert("✨ Simulação de pagamento bem-sucedida! Você agora é PRO! 🌟");
-              }
+      const handlePaymentSuccess = async () => {
+        // Se o usuário não estiver carregado, tenta novamente após um delay
+        if (!user || !isAuthenticated) {
+          const retryTimer = setTimeout(() => {
+            if (user && isAuthenticated) {
+              handlePaymentSuccess();
             }
-            window.history.replaceState({}, document.title, window.location.pathname);
+          }, 1000);
+          return () => clearTimeout(retryTimer);
+        }
+        
+        if (simulated && process.env.NODE_ENV === 'development') {
+          // Modo de simulação (apenas desenvolvimento)
+          upgradeToPro();
+          alert("✨ Simulação de pagamento bem-sucedida! Você agora é PRO! 🌟");
+        } else if (sessionId) {
+          // Verifica o status real da sessão de checkout
+          try {
+            const { verifyCheckoutSession, syncUserPlan } = await import('../services/subscriptionService');
+            const isValid = await verifyCheckoutSession(sessionId);
+            
+            if (isValid) {
+              const newPlan = await syncUserPlan();
+              if (newPlan === 'pro') {
+                upgradeToPro();
+                // Mostrar mensagem de sucesso
+                console.log('✅ Pagamento confirmado! Seu plano foi atualizado.');
+              }
+            } else {
+              // Aguarda mais tempo para o webhook processar
+              setTimeout(async () => {
+                const retryIsValid = await verifyCheckoutSession(sessionId);
+                if (retryIsValid) {
+                  const retryPlan = await syncUserPlan();
+                  if (retryPlan === 'pro') {
+                    upgradeToPro();
+                    console.log('✅ Pagamento confirmado! Seu plano foi atualizado.');
+                  }
+                }
+              }, 3000);
+            }
+          } catch (error) {
+            console.error('Erro ao verificar sessão de checkout:', error);
+            // Em caso de erro, tenta fazer upgrade mesmo assim (o webhook pode ter processado)
+            upgradeToPro();
           }
-        }, 1000);
-        return () => clearTimeout(retryTimer);
-      }
+        } else {
+          // Fallback: apenas faz upgrade se não tiver session_id
+          upgradeToPro();
+        }
+        
+        // Limpa a URL para não reprocessar ao atualizar
+        window.history.replaceState({}, document.title, window.location.pathname);
+      };
       
-      // Usuário está carregado, faz o upgrade
-      upgradeToPro();
-      // Limpa a URL para não reprocessar ao atualizar
+      handlePaymentSuccess();
+    } else if (status === 'cancelled') {
+      // Limpa a URL se o pagamento foi cancelado
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [upgradeToPro, t, user, isAuthenticated, isAuthLoading]);
+  }, [upgradeToPro, user, isAuthenticated, isAuthLoading]);
 
   // Handle Password Reset Callback
   useEffect(() => {
