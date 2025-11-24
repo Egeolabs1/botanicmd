@@ -12,6 +12,7 @@ import { uploadImageToStorage } from '../services/storageUploadService';
 import { supabase, isSupabaseConfigured } from '../services/supabase';
 import { FAQModal } from './FAQModal';
 import { SupportModal } from './SupportModal';
+import { LogoutModal } from './LogoutModal';
 import { useIsPWA } from '../hooks/useIsPWA';
 import { useNavigate } from 'react-router-dom';
 
@@ -97,6 +98,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isFAQModalOpen, setIsFAQModalOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [newReminder, setNewReminder] = useState({
     plantName: '',
     type: 'watering' as Reminder['type'],
