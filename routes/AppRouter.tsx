@@ -124,17 +124,21 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Se estiver em vercel.app, redireciona ANTES de processar (para preservar parâmetros OAuth)
-        if (window.location.hostname === 'botanicmd.vercel.app') {
-          // Preserva TODOS os parâmetros da URL (query params + hash)
-          const currentUrl = window.location.href;
-          const newUrl = currentUrl.replace('botanicmd.vercel.app', 'botanicmd.com');
-          window.location.replace(newUrl);
-          return;
-        }
-
         // Importa dinamicamente o supabase para não quebrar se não estiver configurado
         const { supabase, isSupabaseConfigured } = await import('../services/supabase');
+        
+        // Se estiver em vercel.app E tiver código de autorização, redireciona para botanicmd.com
+        // Isso deve acontecer ANTES do Supabase tentar processar, para que o processamento aconteça no domínio correto
+        if (window.location.hostname === 'botanicmd.vercel.app') {
+          const hasCode = window.location.search.includes('code=') || window.location.hash.includes('access_token');
+          if (hasCode) {
+            // Preserva TODOS os parâmetros da URL (query params + hash)
+            const currentUrl = window.location.href;
+            const newUrl = currentUrl.replace('botanicmd.vercel.app', 'botanicmd.com');
+            window.location.replace(newUrl);
+            return;
+          }
+        }
         
         if (!isSupabaseConfigured) {
           setStatus('error');
