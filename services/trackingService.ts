@@ -111,6 +111,17 @@ class TrackingService {
 
   // Google Analytics (GA4)
   private initGoogleAnalytics(measurementId: string): void {
+    // Verifica se o GA já está carregado (pode estar no index.html)
+    if ((window as any).gtag) {
+      console.log('ℹ️ Google Analytics já está carregado no HTML');
+      // Adiciona configuração adicional se for um ID diferente
+      if (measurementId && measurementId !== 'G-48KXSDJQ7B') {
+        (window as any).gtag('config', measurementId);
+        console.log('✅ Google Analytics configurado com ID adicional:', measurementId);
+      }
+      return;
+    }
+
     // Add gtag.js script
     const script = document.createElement('script');
     script.async = true;
