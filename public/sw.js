@@ -1,8 +1,7 @@
-// Service Worker Simplificado - v2.1
-// Força atualização do cache para resolver problemas de login
+// Service Worker - v2.2
+// Corrige erro de clone() em Response body
 
-const CACHE_NAME = 'botanicmd-cache-v2.1';
-const DYNAMIC_CACHE = 'botanicmd-dynamic-v2.1';
+const CACHE_NAME = 'botanicmd-cache-v2.2';
 
 // Arquivos essenciais para o app shell
 const STATIC_ASSETS = [
