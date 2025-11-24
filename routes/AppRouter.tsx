@@ -198,10 +198,21 @@ const AuthCallback = () => {
               }
               
               // Verifica parâmetro de redirecionamento
-              const redirectTo = hashParams.get('redirect') || searchParams.get('redirect') || '/app';
+              let redirectTo = hashParams.get('redirect') || searchParams.get('redirect') || '/app';
+              
+              // Garante que não redirecione para vercel.app
+              if (redirectTo.includes('vercel.app')) {
+                redirectTo = '/app';
+              }
               
               // Limpa o hash da URL para não expor tokens
               window.history.replaceState(null, '', window.location.pathname + window.location.search);
+              
+              // Se estiver em vercel.app, força redirecionamento absoluto para botanicmd.com
+              if (window.location.hostname === 'botanicmd.vercel.app') {
+                window.location.href = `https://botanicmd.com${redirectTo}`;
+                return;
+              }
               
               // Aguarda um pouco para garantir que o estado foi atualizado
               setTimeout(() => {
