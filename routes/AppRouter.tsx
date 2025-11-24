@@ -122,15 +122,17 @@ const AuthCallback = () => {
   const [message, setMessage] = useState('Autenticando...');
 
   useEffect(() => {
-    // Se estiver em vercel.app, força redirecionamento para botanicmd.com
-    if (window.location.hostname === 'botanicmd.vercel.app') {
-      const currentPath = window.location.pathname + window.location.search + window.location.hash;
-      window.location.href = `https://botanicmd.com${currentPath}`;
-      return;
-    }
-
     const handleCallback = async () => {
       try {
+        // Se estiver em vercel.app, redireciona ANTES de processar (para preservar parâmetros OAuth)
+        if (window.location.hostname === 'botanicmd.vercel.app') {
+          // Preserva TODOS os parâmetros da URL (query params + hash)
+          const currentUrl = window.location.href;
+          const newUrl = currentUrl.replace('botanicmd.vercel.app', 'botanicmd.com');
+          window.location.replace(newUrl);
+          return;
+        }
+
         // Importa dinamicamente o supabase para não quebrar se não estiver configurado
         const { supabase, isSupabaseConfigured } = await import('../services/supabase');
         
