@@ -122,6 +122,13 @@ const AuthCallback = () => {
   const [message, setMessage] = useState('Autenticando...');
 
   useEffect(() => {
+    // Se estiver em vercel.app, força redirecionamento para botanicmd.com
+    if (window.location.hostname === 'botanicmd.vercel.app') {
+      const currentPath = window.location.pathname + window.location.search + window.location.hash;
+      window.location.href = `https://botanicmd.com${currentPath}`;
+      return;
+    }
+
     const handleCallback = async () => {
       try {
         // Importa dinamicamente o supabase para não quebrar se não estiver configurado
@@ -218,7 +225,19 @@ const AuthCallback = () => {
           setStatus('success');
           setMessage('Autenticação confirmada! Redirecionando...');
           
-          const redirectTo = searchParams.get('redirect') || '/app';
+          let redirectTo = searchParams.get('redirect') || '/app';
+          
+          // Garante que não redirecione para vercel.app
+          if (redirectTo.includes('vercel.app')) {
+            redirectTo = '/app';
+          }
+          
+          // Se estiver em vercel.app, força redirecionamento absoluto
+          if (window.location.hostname === 'botanicmd.vercel.app') {
+            window.location.href = `https://botanicmd.com${redirectTo}`;
+            return;
+          }
+          
           setTimeout(() => {
             navigate(redirectTo, { replace: true });
           }, 1000);
@@ -229,7 +248,18 @@ const AuthCallback = () => {
         // Aguarda um pouco para o Supabase processar via onAuthStateChange
         setMessage('Processando confirmação de email...');
         
-        const redirectTo = searchParams.get('redirect') || '/app';
+        let redirectTo = searchParams.get('redirect') || '/app';
+        
+        // Garante que não redirecione para vercel.app
+        if (redirectTo.includes('vercel.app')) {
+          redirectTo = '/app';
+        }
+        
+        // Se estiver em vercel.app, força redirecionamento absoluto
+        if (window.location.hostname === 'botanicmd.vercel.app') {
+          window.location.href = `https://botanicmd.com${redirectTo}`;
+          return;
+        }
         
         // Aguarda até 3 segundos para a sessão ser estabelecida
         const checkInterval = setInterval(async () => {
