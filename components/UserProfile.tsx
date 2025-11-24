@@ -912,7 +912,7 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
     const plans = [
       {
         name: 'Free',
-        price: t('free'),
+        price: 'Grátis',
         period: '',
         features: ['3 análises por mês', 'Identificação básica', 'Diagnóstico básico'],
         current: user.plan === 'free',
