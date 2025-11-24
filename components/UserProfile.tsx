@@ -558,7 +558,7 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
             )}
 
             <button 
-                onClick={() => { if(window.confirm(t('logout_confirm'))) { onLogout(); } }}
+                onClick={() => setIsLogoutModalOpen(true)}
                 className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 text-red-600 transition-colors text-left"
             >
                <div className="p-2 bg-red-100 rounded-lg"><LogOut className="w-5 h-5" /></div>
@@ -1689,6 +1689,11 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
       <SupportModal 
         isOpen={isSupportModalOpen} 
         onClose={() => setIsSupportModalOpen(false)} 
+      />
+      <LogoutModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={onLogout}
       />
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
       <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl relative transition-all duration-300 max-h-[85vh] overflow-y-auto">
