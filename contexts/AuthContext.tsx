@@ -34,9 +34,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Em Supabase, podemos salvar metadados do usuário na tabela 'profiles' ou no metadata do auth
-      // Aqui, usamos localStorage para simular a persistência do plano por simplicidade
-      const storedData = localStorage.getItem(`botanicmd_data_${sbUser.id}`);
+    // Em Supabase, podemos salvar metadados do usuário na tabela 'profiles' ou no metadata do auth
+    // Aqui, usamos localStorage para simular a persistência do plano por simplicidade
+    const storedData = localStorage.getItem(`botanicmd_data_${sbUser.id}`);
       let extraData = { plan: 'free' as PlanType, usageCount: 0, maxUsage: 3 };
       
       if (storedData) {
@@ -47,17 +47,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      const appUser: User = {
-        id: sbUser.id,
-        name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'Jardineiro',
-        email: sbUser.email || '',
+    const appUser: User = {
+      id: sbUser.id,
+      name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'Jardineiro',
+      email: sbUser.email || '',
         plan: extraData.plan || 'free',
         usageCount: extraData.usageCount || 0,
-        maxUsage: extraData.plan === 'pro' ? -1 : 3
-      };
+      maxUsage: extraData.plan === 'pro' ? -1 : 3
+    };
 
-      setUser(appUser);
-      setIsLoading(false);
+    setUser(appUser);
+    setIsLoading(false);
       
       // Garante que os dados sejam salvos
       const dataToSave = {
@@ -115,9 +115,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsLoading(false);
         }
       } catch (err) {
-        console.error("Erro de conexão Auth:", err);
+      console.error("Erro de conexão Auth:", err);
         if (mounted) {
-          setIsLoading(false);
+      setIsLoading(false);
         }
       }
     };
@@ -370,7 +370,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Email ou senha incorretos.');
       } else if (error.message?.includes('Password should be at least')) {
         throw new Error('A senha deve ter pelo menos 6 caracteres.');
-      } else {
+    } else {
         throw new Error(error.message || 'Erro ao fazer login ou cadastro. Tente novamente.');
       }
     }
@@ -399,10 +399,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Iniciando login com Google OAuth...');
       
+      // Garante que usamos o domínio correto (botanicmd.com)
+      const origin = window.location.hostname === 'botanicmd.com' 
+        ? 'https://botanicmd.com'
+        : window.location.origin;
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: provider,
+      provider: provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirect=/app`,
+          redirectTo: `${origin}/auth/callback?redirect=/app`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -484,7 +489,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Atualiza no Admin DB também
       try {
-        adminService.updateUserPlan(user.id, 'pro');
+      adminService.updateUserPlan(user.id, 'pro');
       } catch (error) {
         // Log apenas em desenvolvimento
         if (process.env.NODE_ENV === 'development') {

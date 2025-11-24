@@ -194,14 +194,14 @@ VITE_SUPABASE_KEY=sua_chave_anon_public_aqui
 
    **Site URL:**
    ```
-   https://botanicmd.com
+   https://botanicmd.vercel.app
    ```
    (ou o domínio do seu projeto)
 
    **Redirect URLs:**
    ```
-   https://botanicmd.com/auth/callback
-   https://botanicmd.com/app
+   https://botanicmd.vercel.app/auth/callback
+   https://botanicmd.vercel.app/app
    http://localhost:3000/auth/callback
    http://localhost:3000/app
    ```

@@ -128,7 +128,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       // Para login: fecha o modal imediatamente
       if (isLogin) {
         console.log('Fechando modal e navegando para /app');
-        onClose();
+      onClose();
         // Navega para o app (o useEffect vai cuidar se já estiver autenticado)
         navigate('/app');
       } else {
@@ -153,7 +153,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const handleSocialLogin = async () => {
     try {
       setIsSubmitting(true);
-      await loginSocial('google');
+    await loginSocial('google');
       // Não fecha o modal imediatamente pois o OAuth vai redirecionar
       // Se houver erro, o loginSocial mostrará um alert
       // Se funcionar, o usuário será redirecionado para o Google
@@ -334,7 +334,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               )}
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Campo de nome - apenas no cadastro */}
             {!isLogin && (
               <div className="relative group">
@@ -520,7 +520,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             )}
             
             {!isForgotPassword && (
-              <button
+            <button
                 type="button"
                 onClick={() => {
                   setIsLogin(!isLogin);
@@ -530,9 +530,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   setPasswordError('');
                 }}
                 className="text-sm text-nature-600 font-bold hover:text-nature-800 transition-colors block w-full"
-              >
-                {isLogin ? 'Criar uma nova conta' : 'Já tenho uma conta'}
-              </button>
+            >
+              {isLogin ? 'Criar uma nova conta' : 'Já tenho uma conta'}
+            </button>
             )}
 
             {isForgotPassword && (

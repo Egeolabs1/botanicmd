@@ -17,15 +17,15 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     Promise.all([
       // Limpa caches antigos
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME) {
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
               console.log('[SW] Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
+            return caches.delete(cacheName);
+          }
+        })
+      );
       }),
       // Força a ativação imediata para todos os clients
       self.clients.claim()
@@ -96,8 +96,8 @@ self.addEventListener('fetch', (event) => {
   // Para HTML e outros arquivos estáticos: Network First com fallback para cache
   if (url.pathname === '/' || url.pathname.endsWith('.html') || 
       url.pathname === '/manifest.json' || url.pathname === '/icon.svg') {
-    
-    event.respondWith(
+
+  event.respondWith(
       fetch(request)
         .then((response) => {
           // Cacheia apenas se a resposta for válida
@@ -112,8 +112,8 @@ self.addEventListener('fetch', (event) => {
         .catch(() => {
           // Fallback para cache se a rede falhar
           return caches.match(request);
-        })
-    );
+    })
+  );
     return;
   }
 });

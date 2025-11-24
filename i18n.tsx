@@ -1838,8 +1838,8 @@ const translations = {
 ['it', 'zh', 'ru', 'hi'].forEach(lang => {
     // @ts-ignore - Mantém como fallback caso alguma tradução falte
     if (!translations[lang]) {
-      // @ts-ignore
-      translations[lang] = { 
+    // @ts-ignore
+    translations[lang] = { 
         ...translations['en']
       };
     }

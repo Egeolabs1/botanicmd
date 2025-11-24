@@ -204,7 +204,7 @@ Veja o guia completo em: [SUPABASE_OAUTH_SETUP.md](./SUPABASE_OAUTH_SETUP.md)
 No Supabase Dashboard, vá em **Authentication** → **URL Configuration**:
 
 **Site URL:**
-- `https://botanicmd.com` (ou seu domínio)
+- `https://botanicmd.com`
 
 **Redirect URLs:**
 - `https://botanicmd.com/auth/callback`

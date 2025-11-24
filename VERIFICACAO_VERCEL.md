@@ -60,7 +60,7 @@ Todas as alterações são **compatíveis** com o Vercel. Aqui está o detalhame
 
 3. **ALLOWED_ORIGIN** (opcional)
    - Key: `ALLOWED_ORIGIN`
-   - Value: `https://seu-dominio.botanicmd.com` ou `*`
+   - Value: `https://seu-dominio.vercel.app` ou `*`
    - Environment: Production, Preview, Development
 
 ### Variáveis Opcionais (Supabase):
