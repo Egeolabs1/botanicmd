@@ -1,119 +1,99 @@
-// ⚠️ IMPORTANTE: Incremente a versão do cache quando houver mudanças significativas
-// Isso força a atualização do cache para todos os usuários
-// Incrementado para v3 para forçar limpeza do loop infinito anterior
-const CACHE_VERSION = 'botanicmd-v3';
-const CACHE_NAME = CACHE_VERSION;
+// Service Worker Simplificado - v2.1
+// Força atualização do cache para resolver problemas de login
 
-// Estratégia: Network First para assets dinâmicos (com hash), Cache First para arquivos estáticos
+const CACHE_NAME = 'botanicmd-cache-v2.1';
+const DYNAMIC_CACHE = 'botanicmd-dynamic-v2.1';
+
+// Arquivos essenciais para o app shell
+const STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/icon.svg',
+  '/robots.txt'
+];
+
+// Instalação: Cache dos arquivos estáticos
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing Service Worker...');
-  // Não cachear assets na instalação - deixar para Network First
+  // Força o novo SW a assumir o controle imediatamente
   self.skipWaiting();
-});
-
-// Limpeza de caches antigos na ativação
-self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating Service Worker v' + CACHE_VERSION + '...');
+  
   event.waitUntil(
-    Promise.all([
-      // Limpa caches antigos
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-              console.log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-      }),
-      // Força a ativação imediata para todos os clients
-      self.clients.claim()
-    ])
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('[SW] Caching app shell');
+      return cache.addAll(STATIC_ASSETS);
+    })
   );
 });
 
-// Escuta mensagens dos clients
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.action === 'skipWaiting') {
-    self.skipWaiting();
-  }
+// Ativação: Limpeza de caches antigos
+self.addEventListener('activate', (event) => {
+  // Reivindica o controle de todas as abas abertas imediatamente
+  event.waitUntil(clients.claim());
+  
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME && key !== DYNAMIC_CACHE) {
+            console.log('[SW] Removing old cache', key);
+            return caches.delete(key);
+          }
+        })
+      );
+    })
+  );
 });
 
-// Interceptação de requisições com estratégia inteligente
+// Fetch: Estratégia Network First para navegação e API, Cache First para assets
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
+  const url = new URL(event.request.url);
 
   // Ignora requisições não-GET
-  if (request.method !== 'GET') {
+  if (event.request.method !== 'GET') return;
+
+  // Ignora requisições externas (Google Fonts, etc.) exceto as imagens do Supabase/plantas
+  if (!url.origin.includes(self.location.origin) && !url.origin.includes('supabase')) {
+    return;
+  }
+  
+  // Ignora rotas de autenticação para garantir que sempre vai para a rede
+  if (url.pathname.includes('/auth/') || url.pathname.includes('/callback')) {
     return;
   }
 
-  // Ignora requisições de API (devem sempre ir para a rede)
-  if (url.pathname.startsWith('/api/')) {
-    return;
-  }
-
-  // Ignora requisições externas (Google Fonts, etc.)
-  if (url.origin !== location.origin) {
-    return;
-  }
-
-  // Estratégia: Network First para assets dinâmicos (CSS/JS com hash)
-  // Isso garante que sempre busca a versão mais recente do servidor
-  if (url.pathname.includes('/assets/') || 
-      url.pathname.endsWith('.js') || 
-      url.pathname.endsWith('.css') ||
-      url.pathname.endsWith('.mjs')) {
-    
+  // Para navegação (HTML) e API: Network First
+  // Isso garante que o usuário sempre veja a versão mais recente se estiver online
+  if (event.request.mode === 'navigate' || url.pathname.startsWith('/api')) {
     event.respondWith(
-      fetch(request)
+      fetch(event.request)
         .then((response) => {
-          // Se a rede funcionar, cacheia a resposta e retorna
-          if (response && response.status === 200) {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseToCache);
-            });
-          }
-          return response;
+          return caches.open(DYNAMIC_CACHE).then((cache) => {
+            // Guarda uma cópia para offline
+            cache.put(event.request.url, response.clone());
+            return response;
+          });
         })
         .catch(() => {
-          // Se a rede falhar, tenta buscar no cache
-          return caches.match(request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // Se não tiver no cache também, retorna erro
-            return new Response('Asset not found', { status: 404 });
-          });
+          // Se falhar (offline), tenta o cache
+          return caches.match(event.request);
         })
     );
     return;
   }
 
-  // Para HTML e outros arquivos estáticos: Network First com fallback para cache
-  if (url.pathname === '/' || url.pathname.endsWith('.html') || 
-      url.pathname === '/manifest.json' || url.pathname === '/icon.svg') {
-
+  // Para assets estáticos (JS, CSS, Imagens): Stale While Revalidate
+  // Retorna o cache rápido, mas atualiza em background
   event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Cacheia apenas se a resposta for válida
-          if (response && response.status === 200) {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseToCache);
-            });
-          }
-          return response;
-        })
-        .catch(() => {
-          // Fallback para cache se a rede falhar
-          return caches.match(request);
+    caches.match(event.request).then((cachedResponse) => {
+      const fetchPromise = fetch(event.request).then((networkResponse) => {
+        caches.open(DYNAMIC_CACHE).then((cache) => {
+          cache.put(event.request, networkResponse.clone());
+        });
+        return networkResponse;
+      });
+      
+      return cachedResponse || fetchPromise;
     })
   );
-    return;
-  }
 });

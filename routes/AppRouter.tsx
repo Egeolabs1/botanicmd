@@ -122,19 +122,29 @@ const AuthCallback = () => {
   const [message, setMessage] = useState('Autenticando...');
 
   useEffect(() => {
+    let mounted = true;
+    let authSubscription: { data: { subscription: { unsubscribe: () => void } } } | null = null;
+    let checkInterval: NodeJS.Timeout | null = null;
+    let timeout: NodeJS.Timeout | null = null;
+
     const handleCallback = async () => {
       try {
+        console.log('🔐 AuthCallback: Iniciando processamento...', {
+          hash: window.location.hash.substring(0, 50),
+          search: window.location.search,
+          hostname: window.location.hostname
+        });
+
         // Importa dinamicamente o supabase para não quebrar se não estiver configurado
         const { supabase, isSupabaseConfigured } = await import('../services/supabase');
         
         // Se estiver em vercel.app E tiver código de autorização, redireciona para botanicmd.com
-        // Isso deve acontecer ANTES do Supabase tentar processar, para que o processamento aconteça no domínio correto
         if (window.location.hostname === 'botanicmd.vercel.app') {
           const hasCode = window.location.search.includes('code=') || window.location.hash.includes('access_token');
           if (hasCode) {
-            // Preserva TODOS os parâmetros da URL (query params + hash)
             const currentUrl = window.location.href;
             const newUrl = currentUrl.replace('botanicmd.vercel.app', 'botanicmd.com');
+            console.log('🔄 AuthCallback: Redirecionando para botanicmd.com');
             window.location.replace(newUrl);
             return;
           }
@@ -147,7 +157,7 @@ const AuthCallback = () => {
           return;
         }
 
-        // Processa os parâmetros da URL (tanto query params quanto hash fragments)
+        // Processa os parâmetros da URL
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const searchParams = new URLSearchParams(window.location.search);
         
@@ -156,28 +166,67 @@ const AuthCallback = () => {
         const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
         
         if (error) {
-          console.error('Erro na autenticação:', error, errorDescription);
+          console.error('❌ AuthCallback: Erro na autenticação:', error, errorDescription);
           setStatus('error');
           setMessage(errorDescription || 'Erro na autenticação. Redirecionando...');
           setTimeout(() => navigate('/'), 3000);
           return;
         }
 
-        // Verifica se há tokens no hash (OAuth/Magic Link/Confirmação de Email)
+        // Função auxiliar para redirecionar
+        const redirectToApp = (redirectPath = '/app') => {
+          if (!mounted) return;
+          
+          let redirectTo = hashParams.get('redirect') || searchParams.get('redirect') || redirectPath;
+          
+          if (redirectTo.includes('vercel.app')) {
+            redirectTo = '/app';
+          }
+          
+          // Decodifica URL se necessário
+          try {
+            redirectTo = decodeURIComponent(redirectTo);
+          } catch (e) {
+            // Ignora erro de decodificação
+          }
+          
+          if (window.location.hostname === 'botanicmd.vercel.app') {
+            window.location.href = `https://botanicmd.com${redirectTo}`;
+            return;
+          }
+          
+          setStatus('success');
+          setMessage('Autenticação bem-sucedida! Redirecionando...');
+          
+          // Limpa a URL completamente
+          window.history.replaceState(null, '', redirectTo);
+          
+          // Redireciona IMEDIATAMENTE usando window.location para garantir
+          navigate(redirectTo, { replace: true });
+          
+          // Força reload se o navigate não funcionar
+          setTimeout(() => {
+            if (mounted && window.location.pathname !== redirectTo) {
+              window.location.href = redirectTo;
+            }
+          }, 500);
+        };
+
+        // Verifica se há tokens no hash (OAuth PKCE flow)
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
-        const type = hashParams.get('type'); // 'signup', 'recovery', etc.
+        const type = hashParams.get('type');
         
         if (accessToken && refreshToken) {
+          console.log('✅ AuthCallback: Tokens encontrados no hash, definindo sessão...');
           try {
-            // Define a sessão com os tokens recebidos
             const { data, error: sessionError } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
             });
 
             if (sessionError) {
-              console.error('Erro ao definir sessão:', sessionError);
+              console.error('❌ AuthCallback: Erro ao definir sessão:', sessionError);
               setStatus('error');
               setMessage('Erro ao processar autenticação. Redirecionando...');
               setTimeout(() => navigate('/'), 3000);
@@ -185,49 +234,19 @@ const AuthCallback = () => {
             }
 
             if (data.session) {
-              // Verifica se é recuperação de senha - redireciona para página de redefinição
+              console.log('✅ AuthCallback: Sessão definida com sucesso!', data.session.user.email);
+              
               if (type === 'recovery') {
-                // Limpa o hash da URL para não expor tokens
-                window.history.replaceState(null, '', window.location.pathname + window.location.search);
-                // Redireciona para o app que vai mostrar o modal de redefinição de senha
+                window.history.replaceState(null, '', window.location.pathname);
                 navigate('/app?action=reset-password', { replace: true });
                 return;
               }
               
-              // Verifica se é confirmação de email
-              if (type === 'signup' || type === 'email') {
-                setStatus('success');
-                setMessage('Email confirmado com sucesso! Redirecionando...');
-              } else {
-                setStatus('success');
-                setMessage('Autenticação bem-sucedida! Redirecionando...');
-              }
-              
-              // Verifica parâmetro de redirecionamento
-              let redirectTo = hashParams.get('redirect') || searchParams.get('redirect') || '/app';
-              
-              // Garante que não redirecione para vercel.app
-              if (redirectTo.includes('vercel.app')) {
-                redirectTo = '/app';
-              }
-              
-              // Limpa o hash da URL para não expor tokens
-              window.history.replaceState(null, '', window.location.pathname + window.location.search);
-              
-              // Se estiver em vercel.app, força redirecionamento absoluto para botanicmd.com
-              if (window.location.hostname === 'botanicmd.vercel.app') {
-                window.location.href = `https://botanicmd.com${redirectTo}`;
-                return;
-              }
-              
-              // Aguarda um pouco para garantir que o estado foi atualizado
-              setTimeout(() => {
-                navigate(redirectTo, { replace: true });
-              }, 1500);
+              redirectToApp();
               return;
             }
           } catch (sessionError: any) {
-            console.error('Erro ao processar sessão:', sessionError);
+            console.error('❌ AuthCallback: Erro ao processar sessão:', sessionError);
             setStatus('error');
             setMessage('Erro ao processar autenticação. Redirecionando...');
             setTimeout(() => navigate('/'), 3000);
@@ -235,77 +254,158 @@ const AuthCallback = () => {
           }
         }
 
-        // Se não há tokens, verifica se já existe uma sessão ativa
-        const { data: { session } } = await supabase.auth.getSession();
+        // O Supabase com PKCE processa o code automaticamente
+        // PRIMEIRO: Configura o listener ANTES de verificar para não perder eventos
+        console.log('👂 AuthCallback: Configurando listener PRIMEIRO...');
+        let sessionFound = false;
         
-        if (session) {
-          setStatus('success');
-          setMessage('Autenticação confirmada! Redirecionando...');
+        authSubscription = supabase.auth.onAuthStateChange(async (event, session) => {
+          console.log('🔔 AuthCallback: Auth state changed:', event, session?.user?.email || 'no user');
           
-          let redirectTo = searchParams.get('redirect') || '/app';
-          
-          // Garante que não redirecione para vercel.app
-          if (redirectTo.includes('vercel.app')) {
-            redirectTo = '/app';
+          if (!mounted || sessionFound) return;
+
+          if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
+            console.log('✅ AuthCallback: Usuário autenticado via onAuthStateChange! Redirecionando...', session.user.email);
+            sessionFound = true;
+            
+            // Limpa tudo
+            if (checkInterval) {
+              clearInterval(checkInterval);
+              checkInterval = null;
+            }
+            if (timeout) {
+              clearTimeout(timeout);
+              timeout = null;
+            }
+            if (authSubscription?.data?.subscription) {
+              authSubscription.data.subscription.unsubscribe();
+              authSubscription = null;
+            }
+            
+            // Redireciona IMEDIATAMENTE
+            redirectToApp();
           }
+        });
+        
+        // SEGUNDO: Verifica a sessão IMEDIATAMENTE (pode já existir)
+        console.log('🔍 AuthCallback: Verificando sessão imediatamente...');
+        
+        // Verifica várias vezes rapidamente (o Supabase pode estar processando)
+        for (let i = 0; i < 5; i++) {
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
           
-          // Se estiver em vercel.app, força redirecionamento absoluto
-          if (window.location.hostname === 'botanicmd.vercel.app') {
-            window.location.href = `https://botanicmd.com${redirectTo}`;
+          if (session?.user) {
+            console.log(`✅ AuthCallback: Sessão encontrada! (verificação ${i + 1}) Redirecionando...`, session.user.email);
+            sessionFound = true;
+            
+            // Limpa listener
+            if (authSubscription?.data?.subscription) {
+              authSubscription.data.subscription.unsubscribe();
+              authSubscription = null;
+            }
+            
+            redirectToApp();
             return;
           }
           
-          setTimeout(() => {
-            navigate(redirectTo, { replace: true });
-          }, 1000);
-          return;
-        }
-
-        // Se chegou aqui, não há sessão e não há tokens - pode ser confirmação de email
-        // Aguarda um pouco para o Supabase processar via onAuthStateChange
-        setMessage('Processando confirmação de email...');
-        
-        let redirectTo = searchParams.get('redirect') || '/app';
-        
-        // Garante que não redirecione para vercel.app
-        if (redirectTo.includes('vercel.app')) {
-          redirectTo = '/app';
+          if (i < 4) {
+            // Aguarda um pouco antes de verificar novamente
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
         }
         
-        // Se estiver em vercel.app, força redirecionamento absoluto
-        if (window.location.hostname === 'botanicmd.vercel.app') {
-          window.location.href = `https://botanicmd.com${redirectTo}`;
-          return;
-        }
+        console.log('⏳ AuthCallback: Sessão não encontrada nas verificações iniciais, aguardando...');
         
-        // Aguarda até 3 segundos para a sessão ser estabelecida
-        const checkInterval = setInterval(async () => {
-          const { data: { session: currentSession } } = await supabase.auth.getSession();
-          if (currentSession) {
-            clearInterval(checkInterval);
-            setStatus('success');
-            setMessage('Email confirmado! Redirecionando...');
-            setTimeout(() => {
-              navigate(redirectTo, { replace: true });
-            }, 1000);
+        // TERCEIRO: Se ainda não encontrou, aguarda polling ou timeout
+        console.log('⏳ AuthCallback: Aguardando sessão ser criada...');
+        setMessage('Processando autenticação com Google...');
+        
+        // Polling para detectar sessão rapidamente
+        let pollAttempts = 0;
+        const maxPollAttempts = 30; // 15 segundos total (500ms * 30)
+        
+        checkInterval = setInterval(async () => {
+          if (!mounted || sessionFound) return;
+          
+          pollAttempts++;
+          
+          const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+          
+          if (error && pollAttempts % 5 === 0) {
+            console.warn(`⚠️ AuthCallback: Erro no poll (tentativa ${pollAttempts}):`, error);
+          }
+          
+          if (currentSession?.user) {
+            console.log(`✅ AuthCallback: Sessão encontrada no poll! (tentativa ${pollAttempts})`, currentSession.user.email);
+            sessionFound = true;
+            
+            if (checkInterval) {
+              clearInterval(checkInterval);
+              checkInterval = null;
+            }
+            if (timeout) {
+              clearTimeout(timeout);
+              timeout = null;
+            }
+            if (authSubscription?.data?.subscription) {
+              authSubscription.data.subscription.unsubscribe();
+              authSubscription = null;
+            }
+            
+            redirectToApp();
+          } else if (pollAttempts >= maxPollAttempts) {
+            console.warn('⚠️ AuthCallback: Máximo de tentativas atingido, parando poll');
+            if (checkInterval) {
+              clearInterval(checkInterval);
+              checkInterval = null;
+            }
           }
         }, 500);
 
-        // Timeout de segurança - redireciona mesmo se não conseguir confirmar
-        const timeout = setTimeout(() => {
-          clearInterval(checkInterval);
-          setStatus('success');
-          setMessage('Redirecionando...');
-          navigate(redirectTo, { replace: true });
-        }, 5000);
-
-        return () => {
-          clearInterval(checkInterval);
-          clearTimeout(timeout);
-        };
+        // Timeout de segurança - redireciona após 10 segundos
+        timeout = setTimeout(() => {
+          if (!mounted) return;
+          
+          console.warn('⏱️ AuthCallback: Timeout após 10s - verificando sessão uma última vez...');
+          
+          if (checkInterval) {
+            clearInterval(checkInterval);
+            checkInterval = null;
+          }
+          if (authSubscription?.data?.subscription) {
+            authSubscription.data.subscription.unsubscribe();
+            authSubscription = null;
+          }
+          
+          // Verifica uma última vez
+          supabase.auth.getSession().then(({ data: { session }, error }) => {
+            if (!mounted) return;
+            
+            if (session?.user) {
+              console.log('✅ AuthCallback: Sessão encontrada no timeout!', session.user.email);
+              redirectToApp();
+            } else {
+              console.error('❌ AuthCallback: Nenhuma sessão encontrada após timeout', error);
+              
+              // Tenta redirecionar de qualquer forma se há um code (Supabase pode ter processado)
+              const code = searchParams.get('code');
+              if (code) {
+                console.log('🔄 AuthCallback: Code presente, redirecionando para /app...');
+                setStatus('success');
+                setMessage('Redirecionando...');
+                window.history.replaceState(null, '', '/app');
+                navigate('/app', { replace: true });
+              } else {
+                setStatus('error');
+                setMessage('Tempo de autenticação expirado. Tente fazer login novamente.');
+                setTimeout(() => navigate('/'), 3000);
+              }
+            }
+          });
+        }, 10000); // 10 segundos
 
       } catch (error: any) {
-        console.error('Erro no callback de autenticação:', error);
+        console.error('❌ AuthCallback: Erro geral:', error);
         setStatus('error');
         setMessage('Erro ao processar autenticação. Redirecionando...');
         setTimeout(() => navigate('/'), 3000);
@@ -313,6 +413,23 @@ const AuthCallback = () => {
     };
 
     handleCallback();
+
+    // Cleanup
+    return () => {
+      mounted = false;
+      if (checkInterval) {
+        clearInterval(checkInterval);
+        checkInterval = null;
+      }
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+      if (authSubscription?.data?.subscription) {
+        authSubscription.data.subscription.unsubscribe();
+        authSubscription = null;
+      }
+    };
   }, [navigate]);
 
   return (
@@ -321,7 +438,16 @@ const AuthCallback = () => {
         {status === 'loading' && (
           <>
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-nature-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">{message}</p>
+            <p className="text-gray-600 text-lg mb-2">{message}</p>
+            <p className="text-xs text-gray-400 mb-6">v2.1 - Aguardando confirmação...</p>
+            
+            {/* Botão de emergência se travar */}
+            <button 
+              onClick={() => window.location.href = 'https://botanicmd.com/app'}
+              className="mt-4 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              Demorando muito? Clique aqui para entrar
+            </button>
           </>
         )}
         {status === 'success' && (
@@ -332,6 +458,7 @@ const AuthCallback = () => {
               </svg>
             </div>
             <p className="text-gray-600">{message}</p>
+            <p className="text-xs text-gray-400 mt-2">Redirecionando...</p>
           </>
         )}
         {status === 'error' && (
@@ -341,7 +468,13 @@ const AuthCallback = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <p className="text-red-600">{message}</p>
+            <p className="text-red-600 mb-4">{message}</p>
+            <button 
+              onClick={() => navigate('/')}
+              className="px-4 py-2 bg-nature-600 text-white rounded-lg hover:bg-nature-700"
+            >
+              Voltar ao Início
+            </button>
           </>
         )}
       </div>
