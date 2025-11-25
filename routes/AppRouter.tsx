@@ -325,13 +325,29 @@ const AuthCallback = () => {
         
         console.log('🔄 AuthCallback: Iniciando loop de verificação de sessão (8 tentativas)...');
         
+        // Função auxiliar para getSession com timeout (Edge pode travar)
+        const getSessionWithTimeout = async (timeoutMs: number = 3000) => {
+          return Promise.race([
+            supabase.auth.getSession(),
+            new Promise<{ data: { session: null }, error: Error }>((_, reject) => 
+              setTimeout(() => reject(new Error('Timeout ao verificar sessão')), timeoutMs)
+            )
+          ]);
+        };
+        
         // Verifica várias vezes rapidamente (o Supabase pode estar processando)
         for (let i = 0; i < 8; i++) {
           console.log(`🔍 AuthCallback: Iniciando verificação ${i + 1}/8...`);
           try {
-            console.log(`🔍 AuthCallback: Verificando sessão (tentativa ${i + 1}/8)...`);
+            console.log(`🔍 AuthCallback: Verificando sessão (tentativa ${i + 1}/8) com timeout de 3s...`);
             
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            const { data: { session }, error: sessionError } = await getSessionWithTimeout(3000);
+            
+            console.log(`🔍 AuthCallback: getSession retornou (tentativa ${i + 1}):`, { 
+              hasSession: !!session, 
+              hasUser: !!session?.user,
+              error: sessionError 
+            });
             
             if (sessionError) {
               console.warn(`⚠️ AuthCallback: Erro ao verificar sessão (verificação ${i + 1}):`, sessionError);
@@ -352,8 +368,12 @@ const AuthCallback = () => {
             } else {
               console.log(`⏳ AuthCallback: Sessão não encontrada ainda (verificação ${i + 1}/8). Aguardando...`);
             }
-          } catch (err) {
-            console.error(`❌ AuthCallback: Erro na verificação ${i + 1}:`, err);
+          } catch (err: any) {
+            console.error(`❌ AuthCallback: Erro na verificação ${i + 1}:`, err?.message || err);
+            // Se for timeout, continua tentando
+            if (err?.message?.includes('Timeout')) {
+              console.log(`⏳ AuthCallback: Timeout na verificação ${i + 1}, continuando...`);
+            }
           }
           
           if (i < 7) {
