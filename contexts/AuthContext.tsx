@@ -124,14 +124,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    // SEGUNDO: Timeout de segurança - se após 2 segundos não houve INITIAL_SESSION, marca como não autenticado
+    // SEGUNDO: Timeout de segurança - se após 3 segundos não houve INITIAL_SESSION, marca como não autenticado
     const timeoutId = setTimeout(() => {
-      if (mounted && isLoading) {
-        console.log('Timeout: nenhuma sessão detectada, marcando como não autenticado');
-        setUser(null);
-        setIsLoading(false);
+      if (mounted) {
+        // Verifica o estado atual usando uma função de callback
+        setIsLoading((currentLoading) => {
+          if (currentLoading) {
+            console.log('Timeout: nenhuma sessão detectada após 3s, marcando como não autenticado');
+            setUser(null);
+            return false;
+          }
+          return currentLoading;
+        });
       }
-    }, 2000);
+    }, 3000);
 
     return () => {
       mounted = false;
