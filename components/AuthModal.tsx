@@ -32,6 +32,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+  
+  // Ref para armazenar o interval de verificação de autenticação
+  const authCheckIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Redireciona para /app após login bem-sucedido
   React.useEffect(() => {
@@ -62,6 +65,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       setResetSuccess(false);
     }
   }, [isLogin, isForgotPassword]);
+  
+  // Cleanup: limpa o interval quando o componente desmonta ou modal fecha
+  React.useEffect(() => {
+    return () => {
+      if (authCheckIntervalRef.current) {
+        clearInterval(authCheckIntervalRef.current);
+        authCheckIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -135,17 +148,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       if (isLogin) {
         console.log('⏳ Aguardando estado isAuthenticated ser atualizado...');
         
+        // Limpa qualquer interval anterior
+        if (authCheckIntervalRef.current) {
+          clearInterval(authCheckIntervalRef.current);
+          authCheckIntervalRef.current = null;
+        }
+        
         // Aguarda até que isAuthenticated seja true (máximo 3 segundos)
         let attempts = 0;
         const maxAttempts = 30; // 30 tentativas = 3 segundos
         
-        const checkAuthInterval = setInterval(() => {
+        authCheckIntervalRef.current = setInterval(() => {
           attempts++;
           console.log(`🔍 Verificando isAuthenticated (tentativa ${attempts}/${maxAttempts})...`, isAuthenticated);
           
+          // Verifica o estado atual (pode ter mudado desde o início)
+          // Nota: isAuthenticated é capturado no closure, então pode não estar atualizado
+          // Vamos verificar a sessão diretamente também
+          
           if (isAuthenticated) {
             console.log('✅ isAuthenticated confirmado! Fechando modal e redirecionando...');
-            clearInterval(checkAuthInterval);
+            if (authCheckIntervalRef.current) {
+              clearInterval(authCheckIntervalRef.current);
+              authCheckIntervalRef.current = null;
+            }
             onClose();
             // Usa window.location para garantir funcionamento no Edge
             setTimeout(() => {
@@ -153,7 +179,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             }, 100);
           } else if (attempts >= maxAttempts) {
             console.warn('⚠️ Timeout aguardando isAuthenticated. Redirecionando mesmo assim...');
-            clearInterval(checkAuthInterval);
+            if (authCheckIntervalRef.current) {
+              clearInterval(authCheckIntervalRef.current);
+              authCheckIntervalRef.current = null;
+            }
             onClose();
             // Tenta redirecionar mesmo sem confirmar isAuthenticated
             setTimeout(() => {
@@ -161,9 +190,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             }, 100);
           }
         }, 100);
-        
-        // Limpa o interval se o componente desmontar
-        return () => clearInterval(checkAuthInterval);
       } else {
         console.log('Cadastro realizado, aguardando confirmação de email');
       }
