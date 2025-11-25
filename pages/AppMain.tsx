@@ -53,16 +53,21 @@ export const AppMain: React.FC = () => {
 
   useEffect(() => {
     // Não redireciona durante o carregamento inicial
-    if (isAuthLoading) return;
+    if (isAuthLoading) {
+      console.log('⏳ AppMain: Aguardando autenticação carregar...');
+      return;
+    }
 
-    // Aguarda 3 segundos após carregar para dar tempo do auth atualizar
-    // (especialmente após login recente)
+    // Aguarda 5 segundos após carregar para dar tempo do auth atualizar
+    // (especialmente após login recente onde mapUser pode demorar)
     const timer = setTimeout(() => {
       if (!isAuthenticated && window.location.pathname === '/app') {
-        console.log('Usuário não autenticado após timeout, redirecionando para /');
+        console.log('❌ AppMain: Usuário não autenticado após timeout, redirecionando para /');
         navigate('/');
+      } else if (isAuthenticated) {
+        console.log('✅ AppMain: Usuário autenticado, página deve estar visível');
       }
-    }, 3000);
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, [isAuthenticated, isAuthLoading, navigate]);

@@ -34,6 +34,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
+      console.log('🔄 Mapeando usuário:', sbUser.email);
+      
       const storedData = localStorage.getItem(`botanicmd_data_${sbUser.id}`);
       let extraData = { plan: 'free' as PlanType, usageCount: 0, maxUsage: 3 };
       
@@ -45,11 +47,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
+      // Sincronização do plano com timeout para não travar
       let userPlan: PlanType = extraData.plan || 'free';
       if (isSupabaseConfigured) {
         try {
-          const { syncUserPlan } = await import('../services/subscriptionService');
-          const planFromSubscription = await syncUserPlan();
+          const syncPromise = import('../services/subscriptionService').then(m => m.syncUserPlan());
+          const timeoutPromise = new Promise<null>((resolve) => 
+            setTimeout(() => resolve(null), 2000)
+          );
+          
+          const planFromSubscription = await Promise.race([syncPromise, timeoutPromise]);
           if (planFromSubscription) {
             userPlan = planFromSubscription;
             extraData.plan = userPlan;
@@ -69,6 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         maxUsage: userPlan === 'pro' ? -1 : 3
       };
 
+      console.log('✅ Usuário mapeado, definindo estado:', appUser.email);
       setUser(appUser);
       setIsLoading(false);
       
@@ -78,8 +86,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         maxUsage: appUser.maxUsage
       };
       localStorage.setItem(`botanicmd_data_${sbUser.id}`, JSON.stringify(dataToSave));
+      
+      console.log('✅ Estado atualizado - isAuthenticated deve ser true agora');
     } catch (error) {
-      console.error('Erro ao mapear usuário:', error);
+      console.error('❌ Erro ao mapear usuário:', error);
       setUser(null);
       setIsLoading(false);
     }
