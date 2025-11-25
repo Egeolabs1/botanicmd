@@ -125,12 +125,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       await login(email.trim(), password.trim(), !isLogin ? name.trim() : undefined);
       console.log('Login/cadastro concluído com sucesso');
       
-      // Para login: fecha o modal imediatamente
+      // Para login: o useEffect vai cuidar do redirecionamento quando isAuthenticated for true
+      // Não navegamos manualmente aqui para evitar race conditions
       if (isLogin) {
-        console.log('Fechando modal e navegando para /app');
-      onClose();
-        // Navega para o app (o useEffect vai cuidar se já estiver autenticado)
-        navigate('/app');
+        console.log('Login bem-sucedido, aguardando estado isAuthenticated ser atualizado...');
+        // O useEffect na linha 37-42 vai detectar quando isAuthenticated for true e redirecionar
       } else {
         console.log('Cadastro realizado, aguardando confirmação de email');
       }

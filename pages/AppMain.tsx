@@ -60,13 +60,15 @@ export const AppMain: React.FC = () => {
     }
 
     if (!isAuthenticated && window.location.pathname === '/app') {
-      // Aguarda um pouco para garantir que a sessão foi verificada
+      // Aguarda mais tempo para garantir que a sessão foi verificada após login
+      // Isso evita redirecionar usuários que acabaram de fazer login
       const timer = setTimeout(() => {
         // Verifica novamente antes de redirecionar
         if (!isAuthenticated) {
+          console.log('Usuário não autenticado após timeout, redirecionando para /');
           navigate('/');
         }
-      }, 1000);
+      }, 2000); // Aumentado de 1s para 2s para dar tempo ao login
       return () => clearTimeout(timer);
     }
   }, [isAuthenticated, isAuthLoading, navigate]);
