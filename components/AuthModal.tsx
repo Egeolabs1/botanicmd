@@ -17,7 +17,7 @@ const isValidEmail = (email: string): boolean => {
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { login, loginSocial, resetPassword, resendConfirmationEmail } = useAuth();
+  const { login, loginSocial, resetPassword, resendConfirmationEmail, isAuthenticated, isLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isResendEmail, setIsResendEmail] = useState(false);
@@ -94,11 +94,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       await login(email.trim(), password.trim(), !isLogin ? name.trim() : undefined);
       
       if (isLogin) {
-        // Aguarda um pouco para garantir que o estado foi atualizado
-        await new Promise(resolve => setTimeout(resolve, 500));
+        console.log('✅ Login bem-sucedido, aguardando autenticação...');
         
+        // Aguarda até que o usuário esteja autenticado e o carregamento termine
+        let attempts = 0;
+        const maxAttempts = 20; // 10 segundos máximo (20 * 500ms)
+        
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Se não está mais carregando e está autenticado, pode redirecionar
+          if (!isLoading && isAuthenticated) {
+            console.log('✅ Autenticação confirmada, redirecionando...');
+            onClose();
+            window.location.href = '/app';
+            return;
+          }
+          
+          attempts++;
+        }
+        
+        // Se chegou aqui, aguardou mas ainda não autenticou
+        // Redireciona mesmo assim e deixa o AppMain lidar
+        console.log('⏳ Timeout aguardando autenticação, redirecionando mesmo assim...');
         onClose();
-        // Força reload completo para garantir que o estado seja recarregado
         window.location.href = '/app';
       }
     } catch (error: any) {
