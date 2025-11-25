@@ -34,7 +34,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Buscar dados do localStorage primeiro (fallback rápido)
       const storedData = localStorage.getItem(`botanicmd_data_${sbUser.id}`);
       let extraData = { plan: 'free' as PlanType, usageCount: 0, maxUsage: 3 };
       
@@ -46,7 +45,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // Se Supabase está configurado, buscar assinatura do banco
       let userPlan: PlanType = extraData.plan || 'free';
       if (isSupabaseConfigured) {
         try {
@@ -54,13 +52,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const planFromSubscription = await syncUserPlan();
           if (planFromSubscription) {
             userPlan = planFromSubscription;
-            // Atualiza localStorage com o plano do banco
             extraData.plan = userPlan;
             extraData.maxUsage = userPlan === 'pro' ? -1 : 3;
           }
         } catch (error) {
           console.warn('Erro ao sincronizar plano do banco:', error);
-          // Continua com o plano do localStorage em caso de erro
         }
       }
 
@@ -76,7 +72,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(appUser);
       setIsLoading(false);
       
-      // Garante que os dados sejam salvos
       const dataToSave = {
         plan: appUser.plan,
         usageCount: appUser.usageCount,
@@ -92,60 +87,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
-      console.log('Supabase não configurado. Modo offline/demonstração ativado.');
-      
-      // Tenta recuperar sessão demo salva localmente
       const demoUserStr = localStorage.getItem('botanicmd_demo_user');
       if (demoUserStr) {
         const parsedUser = JSON.parse(demoUserStr);
-        // Sync with admin DB to ensure we have the latest plan if admin changed it
         const syncedUser = adminService.syncUser(parsedUser);
         setUser(syncedUser);
       }
-      
       setIsLoading(false);
       return;
     }
 
     let mounted = true;
 
-    // Função para verificar e recuperar sessão com timeout (Edge pode travar)
     const initializeAuth = async () => {
       try {
-        console.log('🔍 AuthContext: Verificando sessão inicial...');
-        
-        // Função auxiliar para getSession com timeout
-        const getSessionWithTimeout = async (timeoutMs: number = 3000) => {
-          return Promise.race([
-            supabase.auth.getSession(),
-            new Promise<{ data: { session: null }, error: Error }>((_, reject) => 
-              setTimeout(() => reject(new Error('Timeout')), timeoutMs)
-            )
-          ]);
-        };
-        
-        // Primeiro, verifica se há uma sessão persistida com timeout
-        let session = null;
-        let error = null;
-        
-        try {
-          const result = await getSessionWithTimeout(3000);
-          session = result.data?.session || null;
-          error = result.error || null;
-        } catch (timeoutErr: any) {
-          console.warn('⚠️ AuthContext: Timeout ao verificar sessão inicial, usando localStorage como fallback');
-          // Tenta ler do localStorage diretamente como fallback
-          const storedSession = localStorage.getItem('sb-' + import.meta.env.VITE_SUPABASE_URL?.split('//')[1]?.split('.')[0] + '-auth-token');
-          if (!storedSession) {
-            setIsLoading(false);
-            setUser(null);
-            return;
-          }
-          // Continua mesmo sem sessão confirmada - o onAuthStateChange vai cuidar
-          setIsLoading(false);
-          // Não define usuário ainda, aguarda o onAuthStateChange
-          return;
-        }
+        const { data: { session }, error } = await supabase.auth.getSession();
         
         if (!mounted) return;
 
@@ -155,13 +111,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        // Se há uma sessão, mapeia o usuário
         if (session?.user) {
-          console.log('✅ AuthContext: Sessão encontrada, mapeando usuário...', session.user.email);
           await mapUser(session.user);
         } else {
-          // Não há sessão - usuário não está logado
-          console.log('ℹ️ AuthContext: Nenhuma sessão encontrada');
           setUser(null);
           setIsLoading(false);
         }
@@ -173,40 +125,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // Inicializa a autenticação
     initializeAuth();
 
-    // Escuta mudanças de auth (Login/Logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email || 'no user');
-      
       if (!mounted) return;
 
-      // Para INITIAL_SESSION, não limpa o usuário imediatamente
-      // Aguarda a verificação de sessão persistida
       if (event === 'INITIAL_SESSION') {
         if (session?.user) {
           await mapUser(session.user);
         } else {
-          // Se INITIAL_SESSION não tem sessão, usa a sessão passada ou marca como não autenticado
-          // Não tenta getSession() novamente para evitar travar no Edge
-          console.log('ℹ️ AuthContext: INITIAL_SESSION sem sessão, marcando como não autenticado');
           setUser(null);
           setIsLoading(false);
         }
         return;
       }
 
-      // Para outros eventos, processa normalmente
       if (session?.user) {
         await mapUser(session.user);
       } else if (event === 'SIGNED_OUT') {
-        // Só limpa se for logout explícito
         setUser(null);
         setIsLoading(false);
       }
-      // Para outros eventos sem sessão, não limpa imediatamente
-      // Pode ser um refresh temporário do token
     });
 
     return () => {
@@ -215,7 +154,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Salva uso localmente para persistência do plano/contagem
   useEffect(() => {
     if (user) {
       const dataToSave = {
@@ -224,533 +162,203 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         maxUsage: user.maxUsage
       };
       localStorage.setItem(`botanicmd_data_${user.id}`, JSON.stringify(dataToSave));
-      
-      // Se for usuário demo, atualiza o registro demo também
-      if (!isSupabaseConfigured && user.id.startsWith('demo-')) {
-        localStorage.setItem('botanicmd_demo_user', JSON.stringify(user));
-        // Sync stats with Admin DB
-        adminService.syncUser(user);
-      }
     }
-  }, [user]);
+  }, [user?.usageCount, user?.plan]);
+
+  const isAuthenticated = !!user;
 
   const login = async (email: string, password: string, name?: string) => {
     if (!isSupabaseConfigured) {
-      // MODO DEMO: Cria um usuário fictício imediatamente
-      const userId = 'demo-user-' + email.replace(/[^a-zA-Z0-9]/g, '');
-      const demoUser: User = {
-        id: userId,
-        name: name?.trim() || email.split('@')[0] || 'Visitante',
-        email: email,
-        plan: 'free',
-        usageCount: 0,
-        maxUsage: 3
-      };
-      
-      // Register user in Admin DB or retrieve existing to respect Plan changes
-      const syncedUser = adminService.syncUser(demoUser);
-      
-      setUser(syncedUser);
-      localStorage.setItem('botanicmd_demo_user', JSON.stringify(syncedUser));
-      return;
+      throw new Error('Supabase não configurado');
     }
 
-    try {
-      // Tenta fazer login primeiro (caso o usuário já exista)
-      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+    if (name) {
+      // Cadastro
+      const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
-        password: password,
-      });
-
-      // Se login funcionou, retorna sucesso
-      if (loginData.user && !loginError) {
-        console.log('✅ Login bem-sucedido:', loginData.user.email);
-        
-        // Mapeia o usuário imediatamente
-        console.log('📋 Mapeando usuário...');
-        await mapUser(loginData.user);
-        console.log('✅ Usuário mapeado');
-        
-        // Aguarda mais tempo para garantir que a sessão foi salva (especialmente no Edge)
-        // Edge pode ter delay na persistência do localStorage
-        console.log('⏳ Aguardando persistência da sessão (300ms)...');
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Força uma verificação adicional da sessão para garantir que está salva
-        console.log('🔍 Verificando sessão persistida...');
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          console.warn('⚠️ Erro ao verificar sessão após login:', sessionError);
-        }
-        
-        if (session?.user) {
-          console.log('✅ Sessão confirmada após login:', session.user.email);
-          // Garante que o usuário está mapeado novamente (para Edge)
-          // Edge pode precisar de múltiplas chamadas para atualizar o estado corretamente
-          await mapUser(session.user);
-          console.log('✅ Usuário re-mapeado com sessão confirmada');
-        } else {
-          console.warn('⚠️ Sessão não encontrada após login, mas loginData.user existe');
-          // Mesmo sem sessão na verificação, o mapUser já foi chamado com loginData.user
-          // O onAuthStateChange vai cuidar do resto
-        }
-        
-        console.log('✅ Login completo, retornando...');
-        return;
-      }
-
-      // Trata erros específicos
-      if (loginError) {
-        console.error('Erro no login:', loginError);
-        
-        // Se for "invalid credentials", tenta cadastrar
-        if (loginError.message.includes('Invalid login credentials') || 
-            loginError.message.includes('Invalid login credentials')) {
-          // Continua para o fluxo de cadastro abaixo
-        } else if (loginError.message.includes('Email not confirmed')) {
-          throw new Error('Por favor, confirme seu email antes de fazer login. Verifique sua caixa de entrada.');
-        } else {
-          // Outros erros são lançados
-          throw loginError;
-        }
-      }
-
-      // Se chegou aqui, o usuário não existe, então vamos fazer cadastro
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password,
+        password: password.trim(),
         options: {
           data: {
-            full_name: name?.trim() || email.split('@')[0] || 'Jardineiro',
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback?redirect=/app`,
-        },
+            full_name: name.trim()
+          }
+        }
       });
 
-      if (signUpError) {
-        throw signUpError;
-      }
+      if (error) throw error;
+      if (!data.user) throw new Error('Erro ao criar usuário');
 
-      // Se o signup foi bem-sucedido
-      if (signUpData.user) {
-        console.log('Cadastro bem-sucedido:', signUpData.user.email);
-        
-        // Verifica se há sessão disponível (pode estar disponível se email não precisa confirmar)
-        const { data: { session: signupSession } } = await supabase.auth.getSession();
-        
-        if (signupSession?.user && signupSession?.access_token) {
-          // Há sessão disponível - usuário já pode usar (email não precisa confirmar ou já foi confirmado)
-          console.log('✅ Sessão disponível após cadastro - logando automaticamente');
-          mapUser(signupSession.user);
-          
-          // Aguarda um pouco para garantir que a sessão foi salva
-          await new Promise(resolve => setTimeout(resolve, 200));
-          
-          // Verifica novamente se a sessão foi salva corretamente
-          const { data: { session: verifySession } } = await supabase.auth.getSession();
-          if (verifySession) {
-            console.log('✅ Sessão confirmada e salva após cadastro');
-            // Garante que o usuário está mapeado
-            if (!user || user.id !== verifySession.user.id) {
-              mapUser(verifySession.user);
-            }
-          } else {
-            console.warn('⚠️ Sessão não encontrada após cadastro');
-          }
-          
-          return;
-        }
-        
-        // Não há sessão disponível - sempre tenta login automático primeiro
-        // Se falhar, assume que precisa confirmar email
-        console.log('ℹ️ Sem sessão após cadastro - tentando login automático...');
-        
-        // Aguarda um pouco para o Supabase processar o cadastro
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        try {
-          // Tenta fazer login com as mesmas credenciais para criar a sessão
-          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-            email: email.trim(),
-            password: password,
-          });
-          
-          if (loginData.user && loginData.session && !loginError) {
-            console.log('✅ Login automático bem-sucedido após cadastro');
-            mapUser(loginData.user);
-            
-            // Aguarda um pouco para garantir que a sessão foi salva
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
-            // Verifica se a sessão foi salva
-            const { data: { session: finalSession } } = await supabase.auth.getSession();
-            if (finalSession) {
-              console.log('✅ Sessão confirmada e salva após login automático');
-              return;
-            } else {
-              console.warn('⚠️ Sessão não encontrada após login automático');
-            }
-          } else {
-            // Login falhou - provavelmente precisa confirmar email
-            const errorMsg = loginError?.message || '';
-            console.error('Erro no login automático:', loginError);
-            console.log('ℹ️ Login automático falhou - email precisa ser confirmado');
-            
-            // Sempre assume que precisa confirmar email quando login falha após signup
-            throw new Error('Email precisa ser confirmado');
-          }
-        } catch (autoLoginError: any) {
-          console.error('Falha no login automático:', autoLoginError);
-          
-          // Se chegou aqui, o email precisa ser confirmado
-          const errorMessage = autoLoginError?.message || '';
-          
-          // Mostra mensagem clara para o usuário
-          if (errorMessage.includes('Invalid login credentials') || 
-              errorMessage.includes('Email precisa ser confirmado') ||
-              errorMessage.includes('Email not confirmed')) {
-            console.log('ℹ️ Login falhou - email precisa ser confirmado');
-            
-            // Usa window.alert para garantir que aparece
-            setTimeout(() => {
-              alert('Conta criada com sucesso! 📧\n\n⚠️ IMPORTANTE: Verifique seu email e clique no link de confirmação.\n\nDepois de confirmar, faça login manualmente com seu email e senha.');
-            }, 100);
-          } else {
-            console.log('ℹ️ Login automático falhou por outro motivo:', errorMessage);
-            setTimeout(() => {
-              alert('Conta criada com sucesso! ✅\n\nPor favor, faça login manualmente com seu email e senha.\n\nSe não conseguir, verifique seu email para confirmar a conta primeiro.');
-            }, 100);
-          }
-          return;
-        }
-      }
-
-    } catch (error: any) {
-      console.error('Erro na autenticação:', error);
-      
-      // Tratamento de erros específicos
-      if (error.message?.includes('User already registered')) {
-        throw new Error('Este email já está cadastrado. Faça login com sua senha.');
-      } else if (error.message?.includes('Invalid login credentials')) {
-        throw new Error('Email ou senha incorretos.');
-      } else if (error.message?.includes('Password should be at least')) {
-        throw new Error('A senha deve ter pelo menos 6 caracteres.');
+      alert('Cadastro realizado! Verifique seu email para confirmar sua conta.');
     } else {
-        throw new Error(error.message || 'Erro ao fazer login ou cadastro. Tente novamente.');
+      // Login
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password.trim(),
+      });
+
+      if (error) throw error;
+      if (data.user) {
+        await mapUser(data.user);
       }
     }
   };
 
   const loginSocial = async (provider: 'google') => {
     if (!isSupabaseConfigured) {
-      // MODO DEMO SOCIAL
-      const demoUser: User = {
-        id: 'demo-social-google',
-        name: 'Visitante Google',
-        email: 'demo-google@gmail.com',
-        plan: 'free',
-        usageCount: 0,
-        maxUsage: 3
-      };
-      
-      // Register user in Admin DB or retrieve existing
-      const syncedUser = adminService.syncUser(demoUser);
-      
-      setUser(syncedUser);
-      localStorage.setItem('botanicmd_demo_user', JSON.stringify(syncedUser));
-      return;
+      throw new Error('Supabase não configurado');
     }
+
+    const redirectTo = `${window.location.origin}/auth/callback`;
     
-    try {
-      console.log('Iniciando login com Google OAuth...');
-      
-      // Garante que usamos o domínio correto (botanicmd.com)
-      const origin = window.location.hostname === 'botanicmd.com' 
-        ? 'https://botanicmd.com'
-        : window.location.origin;
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: provider,
-        options: {
-          redirectTo: `${origin}/auth/callback?redirect=/app`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        }
-      });
-      
-      if (error) {
-        console.error('Erro no login social:', error);
-        
-        // Mensagens de erro mais específicas
-        if (error.message.includes('provider is not enabled')) {
-          alert(
-            '⚠️ Google OAuth não está habilitado no Supabase.\n\n' +
-            'Para habilitar:\n' +
-            '1. Acesse o Supabase Dashboard\n' +
-            '2. Vá em Authentication → Providers\n' +
-            '3. Habilite o provider Google\n' +
-            '4. Configure as credenciais do Google Cloud Console\n\n' +
-            'Veja o guia completo em: SUPABASE_OAUTH_SETUP.md'
-          );
-        } else if (error.message.includes('redirect_uri_mismatch')) {
-          alert(
-            '⚠️ URL de redirecionamento não configurada.\n\n' +
-            'Configure a URL de callback no Google Cloud Console:\n' +
-            `https://[seu-projeto-id].supabase.co/auth/v1/callback`
-          );
-        } else {
-          alert(`Erro no login com Google: ${error.message}`);
-        }
-        return;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: redirectTo
       }
-      
-      // Se não houver erro, o usuário será redirecionado para o Google
-      // e depois voltará para /auth/callback
-      console.log('Redirecionando para Google OAuth...');
-      
-    } catch (err: any) {
-      console.error('Erro ao iniciar login OAuth:', err);
-      alert(
-        '❌ Erro ao iniciar login com Google.\n\n' +
-        'Verifique:\n' +
-        '1. Se o Google OAuth está habilitado no Supabase\n' +
-        '2. Se as credenciais estão configuradas corretamente\n' +
-        '3. Se as URLs de redirecionamento estão corretas\n\n' +
-        'Erro técnico: ' + (err.message || 'Erro desconhecido')
-      );
-    }
+    });
+
+    if (error) throw error;
   };
 
-  const logout = async () => {
-    // Clear local state immediately for instant UI feedback
-    setUser(null);
-    // Also clear the demo user session from localStorage, if it exists
-    localStorage.removeItem('botanicmd_demo_user');
-
-    // If using Supabase, sign out from the server in the background.
-    // The onAuthStateChange listener will also pick this up, but our UI is already updated.
-    if (isSupabaseConfigured) {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error signing out from Supabase:', error);
-      }
+  const logout = () => {
+    if (!isSupabaseConfigured) {
+      localStorage.removeItem('botanicmd_demo_user');
+      setUser(null);
+      return;
     }
+
+    supabase.auth.signOut().then(() => {
+      setUser(null);
+      window.location.href = '/';
+    });
   };
 
   const incrementUsage = () => {
-    if (user) {
-      const updatedUser = { ...user, usageCount: user.usageCount + 1 };
-      setUser(updatedUser);
-    }
-  };
-
-  const upgradeToPro = () => {
-    if (user) {
-      // Atualiza no context
-      const updatedUser = { ...user, plan: 'pro' as PlanType, maxUsage: -1 };
-      setUser(updatedUser);
-      
-      // Atualiza no Admin DB também
-      try {
-      adminService.updateUserPlan(user.id, 'pro');
-      } catch (error) {
-        // Log apenas em desenvolvimento
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Erro ao salvar upgrade no Admin DB:', error);
-        }
-      }
-      
-      // Se for usuário demo, atualiza localStorage também
-      if (!isSupabaseConfigured && user.id.startsWith('demo-')) {
-        localStorage.setItem('botanicmd_demo_user', JSON.stringify(updatedUser));
-      }
-      
-      // Salva dados do usuário
+    if (!user) return;
+    
+    const newCount = (user.usageCount || 0) + 1;
+    setUser({ ...user, usageCount: newCount });
+    
+    if (user.id) {
       const dataToSave = {
-        plan: 'pro',
-        usageCount: user.usageCount,
-        maxUsage: -1
+        plan: user.plan,
+        usageCount: newCount,
+        maxUsage: user.maxUsage
       };
       localStorage.setItem(`botanicmd_data_${user.id}`, JSON.stringify(dataToSave));
     }
   };
 
-  const checkLimit = () => {
+  const upgradeToPro = () => {
+    if (!user) return;
+    setUser({ ...user, plan: 'pro', maxUsage: -1 });
+  };
+
+  const checkLimit = (): boolean => {
     if (!user) return false;
     if (user.plan === 'pro') return true;
-    return user.usageCount < user.maxUsage;
+    return (user.usageCount || 0) < (user.maxUsage || 3);
   };
 
   const updateProfile = async (name: string) => {
-    if (user) {
-      const updatedUser = { ...user, name };
-      setUser(updatedUser);
-      
-      // Sync with Admin DB to update name
-      adminService.syncUser(updatedUser);
-
-      if (!isSupabaseConfigured) {
-        if (user.id.startsWith('demo-')) {
-            localStorage.setItem('botanicmd_demo_user', JSON.stringify(updatedUser));
-        }
-      } else {
-        // Atualizar Supabase
-        const { error } = await supabase.auth.updateUser({
-          data: { full_name: name }
-        });
-        if (error) console.error("Error updating profile:", error);
-      }
+    if (!isSupabaseConfigured || !user) {
+      throw new Error('Não autenticado ou Supabase não configurado');
     }
+
+    const { error } = await supabase.auth.updateUser({
+      data: { full_name: name.trim() }
+    });
+
+    if (error) throw error;
+
+    setUser({ ...user, name: name.trim() });
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
     if (!isSupabaseConfigured) {
-      throw new Error('Funcionalidade disponível apenas com Supabase configurado.');
+      throw new Error('Supabase não configurado');
     }
 
-    if (!user) {
-      throw new Error('Você precisa estar logado para alterar a senha.');
+    // Primeiro, verifica a senha atual fazendo login
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser?.email) {
+      throw new Error('Usuário não encontrado');
     }
 
-    if (!currentPassword || !newPassword) {
-      throw new Error('Preencha todos os campos.');
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: currentUser.email,
+      password: currentPassword,
+    });
+
+    if (signInError) {
+      throw new Error('Senha atual incorreta');
     }
 
-    if (newPassword.length < 6) {
-      throw new Error('A nova senha deve ter pelo menos 6 caracteres.');
-    }
+    // Se chegou aqui, a senha atual está correta, então atualiza
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
 
-    try {
-      // Primeiro, verifica se a senha atual está correta fazendo login
-      const { error: verifyError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: currentPassword,
-      });
-
-      if (verifyError) {
-        throw new Error('Senha atual incorreta.');
-      }
-
-      // Se a senha atual está correta, atualiza para a nova senha
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (updateError) {
-        throw new Error(updateError.message || 'Erro ao alterar senha.');
-      }
-
-      // Sucesso - senha alterada
-    } catch (error: any) {
-      console.error('Erro ao alterar senha:', error);
-      throw new Error(error.message || 'Erro ao alterar senha. Tente novamente.');
+    if (updateError) {
+      throw new Error(updateError.message || 'Erro ao atualizar senha');
     }
   };
 
   const resetPassword = async (email: string) => {
     if (!isSupabaseConfigured) {
-      throw new Error('Funcionalidade disponível apenas com Supabase configurado.');
+      throw new Error('Supabase não configurado');
     }
 
-    if (!email || !isValidEmail(email)) {
-      throw new Error('Email inválido.');
-    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+    });
 
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/auth/callback?type=recovery&redirect=/app`,
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Erro ao enviar email de recuperação.');
-      }
-
-      // Sucesso - email enviado
-    } catch (error: any) {
-      console.error('Erro ao recuperar senha:', error);
-      throw new Error(error.message || 'Erro ao enviar email de recuperação. Tente novamente.');
-    }
+    if (error) throw error;
   };
 
   const updatePassword = async (newPassword: string) => {
     if (!isSupabaseConfigured) {
-      throw new Error('Funcionalidade disponível apenas com Supabase configurado.');
+      throw new Error('Supabase não configurado');
     }
 
-    if (!newPassword || newPassword.length < 6) {
-      throw new Error('A nova senha deve ter pelo menos 6 caracteres.');
-    }
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
 
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Erro ao atualizar senha.');
-      }
-
-      // Sucesso - senha atualizada
-    } catch (error: any) {
-      console.error('Erro ao atualizar senha:', error);
-      throw new Error(error.message || 'Erro ao atualizar senha. Tente novamente.');
-    }
+    if (error) throw error;
   };
 
   const resendConfirmationEmail = async (email: string) => {
     if (!isSupabaseConfigured) {
-      throw new Error('Funcionalidade disponível apenas com Supabase configurado.');
+      throw new Error('Supabase não configurado');
     }
 
-    if (!email || !isValidEmail(email)) {
-      throw new Error('Email inválido.');
-    }
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim(),
+    });
 
-    try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email.trim(),
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?redirect=/app`,
-        },
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Erro ao reenviar email de confirmação.');
-      }
-
-      // Sucesso - email reenviado
-    } catch (error: any) {
-      console.error('Erro ao reenviar email de confirmação:', error);
-      throw new Error(error.message || 'Erro ao reenviar email de confirmação. Tente novamente.');
-    }
-  };
-
-  // Helper function para validar email
-  const isValidEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    if (error) throw error;
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated: !!user, 
-      isLoading, 
-      login, 
-      loginSocial, 
-      logout, 
-      incrementUsage, 
-      upgradeToPro, 
-      checkLimit, 
-      updateProfile,
-      changePassword,
-      resetPassword,
-      updatePassword,
-      resendConfirmationEmail
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated,
+        isLoading,
+        login,
+        loginSocial,
+        logout,
+        incrementUsage,
+        upgradeToPro,
+        checkLimit,
+        updateProfile,
+        changePassword,
+        resetPassword,
+        updatePassword,
+        resendConfirmationEmail,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -758,6 +366,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 };

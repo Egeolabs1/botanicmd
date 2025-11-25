@@ -9,7 +9,6 @@ interface AuthModalProps {
   onClose: () => void;
 }
 
-// Validação de email
 const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
@@ -18,7 +17,7 @@ const isValidEmail = (email: string): boolean => {
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { login, loginSocial, isAuthenticated, resetPassword, resendConfirmationEmail } = useAuth();
+  const { login, loginSocial, resetPassword, resendConfirmationEmail } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isResendEmail, setIsResendEmail] = useState(false);
@@ -32,25 +31,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
-  
-  // Ref para armazenar o interval de verificação de autenticação
-  const authCheckIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
-  // Redireciona para /app após login bem-sucedido
-  React.useEffect(() => {
-    if (isAuthenticated && isOpen) {
-      console.log('✅ useEffect detectou isAuthenticated=true, redirecionando...');
-      onClose();
-      // Usa window.location para garantir funcionamento no Edge
-      // O React Router navigate pode ter problemas no Edge em alguns casos
-      setTimeout(() => {
-        console.log('🚀 Redirecionando via window.location.href...');
-        window.location.href = '/app';
-      }, 200);
-    }
-  }, [isAuthenticated, isOpen, navigate, onClose]);
-
-  // Limpa campos quando alterna entre login e cadastro
   React.useEffect(() => {
     if (isLogin) {
       setName('');
@@ -65,125 +46,63 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       setResetSuccess(false);
     }
   }, [isLogin, isForgotPassword]);
-  
-  // Cleanup: limpa o interval quando o componente desmonta ou modal fecha
-  React.useEffect(() => {
-    return () => {
-      if (authCheckIntervalRef.current) {
-        clearInterval(authCheckIntervalRef.current);
-        authCheckIntervalRef.current = null;
-      }
-    };
-  }, []);
 
-  if (!isOpen) return null;
-
-  const handleEmailChange = (value: string) => {
-    setEmail(value);
-    if (emailError && value) {
-      setEmailError('');
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('handleSubmit chamado', { isLogin, email: email.trim(), passwordLength: password.length });
-    
-    // Validações
-    if (!isLogin && !name.trim()) {
-      setNameError('Nome é obrigatório');
-      return;
-    }
-
-    if (!isLogin && name.trim() && name.trim().length < 2) {
-      setNameError('Nome deve ter pelo menos 2 caracteres');
-      return;
-    }
-
-    if (!email.trim()) {
-      setEmailError('Email é obrigatório');
-      return;
-    }
-
-    if (!isValidEmail(email.trim())) {
-      setEmailError('Email inválido');
-      return;
-    }
-
-    if (!password.trim()) {
-      setPasswordError('Senha é obrigatória');
-      return;
-    }
-
-    if (password.trim().length < 6) {
-      setPasswordError('Senha deve ter pelo menos 6 caracteres');
-      return;
-    }
-
-    // Validação de confirmação de senha apenas no cadastro
-    if (!isLogin) {
-      if (!confirmPassword.trim()) {
-        setPasswordError('Confirme sua senha');
-        return;
-      }
-
-      if (password !== confirmPassword) {
-        setPasswordError('As senhas não coincidem');
-        return;
-      }
-    }
-
-    setIsSubmitting(true);
-    setEmailError('');
-    setNameError('');
-    setPasswordError('');
-
+  const handleGoogleLogin = async () => {
     try {
-      console.log('Chamando função login...');
-      // Passa a senha e o nome (apenas no cadastro)
-      await login(email.trim(), password.trim(), !isLogin ? name.trim() : undefined);
-      console.log('✅ Login/cadastro concluído com sucesso');
-      
-      // Para login: força o redirecionamento imediatamente
-      // O login() só retorna após sucesso, então podemos redirecionar diretamente
-      if (isLogin) {
-        console.log('✅ Login bem-sucedido! Redirecionando para /app...');
-        onClose();
-        // Usa window.location para garantir funcionamento no Edge
-        // Pequeno delay para garantir que o modal fechou
-        setTimeout(() => {
-          console.log('🚀 Executando redirecionamento via window.location.href...');
-          window.location.href = '/app';
-        }, 100);
-      } else {
-        console.log('Cadastro realizado, aguardando confirmação de email');
-      }
-      // Para cadastro: o alert já foi mostrado na função login, então não fecha o modal ainda
+      setIsSubmitting(true);
+      setEmailError('');
+      await loginSocial('google');
     } catch (error: any) {
-      console.error('Erro no login/cadastro:', error);
-      // Se for erro específico de email ou senha, mostra no campo correspondente
-      if (error?.message?.includes('senha') || error?.message?.includes('password')) {
-        setPasswordError(error.message);
-      } else {
-        const errorMsg = error?.message || 'Erro ao fazer login. Tente novamente.';
-        setEmailError(errorMsg);
-        console.error('Mensagem de erro:', errorMsg);
-      }
+      setEmailError(error.message || 'Erro ao fazer login com Google');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleSocialLogin = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setEmailError('');
+    setNameError('');
+    setPasswordError('');
+
+    if (!isValidEmail(email)) {
+      setEmailError('Email inválido');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!isLogin && !name.trim()) {
+      setNameError('Nome é obrigatório');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setPasswordError('Senha deve ter pelo menos 6 caracteres');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!isLogin && password !== confirmPassword) {
+      setPasswordError('As senhas não coincidem');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      setIsSubmitting(true);
-    await loginSocial('google');
-      // Não fecha o modal imediatamente pois o OAuth vai redirecionar
-      // Se houver erro, o loginSocial mostrará um alert
-      // Se funcionar, o usuário será redirecionado para o Google
+      await login(email.trim(), password.trim(), !isLogin ? name.trim() : undefined);
+      
+      if (isLogin) {
+        onClose();
+        window.location.href = '/app';
+      }
     } catch (error: any) {
-      console.error('Erro no login social:', error);
-      alert('Erro ao iniciar login com Google. Tente novamente.');
+      if (error?.message?.includes('senha') || error?.message?.includes('password')) {
+        setPasswordError(error.message);
+      } else {
+        setEmailError(error.message || 'Erro ao fazer login. Tente novamente.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -191,375 +110,118 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email.trim()) {
-      setEmailError('Email é obrigatório');
-      return;
-    }
-
-    if (!isValidEmail(email.trim())) {
-      setEmailError('Email inválido');
-      return;
-    }
-
     setIsSubmitting(true);
     setEmailError('');
+
+    if (!isValidEmail(email)) {
+      setEmailError('Email inválido');
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       await resetPassword(email.trim());
       setResetSuccess(true);
     } catch (error: any) {
-      setEmailError(error.message || 'Erro ao enviar email de recuperação. Tente novamente.');
+      setEmailError(error.message || 'Erro ao enviar email de recuperação');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleResendConfirmation = async (e: React.FormEvent) => {
+  const handleResendEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email.trim()) {
-      setEmailError('Email é obrigatório');
-      return;
-    }
-
-    if (!isValidEmail(email.trim())) {
-      setEmailError('Email inválido');
-      return;
-    }
-
     setIsSubmitting(true);
     setEmailError('');
+
+    if (!isValidEmail(email)) {
+      setEmailError('Email inválido');
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       await resendConfirmationEmail(email.trim());
       setResendSuccess(true);
     } catch (error: any) {
-      setEmailError(error.message || 'Erro ao reenviar email de confirmação. Tente novamente.');
+      setEmailError(error.message || 'Erro ao reenviar email');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-nature-900/30 backdrop-blur-md animate-fade-in">
-      <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative border border-white/50">
-        <button 
-          onClick={onClose} 
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+  if (!isOpen) return null;
 
-        <div className="p-8 md:p-10">
-          <div className="flex flex-col items-center mb-8">
-            <div className="bg-nature-50 p-4 rounded-2xl text-nature-600 mb-4 shadow-sm">
-              <Leaf className="w-10 h-10" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 text-center">
-              {isLogin ? 'Bem-vindo de volta' : 'Criar conta'}
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="relative p-8">
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          <div className="text-center mb-6">
+            <Leaf className="w-16 h-16 mx-auto text-nature-600 mb-4" />
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+              {isForgotPassword
+                ? t('forgot_password')
+                : isResendEmail
+                ? t('resend_confirmation')
+                : isLogin
+                ? t('welcome_back')
+                : t('create_account')}
             </h2>
-            <p className="text-gray-500 text-center text-sm mt-1">
-              {isLogin ? 'Acesse seu jardim digital.' : 'Junte-se a milhares de jardineiros.'}
+            <p className="text-gray-600">
+              {isForgotPassword
+                ? t('forgot_password_description')
+                : isResendEmail
+                ? t('resend_confirmation_description')
+                : isLogin
+                ? t('login_description')
+                : t('signup_description')}
             </p>
           </div>
 
-          <div className="space-y-4 mb-6">
-            <button 
-              onClick={handleSocialLogin}
-              disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-700 py-3.5 rounded-2xl font-medium hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm group disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Google className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              {isSubmitting ? 'Carregando...' : t('continue_google')}
-            </button>
-          </div>
-
-          <div className="relative flex py-2 items-center mb-6">
-            <div className="flex-grow border-t border-gray-100"></div>
-            <span className="flex-shrink-0 mx-4 text-gray-400 text-xs font-medium uppercase tracking-wide">{t('or_divider')}</span>
-            <div className="flex-grow border-t border-gray-100"></div>
-          </div>
-
-          {/* View de Recuperação de Senha */}
           {isForgotPassword ? (
-            <div className="space-y-4">
-              {resetSuccess ? (
-                <div className="text-center space-y-4">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">Email enviado!</h3>
-                    <p className="text-sm text-gray-600">
-                      Enviamos um link de recuperação de senha para <strong>{email}</strong>
-                    </p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Verifique sua caixa de entrada e clique no link para redefinir sua senha.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setIsForgotPassword(false);
-                      setResetSuccess(false);
-                      setEmail('');
-                    }}
-                    className="w-full bg-nature-600 text-white py-3 rounded-2xl font-bold hover:bg-nature-700 transition-colors"
-                  >
-                    Voltar ao login
-                  </button>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('email')}
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={`w-full pl-12 pr-4 py-3 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white ${
+                      emailError ? 'border-red-500' : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
+                    }`}
+                    placeholder={t('email_placeholder')}
+                    required
+                    disabled={isSubmitting}
+                  />
                 </div>
-              ) : (
-                <form onSubmit={handleForgotPassword} className="space-y-4">
-                  <div className="text-center mb-4">
-                    <p className="text-sm text-gray-600">
-                      Digite seu email e enviaremos um link para você redefinir sua senha.
-                    </p>
-                  </div>
-                  
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-nature-600 transition-colors">
-                      <Mail className="w-5 h-5" />
-                    </div>
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => handleEmailChange(e.target.value)}
-                      onBlur={() => {
-                        if (email && !isValidEmail(email.trim())) {
-                          setEmailError('Email inválido');
-                        }
-                      }}
-                      className={`w-full pl-12 pr-4 py-3.5 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white ${
-                        emailError 
-                          ? 'border-red-300 focus:ring-4 focus:ring-red-100 focus:border-red-500' 
-                          : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
-                      }`}
-                      placeholder="Email"
-                      disabled={isSubmitting}
-                    />
-                    {emailError && (
-                      <p className="text-red-500 text-xs mt-1 ml-1">{emailError}</p>
-                    )}
-                  </div>
+                {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
+              </div>
 
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !email.trim() || !isValidEmail(email.trim())}
-                    className="w-full bg-nature-600 text-white py-4 rounded-2xl font-bold hover:bg-nature-700 transition-all shadow-lg shadow-nature-200 hover:shadow-nature-300 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                  >
-                    {isSubmitting ? 'Enviando...' : 'Enviar link de recuperação'}
-                    {!isSubmitting && <ArrowRight className="w-5 h-5" />}
-                  </button>
-                </form>
+              {resetSuccess && (
+                <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
+                  {t('reset_password_success')}
+                </div>
               )}
-            </div>
-          ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Campo de nome - apenas no cadastro */}
-            {!isLogin && (
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-nature-600 transition-colors">
-                  <User className="w-5 h-5" />
-                </div>
-                <input
-                  type="text"
-                  required={!isLogin}
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    if (nameError && e.target.value.trim()) {
-                      setNameError('');
-                    }
-                  }}
-                  onBlur={() => {
-                    if (!isLogin && name.trim() && name.trim().length < 2) {
-                      setNameError('Nome deve ter pelo menos 2 caracteres');
-                    }
-                  }}
-                  className={`w-full pl-12 pr-4 py-3.5 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white ${
-                    nameError 
-                      ? 'border-red-300 focus:ring-4 focus:ring-red-100 focus:border-red-500' 
-                      : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
-                  }`}
-                  placeholder="Seu nome"
-                  disabled={isSubmitting}
-                  minLength={2}
-                />
-                {nameError && (
-                  <p className="text-red-500 text-xs mt-1 ml-1">{nameError}</p>
-                )}
-              </div>
-            )}
 
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-nature-600 transition-colors">
-                <Mail className="w-5 h-5" />
-              </div>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => handleEmailChange(e.target.value)}
-                onBlur={() => {
-                  if (email && !isValidEmail(email.trim())) {
-                    setEmailError('Email inválido');
-                  }
-                }}
-                className={`w-full pl-12 pr-4 py-3.5 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white ${
-                  emailError 
-                    ? 'border-red-300 focus:ring-4 focus:ring-red-100 focus:border-red-500' 
-                    : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
-                }`}
-                placeholder="Email"
+              <button
+                type="submit"
                 disabled={isSubmitting}
-              />
-              {emailError && (
-                <p className="text-red-500 text-xs mt-1 ml-1">{emailError}</p>
-              )}
-            </div>
-            
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-nature-600 transition-colors">
-                <Lock className="w-5 h-5" />
-              </div>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (passwordError && e.target.value.trim()) {
-                    setPasswordError('');
-                  }
-                }}
-                onBlur={() => {
-                  if (password.trim() && password.trim().length < 6) {
-                    setPasswordError('Senha deve ter pelo menos 6 caracteres');
-                  } else if (!isLogin && confirmPassword && password !== confirmPassword) {
-                    setPasswordError('As senhas não coincidem');
-                  }
-                }}
-                className={`w-full pl-12 pr-4 py-3.5 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white disabled:opacity-50 ${
-                  passwordError 
-                    ? 'border-red-300 focus:ring-4 focus:ring-red-100 focus:border-red-500' 
-                    : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
-                }`}
-                placeholder="Senha"
-                disabled={isSubmitting}
-                minLength={6}
-              />
-            </div>
+                className="w-full bg-nature-600 text-white py-3.5 rounded-2xl font-semibold hover:bg-nature-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? t('sending') : t('send_reset_link')}
+              </button>
 
-            {/* Campo de confirmação de senha - apenas no cadastro */}
-            {!isLogin && (
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-nature-600 transition-colors">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <input
-                  type="password"
-                  required={!isLogin}
-                  value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value);
-                    if (passwordError && e.target.value.trim()) {
-                      // Verifica se as senhas coincidem ao digitar
-                      if (password === e.target.value) {
-                        setPasswordError('');
-                      } else {
-                        setPasswordError('As senhas não coincidem');
-                      }
-                    }
-                  }}
-                  onBlur={() => {
-                    if (!confirmPassword.trim()) {
-                      setPasswordError('Confirme sua senha');
-                    } else if (password !== confirmPassword) {
-                      setPasswordError('As senhas não coincidem');
-                    }
-                  }}
-                  className={`w-full pl-12 pr-4 py-3.5 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white disabled:opacity-50 ${
-                    passwordError 
-                      ? 'border-red-300 focus:ring-4 focus:ring-red-100 focus:border-red-500' 
-                      : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
-                  }`}
-                  placeholder="Confirmar senha"
-                  disabled={isSubmitting}
-                  minLength={6}
-                />
-              </div>
-            )}
-
-            {/* Mensagem de erro de senha */}
-            {passwordError && (
-              <p className="text-red-500 text-xs mt-1 ml-1">{passwordError}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={
-                isSubmitting || 
-                !email.trim() || 
-                !password.trim() || 
-                (!isLogin && (!name.trim() || !confirmPassword.trim() || password !== confirmPassword))
-              }
-              className="w-full bg-nature-600 text-white py-4 rounded-2xl font-bold hover:bg-nature-700 transition-all shadow-lg shadow-nature-200 hover:shadow-nature-300 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              {isSubmitting ? 'Processando...' : (isLogin ? 'Entrar' : 'Cadastrar')} 
-              {!isSubmitting && <ArrowRight className="w-5 h-5" />}
-            </button>
-          </form>
-          )}
-
-          <div className="mt-6 space-y-3 text-center">
-            {isLogin && !isForgotPassword && !isResendEmail && (
-                <div className="flex flex-col items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setIsForgotPassword(true);
-                            setPassword('');
-                            setPasswordError('');
-                        }}
-                        className="text-sm text-nature-600 hover:text-nature-800 transition-colors underline"
-                    >
-                        Esqueci minha senha
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setIsResendEmail(true);
-                            setPassword('');
-                            setPasswordError('');
-                        }}
-                        className="text-sm text-gray-600 hover:text-gray-800 transition-colors underline"
-                    >
-                        Reenviar email de confirmação
-                    </button>
-                </div>
-            )}
-            
-            {!isForgotPassword && (
-            <button
-                type="button"
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  setEmail('');
-                  setPassword('');
-                  setEmailError('');
-                  setPasswordError('');
-                }}
-                className="text-sm text-nature-600 font-bold hover:text-nature-800 transition-colors block w-full"
-            >
-              {isLogin ? 'Criar uma nova conta' : 'Já tenho uma conta'}
-            </button>
-            )}
-
-            {isForgotPassword && (
               <button
                 type="button"
                 onClick={() => {
@@ -567,12 +229,227 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   setResetSuccess(false);
                   setEmailError('');
                 }}
-                className="text-sm text-nature-600 hover:text-nature-800 transition-colors underline"
+                className="w-full text-nature-600 hover:text-nature-700 text-sm font-medium"
               >
-                Voltar ao login
+                {t('back_to_login')}
               </button>
-            )}
-          </div>
+            </form>
+          ) : isResendEmail ? (
+            <form onSubmit={handleResendEmail} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('email')}
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={`w-full pl-12 pr-4 py-3 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white ${
+                      emailError ? 'border-red-500' : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
+                    }`}
+                    placeholder={t('email_placeholder')}
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+                {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
+              </div>
+
+              {resendSuccess && (
+                <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
+                  {t('resend_confirmation_success')}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-nature-600 text-white py-3.5 rounded-2xl font-semibold hover:bg-nature-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? t('sending') : t('resend_email')}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsResendEmail(false);
+                  setResendSuccess(false);
+                  setEmailError('');
+                }}
+                className="w-full text-nature-600 hover:text-nature-700 text-sm font-medium"
+              >
+                {t('back_to_login')}
+              </button>
+            </form>
+          ) : (
+            <>
+              <button
+                onClick={handleGoogleLogin}
+                disabled={isSubmitting}
+                className="w-full bg-white border-2 border-gray-300 text-gray-700 py-3.5 rounded-2xl font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 mb-4"
+              >
+                <Google className="w-5 h-5" />
+                {t('continue_with_google')}
+              </button>
+
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">{t('or')}</span>
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {!isLogin && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('name')}
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className={`w-full pl-12 pr-4 py-3 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white ${
+                          nameError ? 'border-red-500' : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
+                        }`}
+                        placeholder={t('name_placeholder')}
+                        required
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    {nameError && <p className="text-red-500 text-sm mt-1">{nameError}</p>}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('email')}
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className={`w-full pl-12 pr-4 py-3 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white ${
+                        emailError ? 'border-red-500' : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
+                      }`}
+                      placeholder={t('email_placeholder')}
+                      required
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('password')}
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={`w-full pl-12 pr-4 py-3 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white ${
+                        passwordError ? 'border-red-500' : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
+                      }`}
+                      placeholder={t('password_placeholder')}
+                      required
+                      minLength={6}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
+                </div>
+
+                {!isLogin && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('confirm_password')}
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500"
+                        placeholder={t('confirm_password_placeholder')}
+                        required
+                        minLength={6}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {isLogin && (
+                  <div className="flex items-center justify-between text-sm">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsForgotPassword(true);
+                        setEmailError('');
+                      }}
+                      className="text-nature-600 hover:text-nature-700 font-medium"
+                    >
+                      {t('forgot_password')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsResendEmail(true);
+                        setEmailError('');
+                      }}
+                      className="text-nature-600 hover:text-nature-700 font-medium"
+                    >
+                      {t('resend_confirmation')}
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-nature-600 text-white py-3.5 rounded-2xl font-semibold hover:bg-nature-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                      {t('loading')}
+                    </>
+                  ) : (
+                    <>
+                      {isLogin ? t('login') : t('signup')}
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setEmailError('');
+                    setNameError('');
+                    setPasswordError('');
+                  }}
+                  className="text-nature-600 hover:text-nature-700 text-sm font-medium"
+                >
+                  {isLogin ? t('no_account') : t('has_account')}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
