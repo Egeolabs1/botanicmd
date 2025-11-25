@@ -315,8 +315,11 @@ const AuthCallback = () => {
         const code = searchParams.get('code');
         console.log('📋 AuthCallback: Code na URL?', code ? 'Sim' : 'Não', code ? `(${code.substring(0, 20)}...)` : '');
         
+        console.log('🔄 AuthCallback: Iniciando loop de verificação de sessão (8 tentativas)...');
+        
         // Verifica várias vezes rapidamente (o Supabase pode estar processando)
         for (let i = 0; i < 8; i++) {
+          console.log(`🔍 AuthCallback: Iniciando verificação ${i + 1}/8...`);
           try {
             console.log(`🔍 AuthCallback: Verificando sessão (tentativa ${i + 1}/8)...`);
             
