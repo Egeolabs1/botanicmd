@@ -31,6 +31,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
+
+  // Monitora quando o login é bem-sucedido e redireciona quando autenticado
+  React.useEffect(() => {
+    if (loginSuccess && !isLoading && isAuthenticated) {
+      console.log('✅ Login confirmado, redirecionando para /app');
+      setLoginSuccess(false);
+      onClose();
+      window.location.href = '/app';
+    }
+  }, [loginSuccess, isLoading, isAuthenticated, onClose]);
 
   React.useEffect(() => {
     if (isLogin) {
@@ -94,31 +105,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       await login(email.trim(), password.trim(), !isLogin ? name.trim() : undefined);
       
       if (isLogin) {
-        console.log('✅ Login bem-sucedido, aguardando autenticação...');
-        
-        // Aguarda até que o usuário esteja autenticado e o carregamento termine
-        let attempts = 0;
-        const maxAttempts = 20; // 10 segundos máximo (20 * 500ms)
-        
-        while (attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Se não está mais carregando e está autenticado, pode redirecionar
-          if (!isLoading && isAuthenticated) {
-            console.log('✅ Autenticação confirmada, redirecionando...');
-            onClose();
-            window.location.href = '/app';
-            return;
-          }
-          
-          attempts++;
-        }
-        
-        // Se chegou aqui, aguardou mas ainda não autenticou
-        // Redireciona mesmo assim e deixa o AppMain lidar
-        console.log('⏳ Timeout aguardando autenticação, redirecionando mesmo assim...');
-        onClose();
-        window.location.href = '/app';
+        console.log('✅ Login bem-sucedido, marcando para redirecionar quando autenticado...');
+        setLoginSuccess(true);
+        // O useEffect vai lidar com o redirecionamento quando isAuthenticated for true
       }
     } catch (error: any) {
       if (error?.message?.includes('senha') || error?.message?.includes('password')) {
