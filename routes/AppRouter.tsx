@@ -288,14 +288,20 @@ const AuthCallback = () => {
         });
         
         // SEGUNDO: Aguarda um pouco para o Supabase processar o code (Edge precisa de mais tempo)
-        console.log('🔍 AuthCallback: Aguardando 500ms antes de verificar sessão (Edge compatibility)...');
-        await new Promise(resolve => setTimeout(resolve, 500));
+        console.log('🔍 AuthCallback: Aguardando 800ms antes de verificar sessão (Edge compatibility)...');
+        await new Promise(resolve => setTimeout(resolve, 800));
         
         console.log('🔍 AuthCallback: Verificando sessão após delay...');
+        
+        // Verifica se há um código na URL (Supabase PKCE precisa processar isso)
+        const code = searchParams.get('code');
+        console.log('📋 AuthCallback: Code na URL?', code ? 'Sim' : 'Não', code ? `(${code.substring(0, 20)}...)` : '');
         
         // Verifica várias vezes rapidamente (o Supabase pode estar processando)
         for (let i = 0; i < 8; i++) {
           try {
+            console.log(`🔍 AuthCallback: Verificando sessão (tentativa ${i + 1}/8)...`);
+            
             const { data: { session }, error: sessionError } = await supabase.auth.getSession();
             
             if (sessionError) {
@@ -315,7 +321,7 @@ const AuthCallback = () => {
               redirectToApp();
               return;
             } else {
-              console.log(`⏳ AuthCallback: Sessão não encontrada ainda (verificação ${i + 1}/8)...`);
+              console.log(`⏳ AuthCallback: Sessão não encontrada ainda (verificação ${i + 1}/8). Aguardando...`);
             }
           } catch (err) {
             console.error(`❌ AuthCallback: Erro na verificação ${i + 1}:`, err);
@@ -323,6 +329,7 @@ const AuthCallback = () => {
           
           if (i < 7) {
             // Aguarda mais tempo entre verificações no Edge
+            console.log(`⏳ AuthCallback: Aguardando 400ms antes da próxima verificação...`);
             await new Promise(resolve => setTimeout(resolve, 400));
           }
         }
