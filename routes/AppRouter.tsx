@@ -198,18 +198,18 @@ const AuthCallback = () => {
           setStatus('success');
           setMessage('Autenticação bem-sucedida! Redirecionando...');
           
+          // Para Edge: usa window.location.href diretamente (mais confiável que navigate)
+          // Edge pode ter problemas com React Router navigate() após autenticação
+          console.log('🚀 AuthCallback: Redirecionando para', redirectTo);
+          
           // Limpa a URL completamente
           window.history.replaceState(null, '', redirectTo);
           
-          // Redireciona IMEDIATAMENTE usando window.location para garantir
-          navigate(redirectTo, { replace: true });
-          
-          // Força reload se o navigate não funcionar
+          // No Edge, window.location.href é mais confiável que navigate()
+          // Aguarda um pouco para garantir que a sessão foi salva
           setTimeout(() => {
-            if (mounted && window.location.pathname !== redirectTo) {
-              window.location.href = redirectTo;
-            }
-          }, 500);
+            window.location.href = redirectTo;
+          }, 200);
         };
 
         // Verifica se há tokens no hash (OAuth PKCE flow)
