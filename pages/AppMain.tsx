@@ -53,11 +53,22 @@ export const AppMain: React.FC = () => {
 
   // Redirect to landing if not authenticated on mount
   useEffect(() => {
+    // No Edge, isAuthLoading pode ficar true indefinidamente se getSession() travar
+    // Adiciona timeout para forçar verificação
+    const maxLoadTime = setTimeout(() => {
+      if (isAuthLoading) {
+        console.warn('⚠️ AppMain: Auth loading timeout, forçando verificação...');
+        // Força verificação mesmo se ainda estiver carregando
+      }
+    }, 5000); // 5 segundos máximo para carregar auth
+
     // Só redireciona se terminou de carregar E não está autenticado
     if (isAuthLoading) {
-      // Ainda carregando, aguarda
-      return;
+      // Ainda carregando, aguarda (mas não mais que 5 segundos)
+      return () => clearTimeout(maxLoadTime);
     }
+
+    clearTimeout(maxLoadTime);
 
     if (!isAuthenticated && window.location.pathname === '/app') {
       // Aguarda mais tempo para garantir que a sessão foi verificada após login
@@ -68,9 +79,11 @@ export const AppMain: React.FC = () => {
           console.log('Usuário não autenticado após timeout, redirecionando para /');
           navigate('/');
         }
-      }, 2000); // Aumentado de 1s para 2s para dar tempo ao login
+      }, 3000); // Aumentado para 3s para dar mais tempo ao Edge
       return () => clearTimeout(timer);
     }
+
+    return () => clearTimeout(maxLoadTime);
   }, [isAuthenticated, isAuthLoading, navigate]);
 
   useEffect(() => {

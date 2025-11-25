@@ -109,11 +109,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let mounted = true;
 
-    // Função para verificar e recuperar sessão
+    // Função para verificar e recuperar sessão com timeout (Edge pode travar)
     const initializeAuth = async () => {
       try {
-        // Primeiro, verifica se há uma sessão persistida
-        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('🔍 AuthContext: Verificando sessão inicial...');
+        
+        // Função auxiliar para getSession com timeout
+        const getSessionWithTimeout = async (timeoutMs: number = 3000) => {
+          return Promise.race([
+            supabase.auth.getSession(),
+            new Promise<{ data: { session: null }, error: Error }>((_, reject) => 
+              setTimeout(() => reject(new Error('Timeout')), timeoutMs)
+            )
+          ]);
+        };
+        
+        // Primeiro, verifica se há uma sessão persistida com timeout
+        let session = null;
+        let error = null;
+        
+        try {
+          const result = await getSessionWithTimeout(3000);
+          session = result.data?.session || null;
+          error = result.error || null;
+        } catch (timeoutErr: any) {
+          console.warn('⚠️ AuthContext: Timeout ao verificar sessão inicial, usando localStorage como fallback');
+          // Tenta ler do localStorage diretamente como fallback
+          const storedSession = localStorage.getItem('sb-' + import.meta.env.VITE_SUPABASE_URL?.split('//')[1]?.split('.')[0] + '-auth-token');
+          if (!storedSession) {
+            setIsLoading(false);
+            setUser(null);
+            return;
+          }
+          // Continua mesmo sem sessão confirmada - o onAuthStateChange vai cuidar
+          setIsLoading(false);
+          // Não define usuário ainda, aguarda o onAuthStateChange
+          return;
+        }
         
         if (!mounted) return;
 
@@ -125,16 +157,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Se há uma sessão, mapeia o usuário
         if (session?.user) {
+          console.log('✅ AuthContext: Sessão encontrada, mapeando usuário...', session.user.email);
           await mapUser(session.user);
         } else {
           // Não há sessão - usuário não está logado
+          console.log('ℹ️ AuthContext: Nenhuma sessão encontrada');
           setUser(null);
           setIsLoading(false);
         }
       } catch (err) {
-      console.error("Erro de conexão Auth:", err);
+        console.error("Erro de conexão Auth:", err);
         if (mounted) {
-      setIsLoading(false);
+          setIsLoading(false);
         }
       }
     };
@@ -154,15 +188,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           await mapUser(session.user);
         } else {
-          // Se INITIAL_SESSION não tem sessão, verifica se há sessão persistida
-          // e só então marca como não autenticado
-          const { data: { session: persistedSession } } = await supabase.auth.getSession();
-          if (persistedSession?.user) {
-            await mapUser(persistedSession.user);
-          } else {
-            setUser(null);
-            setIsLoading(false);
-          }
+          // Se INITIAL_SESSION não tem sessão, usa a sessão passada ou marca como não autenticado
+          // Não tenta getSession() novamente para evitar travar no Edge
+          console.log('ℹ️ AuthContext: INITIAL_SESSION sem sessão, marcando como não autenticado');
+          setUser(null);
+          setIsLoading(false);
         }
         return;
       }
