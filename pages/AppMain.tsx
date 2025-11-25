@@ -52,30 +52,19 @@ export const AppMain: React.FC = () => {
   const [loadingTipIndex, setLoadingTipIndex] = useState(0);
 
   useEffect(() => {
-    // Aguarda até 3 segundos para o auth carregar
-    const maxWaitTime = setTimeout(() => {
-      // Se após 3 segundos ainda estiver carregando, assume que está OK e deixa carregar
-      // (pode ser que o getSession esteja travando no Edge, mas a sessão existe)
+    // Não redireciona durante o carregamento inicial
+    if (isAuthLoading) return;
+
+    // Aguarda 3 segundos após carregar para dar tempo do auth atualizar
+    // (especialmente após login recente)
+    const timer = setTimeout(() => {
+      if (!isAuthenticated && window.location.pathname === '/app') {
+        console.log('Usuário não autenticado após timeout, redirecionando para /');
+        navigate('/');
+      }
     }, 3000);
 
-    if (!isAuthLoading) {
-      clearTimeout(maxWaitTime);
-      
-      if (!isAuthenticated && window.location.pathname === '/app') {
-        // Aguarda mais 1 segundo antes de redirecionar (dá tempo após login)
-        const timer = setTimeout(() => {
-          if (!isAuthenticated) {
-            navigate('/');
-          }
-        }, 1000);
-        return () => {
-          clearTimeout(timer);
-          clearTimeout(maxWaitTime);
-        };
-      }
-    }
-
-    return () => clearTimeout(maxWaitTime);
+    return () => clearTimeout(timer);
   }, [isAuthenticated, isAuthLoading, navigate]);
 
   useEffect(() => {
