@@ -280,7 +280,10 @@ const AuthCallback = () => {
         authSubscription = supabase.auth.onAuthStateChange(async (event, session) => {
           console.log('🔔 AuthCallback: Auth state changed:', event, session?.user?.email || 'no user');
           
-          if (!mounted || sessionFound) return;
+          if (!mounted || sessionFound) {
+            console.log('🔔 AuthCallback: Ignorando evento (mounted:', mounted, 'sessionFound:', sessionFound, ')');
+            return;
+          }
 
           if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
             console.log('✅ AuthCallback: Usuário autenticado via onAuthStateChange! Redirecionando...', session.user.email);
@@ -305,15 +308,28 @@ const AuthCallback = () => {
           }
         });
         
+        console.log('👂 AuthCallback: Listener configurado, continuando...');
+        
         // SEGUNDO: Aguarda um pouco para o Supabase processar o code (Edge precisa de mais tempo)
-        console.log('🔍 AuthCallback: Aguardando 800ms antes de verificar sessão (Edge compatibility)...');
-        await new Promise(resolve => setTimeout(resolve, 800));
+        console.log('🔍 AuthCallback: Aguardando 500ms antes de verificar sessão (Edge compatibility)...');
+        
+        try {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          console.log('✅ AuthCallback: Delay concluído, continuando...');
+        } catch (delayError) {
+          console.error('❌ AuthCallback: Erro no delay:', delayError);
+        }
         
         console.log('🔍 AuthCallback: Verificando sessão após delay...');
         
         // Verifica se há um código na URL (Supabase PKCE precisa processar isso)
-        const code = searchParams.get('code');
-        console.log('📋 AuthCallback: Code na URL?', code ? 'Sim' : 'Não', code ? `(${code.substring(0, 20)}...)` : '');
+        let code: string | null = null;
+        try {
+          code = searchParams.get('code');
+          console.log('📋 AuthCallback: Code na URL?', code ? 'Sim' : 'Não', code ? `(${code.substring(0, 20)}...)` : '');
+        } catch (codeError) {
+          console.error('❌ AuthCallback: Erro ao ler code:', codeError);
+        }
         
         console.log('🔄 AuthCallback: Iniciando loop de verificação de sessão (8 tentativas)...');
         
