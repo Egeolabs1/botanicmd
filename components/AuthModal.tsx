@@ -94,7 +94,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       await login(email.trim(), password.trim(), !isLogin ? name.trim() : undefined);
       
       if (isLogin) {
+        // Aguarda um pouco para garantir que o estado foi atualizado
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         onClose();
+        // Força reload completo para garantir que o estado seja recarregado
         window.location.href = '/app';
       }
     } catch (error: any) {

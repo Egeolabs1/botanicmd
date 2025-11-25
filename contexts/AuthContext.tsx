@@ -99,52 +99,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let mounted = true;
 
-    const initializeAuth = async () => {
-      try {
-        // Timeout de 2 segundos para não travar indefinidamente no Edge
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout')), 2000)
-        );
-
-        let session = null;
-        let error = null;
-
-        try {
-          const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
-          session = result?.data?.session || null;
-          error = result?.error || null;
-        } catch (timeoutErr) {
-          // Timeout - assume que não há sessão, mas marca como carregado
-          console.warn('Timeout ao verificar sessão inicial');
-          setUser(null);
-          setIsLoading(false);
-          return;
-        }
-        
-        if (!mounted) return;
-
-        if (error) {
-          console.error("Erro ao recuperar sessão:", error);
-          setIsLoading(false);
-          return;
-        }
-
-        if (session?.user) {
-          await mapUser(session.user);
-        } else {
-          setUser(null);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error("Erro de conexão Auth:", err);
-        if (mounted) {
-          setIsLoading(false);
-        }
+    // No Edge, getSession() trava - então não chamamos no initialize
+    // O onAuthStateChange vai cuidar de tudo automaticamente
+    // Apenas marca como não carregando após um pequeno delay para dar tempo do onAuthStateChange disparar
+    setIsLoading(true);
+    
+    // Aguarda um pouco para o onAuthStateChange processar a sessão existente
+    setTimeout(() => {
+      if (mounted && !user) {
+        // Se após 500ms não tem usuário, assume que não está logado
+        setIsLoading(false);
       }
-    };
-
-    initializeAuth();
+    }, 500);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
