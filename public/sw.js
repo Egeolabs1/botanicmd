@@ -1,9 +1,8 @@
-// Service Worker - v2.4
-// Corrige erro de clone() em Response body - clona ANTES de usar
-// Força atualização para resolver cache do navegador
+// Service Worker - v3.0
+// Versão limpa sem getSession() que trava no Edge
 
-const CACHE_NAME = 'botanicmd-cache-v2.4';
-const DYNAMIC_CACHE = 'botanicmd-dynamic-v2.4';
+const CACHE_NAME = 'botanicmd-cache-v3.0';
+const DYNAMIC_CACHE = 'botanicmd-dynamic-v3.0';
 
 // Arquivos essenciais para o app shell
 const STATIC_ASSETS = [
