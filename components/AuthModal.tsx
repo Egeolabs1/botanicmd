@@ -144,24 +144,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       await login(email.trim(), password.trim(), !isLogin ? name.trim() : undefined);
       console.log('✅ Login/cadastro concluído com sucesso');
       
-      // Para login: o useEffect (linha 37-45) vai cuidar do redirecionamento quando isAuthenticated for true
-      // Adiciona um pequeno delay para garantir que o estado foi atualizado antes de depender do useEffect
+      // Para login: força o redirecionamento imediatamente
+      // O login() só retorna após sucesso, então podemos redirecionar diretamente
       if (isLogin) {
-        console.log('⏳ Login bem-sucedido, aguardando atualização do estado isAuthenticated...');
-        console.log('✅ O useEffect vai detectar quando isAuthenticated for true e redirecionar automaticamente');
-        // Não precisa fazer nada aqui - o useEffect já cuida do redirecionamento
-        // Mas aguarda um pouco para dar tempo ao estado atualizar
+        console.log('✅ Login bem-sucedido! Redirecionando para /app...');
+        onClose();
+        // Usa window.location para garantir funcionamento no Edge
+        // Pequeno delay para garantir que o modal fechou
         setTimeout(() => {
-          // Se após 500ms o useEffect ainda não redirecionou, força o redirecionamento
-          // Isso pode acontecer no Edge se o estado não atualizar corretamente
-          if (isAuthenticated) {
-            console.log('✅ isAuthenticated confirmado após delay, redirecionando...');
-            onClose();
-            window.location.href = '/app';
-          } else {
-            console.log('ℹ️ isAuthenticated ainda não atualizado, mas o useEffect vai cuidar disso');
-          }
-        }, 500);
+          console.log('🚀 Executando redirecionamento via window.location.href...');
+          window.location.href = '/app';
+        }, 100);
       } else {
         console.log('Cadastro realizado, aguardando confirmação de email');
       }
