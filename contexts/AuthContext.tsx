@@ -101,7 +101,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const initializeAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Timeout de 2 segundos para não travar indefinidamente no Edge
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 2000)
+        );
+
+        let session = null;
+        let error = null;
+
+        try {
+          const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
+          session = result?.data?.session || null;
+          error = result?.error || null;
+        } catch (timeoutErr) {
+          // Timeout - assume que não há sessão, mas marca como carregado
+          console.warn('Timeout ao verificar sessão inicial');
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
         
         if (!mounted) return;
 
