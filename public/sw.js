@@ -1,7 +1,8 @@
-// Service Worker - v2.2
-// Corrige erro de clone() em Response body
+// Service Worker - v2.3
+// Corrige erro de clone() em Response body - clona ANTES de usar
 
-const CACHE_NAME = 'botanicmd-cache-v2.2';
+const CACHE_NAME = 'botanicmd-cache-v2.3';
+const DYNAMIC_CACHE = 'botanicmd-dynamic-v2.3';
 
 // Arquivos essenciais para o app shell
 const STATIC_ASSETS = [
@@ -67,11 +68,16 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          return caches.open(DYNAMIC_CACHE).then((cache) => {
-            // Guarda uma cópia para offline
-            cache.put(event.request.url, response.clone());
-            return response;
-          });
+          // CORRIGIDO: Clona ANTES de tentar cachear
+          if (response && response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+              cache.put(event.request, responseClone).catch(() => {
+                // Ignora erros de cache
+              });
+            });
+          }
+          return response;
         })
         .catch(() => {
           // Se falhar (offline), tenta o cache
@@ -85,14 +91,43 @@ self.addEventListener('fetch', (event) => {
   // Retorna o cache rápido, mas atualiza em background
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
-        caches.open(DYNAMIC_CACHE).then((cache) => {
-          cache.put(event.request, networkResponse.clone());
-        });
-        return networkResponse;
-      });
+      // Se tiver cache, retorna e atualiza em background
+      if (cachedResponse) {
+        // Atualiza em background sem bloquear
+        fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const responseClone = networkResponse.clone();
+              caches.open(DYNAMIC_CACHE).then((cache) => {
+                cache.put(event.request, responseClone).catch(() => {
+                  // Ignora erros de cache
+                });
+              });
+            }
+          })
+          .catch(() => {
+            // Ignora erros de rede no background
+          });
+        
+        return cachedResponse;
+      }
       
-      return cachedResponse || fetchPromise;
+      // Se não tiver cache, busca da rede
+      return fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+              cache.put(event.request, responseClone).catch(() => {
+                // Ignora erros de cache
+              });
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return new Response('Offline', { status: 503 });
+        });
     })
   );
 });
