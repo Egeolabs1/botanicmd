@@ -167,21 +167,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <Leaf className="w-16 h-16 mx-auto text-nature-600 mb-4" />
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
               {isForgotPassword
-                ? t('forgot_password')
+                ? 'Recuperar Senha'
                 : isResendEmail
-                ? t('resend_confirmation')
+                ? 'Reenviar Confirmação'
                 : isLogin
-                ? t('welcome_back')
-                : t('create_account')}
+                ? 'Bem-vindo de volta!'
+                : 'Criar Conta'}
             </h2>
             <p className="text-gray-600">
               {isForgotPassword
-                ? t('forgot_password_description')
+                ? 'Digite seu email para receber o link de recuperação'
                 : isResendEmail
-                ? t('resend_confirmation_description')
+                ? 'Digite seu email para reenviar o email de confirmação'
                 : isLogin
-                ? t('login_description')
-                : t('signup_description')}
+                ? 'Entre com sua conta para continuar'
+                : 'Crie sua conta para começar'}
             </p>
           </div>
 
@@ -189,7 +189,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('email')}
+                  Email
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -200,7 +200,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     className={`w-full pl-12 pr-4 py-3 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white ${
                       emailError ? 'border-red-500' : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
                     }`}
-                    placeholder={t('email_placeholder')}
+                    placeholder="seu@email.com"
                     required
                     disabled={isSubmitting}
                   />
@@ -210,7 +210,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
               {resetSuccess && (
                 <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
-                  {t('reset_password_success')}
+                  Email de recuperação enviado! Verifique sua caixa de entrada.
                 </div>
               )}
 
@@ -219,7 +219,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 disabled={isSubmitting}
                 className="w-full bg-nature-600 text-white py-3.5 rounded-2xl font-semibold hover:bg-nature-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? t('sending') : t('send_reset_link')}
+                {isSubmitting ? 'Enviando...' : 'Enviar Link de Recuperação'}
               </button>
 
               <button
@@ -231,14 +231,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 }}
                 className="w-full text-nature-600 hover:text-nature-700 text-sm font-medium"
               >
-                {t('back_to_login')}
+                Voltar ao Login
               </button>
             </form>
           ) : isResendEmail ? (
             <form onSubmit={handleResendEmail} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('email')}
+                  Email
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -249,7 +249,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     className={`w-full pl-12 pr-4 py-3 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white ${
                       emailError ? 'border-red-500' : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
                     }`}
-                    placeholder={t('email_placeholder')}
+                    placeholder="seu@email.com"
                     required
                     disabled={isSubmitting}
                   />
@@ -259,7 +259,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
               {resendSuccess && (
                 <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
-                  {t('resend_confirmation_success')}
+                  Email de confirmação reenviado! Verifique sua caixa de entrada.
                 </div>
               )}
 
@@ -268,7 +268,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 disabled={isSubmitting}
                 className="w-full bg-nature-600 text-white py-3.5 rounded-2xl font-semibold hover:bg-nature-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? t('sending') : t('resend_email')}
+                {isSubmitting ? 'Enviando...' : 'Reenviar Email'}
               </button>
 
               <button
@@ -280,7 +280,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 }}
                 className="w-full text-nature-600 hover:text-nature-700 text-sm font-medium"
               >
-                {t('back_to_login')}
+                Voltar ao Login
               </button>
             </form>
           ) : (
@@ -299,7 +299,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   <div className="w-full border-t border-gray-300"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">{t('or')}</span>
+                  <span className="px-2 bg-white text-gray-500">{t('or_divider')}</span>
                 </div>
               </div>
 
@@ -307,7 +307,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 {!isLogin && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('name')}
+                      Nome
                     </label>
                     <div className="relative">
                       <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -318,7 +318,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                         className={`w-full pl-12 pr-4 py-3 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white ${
                           nameError ? 'border-red-500' : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
                         }`}
-                        placeholder={t('name_placeholder')}
+                        placeholder="Seu nome"
                         required
                         disabled={isSubmitting}
                       />
@@ -329,7 +329,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('email')}
+                    Email
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -340,7 +340,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                       className={`w-full pl-12 pr-4 py-3 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white ${
                         emailError ? 'border-red-500' : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
                       }`}
-                      placeholder={t('email_placeholder')}
+                      placeholder="seu@email.com"
                       required
                       disabled={isSubmitting}
                     />
@@ -350,7 +350,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('password')}
+                    Senha
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -361,7 +361,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                       className={`w-full pl-12 pr-4 py-3 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white ${
                         passwordError ? 'border-red-500' : 'border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500'
                       }`}
-                      placeholder={t('password_placeholder')}
+                      placeholder="Mínimo 6 caracteres"
                       required
                       minLength={6}
                       disabled={isSubmitting}
@@ -373,7 +373,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 {!isLogin && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('confirm_password')}
+                      Confirmar Senha
                     </label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -382,7 +382,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         className="w-full pl-12 pr-4 py-3 rounded-2xl border outline-none transition-all bg-gray-50 focus:bg-white border-gray-200 focus:ring-4 focus:ring-nature-100 focus:border-nature-500"
-                        placeholder={t('confirm_password_placeholder')}
+                        placeholder="Digite a senha novamente"
                         required
                         minLength={6}
                         disabled={isSubmitting}
@@ -401,7 +401,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                       }}
                       className="text-nature-600 hover:text-nature-700 font-medium"
                     >
-                      {t('forgot_password')}
+                      Esqueci minha senha
                     </button>
                     <button
                       type="button"
@@ -411,7 +411,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                       }}
                       className="text-nature-600 hover:text-nature-700 font-medium"
                     >
-                      {t('resend_confirmation')}
+                      Reenviar confirmação
                     </button>
                   </div>
                 )}
@@ -424,11 +424,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   {isSubmitting ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-                      {t('loading')}
+                      Carregando...
                     </>
                   ) : (
                     <>
-                      {isLogin ? t('login') : t('signup')}
+                      {isLogin ? 'Entrar' : 'Criar Conta'}
                       <ArrowRight className="w-5 h-5" />
                     </>
                   )}
@@ -445,7 +445,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   }}
                   className="text-nature-600 hover:text-nature-700 text-sm font-medium"
                 >
-                  {isLogin ? t('no_account') : t('has_account')}
+                  {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Entre'}
                 </button>
               </div>
             </>
