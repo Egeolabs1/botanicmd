@@ -321,15 +321,7 @@ const AuthCallback = () => {
         }
         
         console.log('🔍 AuthCallback: Verificando sessão após delay...');
-        
-        // Verifica se há um código na URL (Supabase PKCE precisa processar isso)
-        let code: string | null = null;
-        try {
-          code = searchParams.get('code');
-          console.log('📋 AuthCallback: Code na URL?', code ? 'Sim' : 'Não', code ? `(${code.substring(0, 20)}...)` : '');
-        } catch (codeError) {
-          console.error('❌ AuthCallback: Erro ao ler code:', codeError);
-        }
+        console.log('📋 AuthCallback: Code já lido anteriormente:', code ? `Sim (${code.substring(0, 20)}...)` : 'Não');
         
         console.log('🔄 AuthCallback: Iniciando loop de verificação de sessão (8 tentativas)...');
         
