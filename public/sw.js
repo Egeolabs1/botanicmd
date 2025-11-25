@@ -3,6 +3,7 @@
 
 const CACHE_NAME = 'botanicmd-cache-v2.3';
 const DYNAMIC_CACHE = 'botanicmd-dynamic-v2.3';
+const DYNAMIC_CACHE = 'botanicmd-dynamic-v2.3';
 
 // Arquivos essenciais para o app shell
 const STATIC_ASSETS = [
