@@ -254,6 +254,17 @@ const AuthCallback = () => {
           }
         }
 
+        // O Supabase com PKCE precisa trocar o code por tokens
+        // Se houver um code na URL, o Supabase deve processá-lo automaticamente
+        // Mas no Edge, pode precisar de mais tempo
+        
+        const code = searchParams.get('code');
+        console.log('📋 AuthCallback: Code presente na URL?', code ? `Sim (${code.substring(0, 20)}...)` : 'Não');
+        
+        if (code) {
+          console.log('🔄 AuthCallback: Supabase deve processar o code automaticamente via PKCE');
+        }
+        
         // O Supabase com PKCE processa o code automaticamente
         // PRIMEIRO: Configura o listener ANTES de verificar para não perder eventos
         console.log('👂 AuthCallback: Configurando listener PRIMEIRO...');
