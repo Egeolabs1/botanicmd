@@ -287,34 +287,47 @@ const AuthCallback = () => {
           }
         });
         
-        // SEGUNDO: Verifica a sessão IMEDIATAMENTE (pode já existir)
-        console.log('🔍 AuthCallback: Verificando sessão imediatamente...');
+        // SEGUNDO: Aguarda um pouco para o Supabase processar o code (Edge precisa de mais tempo)
+        console.log('🔍 AuthCallback: Aguardando 500ms antes de verificar sessão (Edge compatibility)...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        console.log('🔍 AuthCallback: Verificando sessão após delay...');
         
         // Verifica várias vezes rapidamente (o Supabase pode estar processando)
-        for (let i = 0; i < 5; i++) {
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-          
-          if (session?.user) {
-            console.log(`✅ AuthCallback: Sessão encontrada! (verificação ${i + 1}) Redirecionando...`, session.user.email);
-            sessionFound = true;
+        for (let i = 0; i < 8; i++) {
+          try {
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
             
-            // Limpa listener
-            if (authSubscription?.data?.subscription) {
-              authSubscription.data.subscription.unsubscribe();
-              authSubscription = null;
+            if (sessionError) {
+              console.warn(`⚠️ AuthCallback: Erro ao verificar sessão (verificação ${i + 1}):`, sessionError);
             }
             
-            redirectToApp();
-            return;
+            if (session?.user) {
+              console.log(`✅ AuthCallback: Sessão encontrada! (verificação ${i + 1}) Redirecionando...`, session.user.email);
+              sessionFound = true;
+              
+              // Limpa listener
+              if (authSubscription?.data?.subscription) {
+                authSubscription.data.subscription.unsubscribe();
+                authSubscription = null;
+              }
+              
+              redirectToApp();
+              return;
+            } else {
+              console.log(`⏳ AuthCallback: Sessão não encontrada ainda (verificação ${i + 1}/8)...`);
+            }
+          } catch (err) {
+            console.error(`❌ AuthCallback: Erro na verificação ${i + 1}:`, err);
           }
           
-          if (i < 4) {
-            // Aguarda um pouco antes de verificar novamente
-            await new Promise(resolve => setTimeout(resolve, 200));
+          if (i < 7) {
+            // Aguarda mais tempo entre verificações no Edge
+            await new Promise(resolve => setTimeout(resolve, 400));
           }
         }
         
-        console.log('⏳ AuthCallback: Sessão não encontrada nas verificações iniciais, aguardando...');
+        console.log('⏳ AuthCallback: Sessão não encontrada nas verificações iniciais, iniciando polling...');
         
         // TERCEIRO: Se ainda não encontrou, aguarda polling ou timeout
         console.log('⏳ AuthCallback: Aguardando sessão ser criada...');
