@@ -37,7 +37,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   React.useEffect(() => {
     if (isAuthenticated && isOpen) {
       onClose();
-      navigate('/app');
+      // Usa window.location para garantir funcionamento no Edge
+      // O React Router navigate pode ter problemas no Edge em alguns casos
+      setTimeout(() => {
+        window.location.href = '/app';
+      }, 100);
     }
   }, [isAuthenticated, isOpen, navigate, onClose]);
 

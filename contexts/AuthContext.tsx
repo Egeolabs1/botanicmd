@@ -239,13 +239,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Login bem-sucedido:', loginData.user.email);
         mapUser(loginData.user);
         
-        // Aguarda um pouco para garantir que a sessão foi salva
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Aguarda mais tempo para garantir que a sessão foi salva (especialmente no Edge)
+        await new Promise(resolve => setTimeout(resolve, 300));
         
-        // Verifica se a sessão foi salva corretamente
+        // Força uma verificação adicional da sessão para garantir que está salva
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           console.log('✅ Sessão confirmada após login');
+          // Garante que o usuário está mapeado novamente (para Edge)
+          if (session.user) {
+            mapUser(session.user);
+          }
         }
         
         return;
