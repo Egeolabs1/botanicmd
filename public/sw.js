@@ -1,9 +1,9 @@
-// Service Worker - v2.3
+// Service Worker - v2.4
 // Corrige erro de clone() em Response body - clona ANTES de usar
+// Força atualização para resolver cache do navegador
 
-const CACHE_NAME = 'botanicmd-cache-v2.3';
-const DYNAMIC_CACHE = 'botanicmd-dynamic-v2.3';
-const DYNAMIC_CACHE = 'botanicmd-dynamic-v2.3';
+const CACHE_NAME = 'botanicmd-cache-v2.4';
+const DYNAMIC_CACHE = 'botanicmd-dynamic-v2.4';
 
 // Arquivos essenciais para o app shell
 const STATIC_ASSETS = [
