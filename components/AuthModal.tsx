@@ -144,52 +144,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       await login(email.trim(), password.trim(), !isLogin ? name.trim() : undefined);
       console.log('✅ Login/cadastro concluído com sucesso');
       
-      // Para login: aguarda um pouco para o estado isAuthenticated ser atualizado
+      // Para login: o useEffect (linha 37-45) vai cuidar do redirecionamento quando isAuthenticated for true
+      // Adiciona um pequeno delay para garantir que o estado foi atualizado antes de depender do useEffect
       if (isLogin) {
-        console.log('⏳ Aguardando estado isAuthenticated ser atualizado...');
-        
-        // Limpa qualquer interval anterior
-        if (authCheckIntervalRef.current) {
-          clearInterval(authCheckIntervalRef.current);
-          authCheckIntervalRef.current = null;
-        }
-        
-        // Aguarda até que isAuthenticated seja true (máximo 3 segundos)
-        let attempts = 0;
-        const maxAttempts = 30; // 30 tentativas = 3 segundos
-        
-        authCheckIntervalRef.current = setInterval(() => {
-          attempts++;
-          console.log(`🔍 Verificando isAuthenticated (tentativa ${attempts}/${maxAttempts})...`, isAuthenticated);
-          
-          // Verifica o estado atual (pode ter mudado desde o início)
-          // Nota: isAuthenticated é capturado no closure, então pode não estar atualizado
-          // Vamos verificar a sessão diretamente também
-          
+        console.log('⏳ Login bem-sucedido, aguardando atualização do estado isAuthenticated...');
+        console.log('✅ O useEffect vai detectar quando isAuthenticated for true e redirecionar automaticamente');
+        // Não precisa fazer nada aqui - o useEffect já cuida do redirecionamento
+        // Mas aguarda um pouco para dar tempo ao estado atualizar
+        setTimeout(() => {
+          // Se após 500ms o useEffect ainda não redirecionou, força o redirecionamento
+          // Isso pode acontecer no Edge se o estado não atualizar corretamente
           if (isAuthenticated) {
-            console.log('✅ isAuthenticated confirmado! Fechando modal e redirecionando...');
-            if (authCheckIntervalRef.current) {
-              clearInterval(authCheckIntervalRef.current);
-              authCheckIntervalRef.current = null;
-            }
+            console.log('✅ isAuthenticated confirmado após delay, redirecionando...');
             onClose();
-            // Usa window.location para garantir funcionamento no Edge
-            setTimeout(() => {
-              window.location.href = '/app';
-            }, 100);
-          } else if (attempts >= maxAttempts) {
-            console.warn('⚠️ Timeout aguardando isAuthenticated. Redirecionando mesmo assim...');
-            if (authCheckIntervalRef.current) {
-              clearInterval(authCheckIntervalRef.current);
-              authCheckIntervalRef.current = null;
-            }
-            onClose();
-            // Tenta redirecionar mesmo sem confirmar isAuthenticated
-            setTimeout(() => {
-              window.location.href = '/app';
-            }, 100);
+            window.location.href = '/app';
+          } else {
+            console.log('ℹ️ isAuthenticated ainda não atualizado, mas o useEffect vai cuidar disso');
           }
-        }, 100);
+        }, 500);
       } else {
         console.log('Cadastro realizado, aguardando confirmação de email');
       }
