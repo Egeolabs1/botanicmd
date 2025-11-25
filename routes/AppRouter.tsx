@@ -161,6 +161,13 @@ const AuthCallback = () => {
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const searchParams = new URLSearchParams(window.location.search);
         
+        console.log('📋 AuthCallback: Parâmetros da URL:', {
+          hash: window.location.hash.substring(0, 100),
+          search: window.location.search,
+          code: searchParams.get('code'),
+          redirect: searchParams.get('redirect')
+        });
+        
         // Verifica se há erros na URL
         const error = hashParams.get('error') || searchParams.get('error');
         const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
