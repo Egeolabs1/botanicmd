@@ -234,22 +234,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Se login funcionou, retorna sucesso
       if (loginData.user && !loginError) {
-        // O mapUser será chamado automaticamente via onAuthStateChange
-        // Mas vamos garantir que a sessão seja mapeada imediatamente
         console.log('Login bem-sucedido:', loginData.user.email);
+        
+        // Mapeia o usuário imediatamente
         mapUser(loginData.user);
         
         // Aguarda mais tempo para garantir que a sessão foi salva (especialmente no Edge)
+        // Edge pode ter delay na persistência do localStorage
         await new Promise(resolve => setTimeout(resolve, 300));
         
         // Força uma verificação adicional da sessão para garantir que está salva
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          console.log('✅ Sessão confirmada após login');
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.warn('⚠️ Erro ao verificar sessão após login:', sessionError);
+        }
+        
+        if (session?.user) {
+          console.log('✅ Sessão confirmada após login:', session.user.email);
           // Garante que o usuário está mapeado novamente (para Edge)
-          if (session.user) {
-            mapUser(session.user);
+          // Edge pode precisar de múltiplas chamadas para atualizar o estado corretamente
+          mapUser(session.user);
+          
+          // Força uma atualização do estado local para Edge
+          // Edge pode não disparar o onAuthStateChange imediatamente
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Verifica novamente para garantir que o estado foi atualizado
+          const { data: { session: finalSession } } = await supabase.auth.getSession();
+          if (finalSession?.user && finalSession.user.id !== user?.id) {
+            console.log('🔄 Re-mapeando usuário para garantir atualização no Edge');
+            mapUser(finalSession.user);
           }
+        } else {
+          console.warn('⚠️ Sessão não encontrada após login, mas loginData.user existe');
         }
         
         return;
