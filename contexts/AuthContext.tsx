@@ -98,6 +98,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     let mounted = true;
+    let timeoutId: NodeJS.Timeout | null = null;
+    let sessionDetected = false;
 
     // PRIMEIRO: Configura o listener ANTES de tudo
     // No Edge, getSession() trava - então confiamos 100% no onAuthStateChange
@@ -105,6 +107,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!mounted) return;
 
       console.log('Auth state changed:', event, session?.user?.email || 'no user');
+
+      // Se detectou uma sessão, marca e limpa o timeout
+      if (session?.user && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+        sessionDetected = true;
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+      }
 
       if (event === 'INITIAL_SESSION') {
         if (session?.user) {
@@ -124,24 +135,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    // SEGUNDO: Timeout de segurança - se após 3 segundos não houve INITIAL_SESSION, marca como não autenticado
-    const timeoutId = setTimeout(() => {
-      if (mounted) {
-        // Verifica o estado atual usando uma função de callback
-        setIsLoading((currentLoading) => {
-          if (currentLoading) {
-            console.log('Timeout: nenhuma sessão detectada após 3s, marcando como não autenticado');
-            setUser(null);
-            return false;
-          }
-          return currentLoading;
-        });
+    // SEGUNDO: Timeout de segurança - se após 5 segundos não houve sessão, marca como não autenticado
+    timeoutId = setTimeout(() => {
+      if (mounted && !sessionDetected) {
+        console.log('Timeout: nenhuma sessão detectada após 5s, marcando como não autenticado');
+        setUser(null);
+        setIsLoading(false);
       }
-    }, 3000);
+      timeoutId = null;
+    }, 5000);
 
     return () => {
       mounted = false;
-      clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       subscription.unsubscribe();
     };
   }, []);
