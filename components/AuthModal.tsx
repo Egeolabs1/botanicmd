@@ -291,7 +291,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 className="w-full bg-white border-2 border-gray-300 text-gray-700 py-3.5 rounded-2xl font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 mb-4"
               >
                 <Google className="w-5 h-5" />
-                {t('continue_with_google')}
+                {t('continue_google')}
               </button>
 
               <div className="relative my-6">
