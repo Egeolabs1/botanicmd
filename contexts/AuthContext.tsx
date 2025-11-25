@@ -99,21 +99,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let mounted = true;
 
-    // No Edge, getSession() trava - então não chamamos no initialize
-    // O onAuthStateChange vai cuidar de tudo automaticamente
-    // Apenas marca como não carregando após um pequeno delay para dar tempo do onAuthStateChange disparar
-    setIsLoading(true);
-    
-    // Aguarda um pouco para o onAuthStateChange processar a sessão existente
-    setTimeout(() => {
-      if (mounted && !user) {
-        // Se após 500ms não tem usuário, assume que não está logado
-        setIsLoading(false);
-      }
-    }, 500);
-
+    // PRIMEIRO: Configura o listener ANTES de tudo
+    // No Edge, getSession() trava - então confiamos 100% no onAuthStateChange
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+
+      console.log('Auth state changed:', event, session?.user?.email || 'no user');
 
       if (event === 'INITIAL_SESSION') {
         if (session?.user) {
@@ -133,8 +124,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
+    // SEGUNDO: Timeout de segurança - se após 2 segundos não houve INITIAL_SESSION, marca como não autenticado
+    const timeoutId = setTimeout(() => {
+      if (mounted && isLoading) {
+        console.log('Timeout: nenhuma sessão detectada, marcando como não autenticado');
+        setUser(null);
+        setIsLoading(false);
+      }
+    }, 2000);
+
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
