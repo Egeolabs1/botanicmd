@@ -127,13 +127,41 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       console.log('Chamando função login...');
       // Passa a senha e o nome (apenas no cadastro)
       await login(email.trim(), password.trim(), !isLogin ? name.trim() : undefined);
-      console.log('Login/cadastro concluído com sucesso');
+      console.log('✅ Login/cadastro concluído com sucesso');
       
-      // Para login: o useEffect vai cuidar do redirecionamento quando isAuthenticated for true
-      // Não navegamos manualmente aqui para evitar race conditions
+      // Para login: aguarda um pouco para o estado isAuthenticated ser atualizado
       if (isLogin) {
-        console.log('Login bem-sucedido, aguardando estado isAuthenticated ser atualizado...');
-        // O useEffect na linha 37-42 vai detectar quando isAuthenticated for true e redirecionar
+        console.log('⏳ Aguardando estado isAuthenticated ser atualizado...');
+        
+        // Aguarda até que isAuthenticated seja true (máximo 3 segundos)
+        let attempts = 0;
+        const maxAttempts = 30; // 30 tentativas = 3 segundos
+        
+        const checkAuthInterval = setInterval(() => {
+          attempts++;
+          console.log(`🔍 Verificando isAuthenticated (tentativa ${attempts}/${maxAttempts})...`, isAuthenticated);
+          
+          if (isAuthenticated) {
+            console.log('✅ isAuthenticated confirmado! Fechando modal e redirecionando...');
+            clearInterval(checkAuthInterval);
+            onClose();
+            // Usa window.location para garantir funcionamento no Edge
+            setTimeout(() => {
+              window.location.href = '/app';
+            }, 100);
+          } else if (attempts >= maxAttempts) {
+            console.warn('⚠️ Timeout aguardando isAuthenticated. Redirecionando mesmo assim...');
+            clearInterval(checkAuthInterval);
+            onClose();
+            // Tenta redirecionar mesmo sem confirmar isAuthenticated
+            setTimeout(() => {
+              window.location.href = '/app';
+            }, 100);
+          }
+        }, 100);
+        
+        // Limpa o interval se o componente desmontar
+        return () => clearInterval(checkAuthInterval);
       } else {
         console.log('Cadastro realizado, aguardando confirmação de email');
       }

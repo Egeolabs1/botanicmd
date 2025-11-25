@@ -234,16 +234,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Se login funcionou, retorna sucesso
       if (loginData.user && !loginError) {
-        console.log('Login bem-sucedido:', loginData.user.email);
+        console.log('✅ Login bem-sucedido:', loginData.user.email);
         
         // Mapeia o usuário imediatamente
-        mapUser(loginData.user);
+        console.log('📋 Mapeando usuário...');
+        await mapUser(loginData.user);
+        console.log('✅ Usuário mapeado');
         
         // Aguarda mais tempo para garantir que a sessão foi salva (especialmente no Edge)
         // Edge pode ter delay na persistência do localStorage
+        console.log('⏳ Aguardando persistência da sessão (300ms)...');
         await new Promise(resolve => setTimeout(resolve, 300));
         
         // Força uma verificação adicional da sessão para garantir que está salva
+        console.log('🔍 Verificando sessão persistida...');
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) {
           console.warn('⚠️ Erro ao verificar sessão após login:', sessionError);
@@ -253,22 +257,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('✅ Sessão confirmada após login:', session.user.email);
           // Garante que o usuário está mapeado novamente (para Edge)
           // Edge pode precisar de múltiplas chamadas para atualizar o estado corretamente
-          mapUser(session.user);
-          
-          // Força uma atualização do estado local para Edge
-          // Edge pode não disparar o onAuthStateChange imediatamente
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          // Verifica novamente para garantir que o estado foi atualizado
-          const { data: { session: finalSession } } = await supabase.auth.getSession();
-          if (finalSession?.user && finalSession.user.id !== user?.id) {
-            console.log('🔄 Re-mapeando usuário para garantir atualização no Edge');
-            mapUser(finalSession.user);
-          }
+          await mapUser(session.user);
+          console.log('✅ Usuário re-mapeado com sessão confirmada');
         } else {
           console.warn('⚠️ Sessão não encontrada após login, mas loginData.user existe');
+          // Mesmo sem sessão na verificação, o mapUser já foi chamado com loginData.user
+          // O onAuthStateChange vai cuidar do resto
         }
         
+        console.log('✅ Login completo, retornando...');
         return;
       }
 
