@@ -262,216 +262,104 @@ const AuthCallback = () => {
         }
 
         // O Supabase com PKCE precisa trocar o code por tokens
-        // Se houver um code na URL, o Supabase deve processá-lo automaticamente
-        // Mas no Edge, pode precisar de mais tempo
-        
         const code = searchParams.get('code');
         console.log('📋 AuthCallback: Code presente na URL?', code ? `Sim (${code.substring(0, 20)}...)` : 'Não');
         
-        if (code) {
-          console.log('🔄 AuthCallback: Supabase deve processar o code automaticamente via PKCE');
-        }
-        
-        // O Supabase com PKCE processa o code automaticamente
-        // PRIMEIRO: Configura o listener ANTES de verificar para não perder eventos
-        console.log('👂 AuthCallback: Configurando listener PRIMEIRO...');
         let sessionFound = false;
+        
+        // PRIMEIRO: Configura o listener ANTES de qualquer coisa
+        console.log('👂 AuthCallback: Configurando listener...');
         
         authSubscription = supabase.auth.onAuthStateChange(async (event, session) => {
           console.log('🔔 AuthCallback: Auth state changed:', event, session?.user?.email || 'no user');
           
-          if (!mounted || sessionFound) {
-            console.log('🔔 AuthCallback: Ignorando evento (mounted:', mounted, 'sessionFound:', sessionFound, ')');
-            return;
-          }
+          if (!mounted || sessionFound) return;
 
           if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
             console.log('✅ AuthCallback: Usuário autenticado via onAuthStateChange! Redirecionando...', session.user.email);
             sessionFound = true;
             
             // Limpa tudo
-            if (checkInterval) {
-              clearInterval(checkInterval);
-              checkInterval = null;
-            }
-            if (timeout) {
-              clearTimeout(timeout);
-              timeout = null;
-            }
-            if (authSubscription?.data?.subscription) {
-              authSubscription.data.subscription.unsubscribe();
-              authSubscription = null;
-            }
+            if (checkInterval) clearInterval(checkInterval);
+            if (timeout) clearTimeout(timeout);
+            if (authSubscription?.data?.subscription) authSubscription.data.subscription.unsubscribe();
             
-            // Redireciona IMEDIATAMENTE
             redirectToApp();
           }
         });
         
-        console.log('👂 AuthCallback: Listener configurado, continuando...');
+        console.log('👂 AuthCallback: Listener configurado');
         
-        // SEGUNDO: Aguarda um pouco para o Supabase processar o code (Edge precisa de mais tempo)
-        console.log('🔍 AuthCallback: Aguardando 500ms antes de verificar sessão (Edge compatibility)...');
-        
-        try {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          console.log('✅ AuthCallback: Delay concluído, continuando...');
-        } catch (delayError) {
-          console.error('❌ AuthCallback: Erro no delay:', delayError);
-        }
-        
-        console.log('🔍 AuthCallback: Verificando sessão após delay...');
-        console.log('📋 AuthCallback: Code já lido anteriormente:', code ? `Sim (${code.substring(0, 20)}...)` : 'Não');
-        
-        console.log('🔄 AuthCallback: Iniciando loop de verificação de sessão (8 tentativas)...');
-        
-        // Função auxiliar para getSession com timeout (Edge pode travar)
-        const getSessionWithTimeout = async (timeoutMs: number = 3000) => {
-          return Promise.race([
-            supabase.auth.getSession(),
-            new Promise<{ data: { session: null }, error: Error }>((_, reject) => 
-              setTimeout(() => reject(new Error('Timeout ao verificar sessão')), timeoutMs)
-            )
-          ]);
-        };
-        
-        // Verifica várias vezes rapidamente (o Supabase pode estar processando)
-        for (let i = 0; i < 8; i++) {
-          console.log(`🔍 AuthCallback: Iniciando verificação ${i + 1}/8...`);
+        // SEGUNDO: Se há um code, tenta trocar manualmente (Edge pode precisar disso)
+        if (code) {
+          console.log('🔄 AuthCallback: Tentando trocar code por sessão manualmente...');
+          
           try {
-            console.log(`🔍 AuthCallback: Verificando sessão (tentativa ${i + 1}/8) com timeout de 3s...`);
+            // Tenta exchangeCodeForSession com timeout
+            const exchangePromise = supabase.auth.exchangeCodeForSession(code);
+            const timeoutPromise = new Promise<never>((_, reject) => 
+              setTimeout(() => reject(new Error('Timeout')), 5000)
+            );
             
-            const { data: { session }, error: sessionError } = await getSessionWithTimeout(3000);
+            const { data, error } = await Promise.race([exchangePromise, timeoutPromise]) as any;
             
-            console.log(`🔍 AuthCallback: getSession retornou (tentativa ${i + 1}):`, { 
-              hasSession: !!session, 
-              hasUser: !!session?.user,
-              error: sessionError 
-            });
-            
-            if (sessionError) {
-              console.warn(`⚠️ AuthCallback: Erro ao verificar sessão (verificação ${i + 1}):`, sessionError);
-            }
-            
-            if (session?.user) {
-              console.log(`✅ AuthCallback: Sessão encontrada! (verificação ${i + 1}) Redirecionando...`, session.user.email);
+            if (error) {
+              console.warn('⚠️ AuthCallback: Erro ao trocar code:', error);
+            } else if (data?.session?.user) {
+              console.log('✅ AuthCallback: Sessão obtida via exchangeCodeForSession!', data.session.user.email);
               sessionFound = true;
               
-              // Limpa listener
-              if (authSubscription?.data?.subscription) {
-                authSubscription.data.subscription.unsubscribe();
-                authSubscription = null;
-              }
+              // Limpa tudo
+              if (checkInterval) clearInterval(checkInterval);
+              if (timeout) clearTimeout(timeout);
+              if (authSubscription?.data?.subscription) authSubscription.data.subscription.unsubscribe();
               
               redirectToApp();
               return;
-            } else {
-              console.log(`⏳ AuthCallback: Sessão não encontrada ainda (verificação ${i + 1}/8). Aguardando...`);
             }
           } catch (err: any) {
-            console.error(`❌ AuthCallback: Erro na verificação ${i + 1}:`, err?.message || err);
-            // Se for timeout, continua tentando
-            if (err?.message?.includes('Timeout')) {
-              console.log(`⏳ AuthCallback: Timeout na verificação ${i + 1}, continuando...`);
-            }
-          }
-          
-          if (i < 7) {
-            // Aguarda mais tempo entre verificações no Edge
-            console.log(`⏳ AuthCallback: Aguardando 400ms antes da próxima verificação...`);
-            await new Promise(resolve => setTimeout(resolve, 400));
+            console.warn('⚠️ AuthCallback: exchangeCodeForSession falhou/timeout:', err?.message || err);
+            // Continua para o fallback
           }
         }
         
-        console.log('⏳ AuthCallback: Sessão não encontrada nas verificações iniciais, iniciando polling...');
+        // Se chegou aqui, o exchangeCodeForSession não funcionou
+        // Aguarda o onAuthStateChange ou o timeout de segurança
+        console.log('⏳ AuthCallback: Aguardando onAuthStateChange ou timeout de segurança...');
+        setMessage('Processando autenticação... Aguarde.');
         
-        // TERCEIRO: Se ainda não encontrou, aguarda polling ou timeout
-        console.log('⏳ AuthCallback: Aguardando sessão ser criada...');
-        setMessage('Processando autenticação com Google...');
+        // Não faz mais polling com getSession() já que está travando no Edge
+        // Confia no onAuthStateChange e no timeout de segurança
         
-        // Polling para detectar sessão rapidamente
-        let pollAttempts = 0;
-        const maxPollAttempts = 30; // 15 segundos total (500ms * 30)
-        
-        checkInterval = setInterval(async () => {
+        // Timeout de segurança - redireciona após 5 segundos de qualquer forma
+        // No Edge, o onAuthStateChange pode não disparar, então forçamos o redirecionamento
+        timeout = setTimeout(() => {
           if (!mounted || sessionFound) return;
           
-          pollAttempts++;
+          console.warn('⏱️ AuthCallback: Timeout após 5s - forçando redirecionamento para /app...');
           
-          const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-          
-          if (error && pollAttempts % 5 === 0) {
-            console.warn(`⚠️ AuthCallback: Erro no poll (tentativa ${pollAttempts}):`, error);
-          }
-          
-          if (currentSession?.user) {
-            console.log(`✅ AuthCallback: Sessão encontrada no poll! (tentativa ${pollAttempts})`, currentSession.user.email);
-            sessionFound = true;
-            
-            if (checkInterval) {
-              clearInterval(checkInterval);
-              checkInterval = null;
-            }
-            if (timeout) {
-              clearTimeout(timeout);
-              timeout = null;
-            }
-            if (authSubscription?.data?.subscription) {
-              authSubscription.data.subscription.unsubscribe();
-              authSubscription = null;
-            }
-            
-            redirectToApp();
-          } else if (pollAttempts >= maxPollAttempts) {
-            console.warn('⚠️ AuthCallback: Máximo de tentativas atingido, parando poll');
-            if (checkInterval) {
-              clearInterval(checkInterval);
-              checkInterval = null;
-            }
-          }
-        }, 500);
-
-        // Timeout de segurança - redireciona após 10 segundos
-        timeout = setTimeout(() => {
-          if (!mounted) return;
-          
-          console.warn('⏱️ AuthCallback: Timeout após 10s - verificando sessão uma última vez...');
-          
-          if (checkInterval) {
-            clearInterval(checkInterval);
-            checkInterval = null;
-          }
           if (authSubscription?.data?.subscription) {
             authSubscription.data.subscription.unsubscribe();
             authSubscription = null;
           }
           
-          // Verifica uma última vez
-          supabase.auth.getSession().then(({ data: { session }, error }) => {
-            if (!mounted) return;
-            
-            if (session?.user) {
-              console.log('✅ AuthCallback: Sessão encontrada no timeout!', session.user.email);
-              redirectToApp();
-            } else {
-              console.error('❌ AuthCallback: Nenhuma sessão encontrada após timeout', error);
-              
-              // Tenta redirecionar de qualquer forma se há um code (Supabase pode ter processado)
-              const code = searchParams.get('code');
-              if (code) {
-                console.log('🔄 AuthCallback: Code presente, redirecionando para /app...');
-                setStatus('success');
-                setMessage('Redirecionando...');
-                window.history.replaceState(null, '', '/app');
-                navigate('/app', { replace: true });
-              } else {
-                setStatus('error');
-                setMessage('Tempo de autenticação expirado. Tente fazer login novamente.');
-                setTimeout(() => navigate('/'), 3000);
-              }
-            }
-          });
-        }, 10000); // 10 segundos
+          // No Edge, o getSession() trava, então não vamos tentar verificar
+          // O AuthContext vai verificar a sessão quando o /app carregar
+          // Se há um code na URL, provavelmente a autenticação funcionou
+          if (code) {
+            console.log('🔄 AuthCallback: Code estava presente, redirecionando para /app...');
+            setStatus('success');
+            setMessage('Redirecionando...');
+            // Força redirecionamento usando window.location (mais confiável no Edge)
+            window.location.href = '/app';
+          } else {
+            setStatus('error');
+            setMessage('Tempo de autenticação expirado. Tente fazer login novamente.');
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 2000);
+          }
+        }, 5000); // 5 segundos - reduzido para melhor UX
 
       } catch (error: any) {
         console.error('❌ AuthCallback: Erro geral:', error);
