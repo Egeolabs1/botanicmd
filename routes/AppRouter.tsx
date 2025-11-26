@@ -172,23 +172,79 @@ const AuthCallback = () => {
 
         const code = searchParams.get('code');
         if (code) {
+          // Primeiro verifica se já existe uma sessão válida
+          // (Supabase pode ter processado automaticamente via onAuthStateChange)
+          const { data: { session: existingSession } } = await supabase.auth.getSession();
+          
+          if (existingSession) {
+            console.log('✅ Sessão já existe, redirecionando...');
+            setStatus('success');
+            setMessage('Autenticação bem-sucedida!');
+            // Limpa a URL
+            window.history.replaceState(null, '', '/auth/callback');
+            setTimeout(() => {
+              window.location.href = '/app';
+            }, 500);
+            return;
+          }
+
+          // Se não há sessão, tenta trocar o código
           try {
             const { data, error } = await supabase.auth.exchangeCodeForSession(code);
             
             if (error) {
+              // Se o erro é de PKCE (código já usado ou code verifier ausente),
+              // assume que a sessão foi criada pelo onAuthStateChange
+              if (error.message?.includes('code verifier') || 
+                  error.message?.includes('invalid request') ||
+                  error.status === 400) {
+                console.warn('⚠️ Erro de PKCE (código pode ter sido processado). Verificando sessão...');
+                
+                // Aguarda um pouco e verifica se a sessão foi criada pelo listener
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                const { data: { session: retrySession } } = await supabase.auth.getSession();
+                
+                if (retrySession) {
+                  console.log('✅ Sessão encontrada após retry, redirecionando...');
+                  setStatus('success');
+                  setMessage('Autenticação bem-sucedida!');
+                  window.history.replaceState(null, '', '/auth/callback');
+                  setTimeout(() => {
+                    window.location.href = '/app';
+                  }, 500);
+                  return;
+                }
+              }
+              
+              // Para outros erros, propaga
               throw error;
             }
             
             if (data.session) {
               setStatus('success');
               setMessage('Autenticação bem-sucedida!');
+              window.history.replaceState(null, '', '/auth/callback');
               setTimeout(() => {
                 window.location.href = '/app';
               }, 500);
               return;
             }
-          } catch (err) {
-            console.error('Erro ao trocar code:', err);
+          } catch (err: any) {
+            // Log do erro mas não bloqueia o fluxo se já houver sessão
+            console.warn('⚠️ Erro ao trocar code (pode ser normal se já processado):', err?.message || err);
+            
+            // Verifica novamente se há sessão
+            const { data: { session: finalSession } } = await supabase.auth.getSession();
+            if (finalSession) {
+              console.log('✅ Sessão encontrada após erro, redirecionando...');
+              setStatus('success');
+              setMessage('Autenticação bem-sucedida!');
+              window.history.replaceState(null, '', '/auth/callback');
+              setTimeout(() => {
+                window.location.href = '/app';
+              }, 500);
+              return;
+            }
           }
         }
 
