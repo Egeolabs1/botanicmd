@@ -51,19 +51,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let userPlan: PlanType = extraData.plan || 'free';
       if (isSupabaseConfigured) {
         try {
-          const syncPromise = import('../services/subscriptionService').then(m => m.syncUserPlan());
-          const timeoutPromise = new Promise<null>((resolve) => 
-            setTimeout(() => resolve(null), 2000)
+          const syncPromise = import('../services/subscriptionService').then(m => m.syncUserPlan()).catch(err => {
+            // Se houver erro (tabela não existe, RLS bloqueando, etc.), retorna 'free'
+            console.warn('⚠️ Erro ao sincronizar plano (normal se tabela não existe):', err.message || err);
+            return 'free' as PlanType;
+          });
+          const timeoutPromise = new Promise<PlanType>((resolve) => 
+            setTimeout(() => {
+              console.warn('⚠️ Timeout ao sincronizar plano, usando plano do localStorage');
+              resolve('free');
+            }, 2000)
           );
           
           const planFromSubscription = await Promise.race([syncPromise, timeoutPromise]);
-          if (planFromSubscription) {
+          if (planFromSubscription && planFromSubscription !== 'free') {
             userPlan = planFromSubscription;
             extraData.plan = userPlan;
             extraData.maxUsage = userPlan === 'pro' ? -1 : 3;
+            console.log('✅ Plano sincronizado do banco:', userPlan);
           }
-        } catch (error) {
-          console.warn('Erro ao sincronizar plano do banco:', error);
+        } catch (error: any) {
+          console.warn('⚠️ Erro ao sincronizar plano do banco (normal se tabela não existe):', error?.message || error);
+          // Continua com o plano do localStorage
         }
       }
 

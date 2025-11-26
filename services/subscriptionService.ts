@@ -34,22 +34,37 @@ export async function getUserSubscription(): Promise<SubscriptionData | null> {
 
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+    if (!user) {
+      console.warn('⚠️ getUserSubscription: Usuário não autenticado');
+      return null;
+    }
 
+    // Usa .maybeSingle() para evitar erro 406 quando não há registro
+    // .maybeSingle() retorna null se não houver linha, sem gerar erro
     const { data, error } = await supabase
       .from('subscriptions')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-      console.error('Erro ao buscar assinatura:', error);
+    if (error) {
+      // 406 geralmente significa problema de RLS ou tabela não existe
+      if (error.code === 'PGRST301' || error.statusCode === 406) {
+        console.warn('⚠️ Tabela subscriptions pode não existir ou RLS bloqueando acesso. Erro:', error.message);
+        return null;
+      }
+      console.error('❌ Erro ao buscar assinatura:', error);
       return null;
     }
 
     return data || null;
-  } catch (error) {
-    console.error('Erro ao buscar assinatura:', error);
+  } catch (error: any) {
+    // Captura erros de rede ou outros erros não relacionados ao Supabase
+    if (error?.message?.includes('Failed to fetch') || error?.code === 'PGRST301') {
+      console.warn('⚠️ Erro de conexão ou tabela não encontrada. Assinatura não será sincronizada.');
+      return null;
+    }
+    console.error('❌ Erro ao buscar assinatura:', error);
     return null;
   }
 }
