@@ -90,21 +90,31 @@ serve(async (req) => {
 
       // Salvar customer_id no banco (opcional, pode ser feito no webhook também)
       // Nota: O stripe_price_id será atualizado quando o checkout for concluído
-      // Usa INSERT com ON CONFLICT para lidar com user_id duplicado
-      const { error: upsertError } = await supabase
+      // Tenta atualizar primeiro, se não existir, insere novo
+      const { data: existing, error: checkError } = await supabase
         .from("subscriptions")
-        .upsert({
-          user_id: user.id,
-          stripe_customer_id: customer.id,
-          stripe_price_id: priceId, // Campo obrigatório
-          plan_type: planType,
-          currency: currency || "BRL",
-          status: "incomplete",
-        });
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      if (upsertError) {
-        console.error("Erro ao salvar customer no banco:", upsertError);
-        // Tenta fazer insert direto se upsert falhar
+      if (existing) {
+        // Atualiza registro existente
+        const { error: updateError } = await supabase
+          .from("subscriptions")
+          .update({
+            stripe_customer_id: customer.id,
+            stripe_price_id: priceId,
+            plan_type: planType,
+            currency: currency || "BRL",
+            status: "incomplete",
+          })
+          .eq("user_id", user.id);
+        
+        if (updateError) {
+          console.error("Erro ao atualizar customer no banco:", updateError);
+        }
+      } else {
+        // Insere novo registro
         const { error: insertError } = await supabase
           .from("subscriptions")
           .insert({
@@ -116,10 +126,10 @@ serve(async (req) => {
             status: "incomplete",
           });
         
-        if (insertError && !insertError.message.includes("duplicate key")) {
+        if (insertError) {
           console.error("Erro ao inserir customer no banco:", insertError);
+          // Continua mesmo assim - o webhook pode criar/atualizar depois
         }
-        // Continua mesmo assim - o webhook pode criar/atualizar depois
       }
     }
 
