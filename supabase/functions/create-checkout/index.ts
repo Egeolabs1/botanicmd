@@ -67,15 +67,17 @@ serve(async (req) => {
     let stripeCustomerId: string;
 
     // Verificar se o usuário já tem um customer_id no Stripe
-    const { data: existingSubscription } = await supabase
+    const { data: existingSubscription, error: subError } = await supabase
       .from("subscriptions")
       .select("stripe_customer_id")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle(); // Usa maybeSingle() para não falhar se não existir
 
     if (existingSubscription?.stripe_customer_id) {
       stripeCustomerId = existingSubscription.stripe_customer_id;
+      console.log(`Customer existente encontrado: ${stripeCustomerId}`);
     } else {
+      console.log("Criando novo customer no Stripe...");
       // Criar novo cliente no Stripe
       const customer = await stripe.customers.create({
         email: user.email,
@@ -84,17 +86,41 @@ serve(async (req) => {
         },
       });
       stripeCustomerId = customer.id;
+      console.log(`Novo customer criado: ${stripeCustomerId}`);
 
       // Salvar customer_id no banco (opcional, pode ser feito no webhook também)
-      await supabase.from("subscriptions").upsert({
-        user_id: user.id,
-        stripe_customer_id: customer.id,
-        plan_type: planType,
-        currency: currency || "BRL",
-        status: "incomplete",
-      }, {
-        onConflict: "user_id",
-      });
+      // Nota: O stripe_price_id será atualizado quando o checkout for concluído
+      // Usa INSERT com ON CONFLICT para lidar com user_id duplicado
+      const { error: upsertError } = await supabase
+        .from("subscriptions")
+        .upsert({
+          user_id: user.id,
+          stripe_customer_id: customer.id,
+          stripe_price_id: priceId, // Campo obrigatório
+          plan_type: planType,
+          currency: currency || "BRL",
+          status: "incomplete",
+        });
+
+      if (upsertError) {
+        console.error("Erro ao salvar customer no banco:", upsertError);
+        // Tenta fazer insert direto se upsert falhar
+        const { error: insertError } = await supabase
+          .from("subscriptions")
+          .insert({
+            user_id: user.id,
+            stripe_customer_id: customer.id,
+            stripe_price_id: priceId,
+            plan_type: planType,
+            currency: currency || "BRL",
+            status: "incomplete",
+          });
+        
+        if (insertError && !insertError.message.includes("duplicate key")) {
+          console.error("Erro ao inserir customer no banco:", insertError);
+        }
+        // Continua mesmo assim - o webhook pode criar/atualizar depois
+      }
     }
 
     // Criar sessão de checkout
@@ -125,8 +151,19 @@ serve(async (req) => {
     );
   } catch (error: any) {
     console.error("Erro ao criar checkout:", error);
+    console.error("Stack trace:", error.stack);
+    
+    // Retorna mensagem de erro mais detalhada
+    const errorMessage = error.message || "Erro interno do servidor";
+    const errorDetails = process.env.DENO_ENV === "production" 
+      ? errorMessage 
+      : `${errorMessage} (${error.stack || "sem stack trace"})`;
+    
     return new Response(
-      JSON.stringify({ error: error.message || "Erro interno do servidor" }),
+      JSON.stringify({ 
+        error: errorMessage,
+        details: errorDetails 
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
