@@ -227,16 +227,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Supabase não configurado');
     }
 
-    const redirectTo = `${window.location.origin}/auth/callback`;
+    // Garante que sempre usa botanicmd.com, não vercel.app
+    const origin = window.location.hostname === 'botanicmd.com' 
+      ? 'https://botanicmd.com'
+      : window.location.origin;
+    
+    const redirectTo = `${origin}/auth/callback`;
+    
+    console.log('🔐 Iniciando login social:', provider, 'redirectTo:', redirectTo);
     
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: redirectTo
+        redirectTo: redirectTo,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
       }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Erro no login social:', error);
+      throw error;
+    }
   };
 
   const logout = () => {

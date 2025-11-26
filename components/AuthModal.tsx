@@ -297,8 +297,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </form>
           ) : (
             <>
-              {/* Google login temporariamente desabilitado */}
-              {/* <button
+              <button
                 onClick={handleGoogleLogin}
                 disabled={isSubmitting}
                 className="w-full bg-white border-2 border-gray-300 text-gray-700 py-3.5 rounded-2xl font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 mb-4"
@@ -314,7 +313,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 <div className="relative flex justify-center text-sm">
                   <span className="px-2 bg-white text-gray-500">{t('or_divider')}</span>
                 </div>
-              </div> */}
+              </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 {!isLogin && (
