@@ -123,8 +123,14 @@ async function handleCheckoutCompleted(
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     priceId = subscription.items.data[0]?.price.id;
     status = subscription.status;
-    periodStart = new Date(subscription.current_period_start * 1000);
-    periodEnd = new Date(subscription.current_period_end * 1000);
+    
+    // Validar e converter timestamps com segurança
+    if (subscription.current_period_start && typeof subscription.current_period_start === 'number') {
+      periodStart = new Date(subscription.current_period_start * 1000);
+    }
+    if (subscription.current_period_end && typeof subscription.current_period_end === 'number') {
+      periodEnd = new Date(subscription.current_period_end * 1000);
+    }
   } else {
     // É um pagamento único (lifetime)
     const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
