@@ -9,6 +9,7 @@ import { trackingService } from '../services/trackingService';
 
 const AppMain = lazy(() => import('../pages/AppMain').then(module => ({ default: module.AppMain })));
 const BlogPage = lazy(() => import('../components/BlogPage').then(module => ({ default: module.BlogPage })));
+const BlogPostPage = lazy(() => import('../components/BlogPostPage').then(module => ({ default: module.BlogPostPage })));
 const PrivacyPage = lazy(() => import('../pages/PrivacyPage').then(module => ({ default: module.PrivacyPage })));
 const TermsPage = lazy(() => import('../pages/TermsPage').then(module => ({ default: module.TermsPage })));
 
@@ -52,6 +53,19 @@ export const AppRouter = () => {
                 </div>
               }>
                 <BlogPage />
+              </Suspense>
+            } />
+            
+            <Route path="/blog/:slug" element={
+              <Suspense fallback={
+                <div className="min-h-screen flex items-center justify-center bg-nature-50">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-nature-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Carregando post...</p>
+                  </div>
+                </div>
+              }>
+                <BlogPostPage />
               </Suspense>
             } />
             

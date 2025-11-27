@@ -358,7 +358,7 @@ const AppContent = () => {
 
   if (appState === AppState.ADMIN) {
     return (
-      <AdminDashboard onExit={() => setAppState(AppState.LANDING)} />
+      <AdminDashboard onExit={() => setAppState(AppState.IDLE)} />
     );
   }
 

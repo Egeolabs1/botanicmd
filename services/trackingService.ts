@@ -257,7 +257,15 @@ class TrackingService {
     document.querySelectorAll('[data-tracking]').forEach(el => el.remove());
     
     // Clear global tracking objects
-    if ((window as any).gtag) delete (window as any).gtag;
+    // Não tenta deletar gtag pois pode ser não-configurável
+    // Apenas remove a referência se possível
+    try {
+      if ((window as any).gtag && delete (window as any).gtag) {
+        // Deletado com sucesso
+      }
+    } catch (error) {
+      // Ignora erro se não puder deletar (propriedade não-configurável)
+    }
     if ((window as any).dataLayer) delete (window as any).dataLayer;
     if ((window as any).fbq) delete (window as any).fbq;
     if ((window as any).ttq) delete (window as any).ttq;

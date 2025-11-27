@@ -10,7 +10,7 @@ Allow: /app
 Disallow: /admin
 Disallow: /auth/
 
-# Sitemap
+# Sitemap (gerado dinamicamente)
 Sitemap: https://botanicmd.com/sitemap.xml
 
 # Crawl-delay (optional, helps prevent server overload)

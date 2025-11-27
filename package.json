@@ -10,7 +10,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "setup:supabase": "node scripts/setup-supabase.mjs",
-    "verify:supabase": "node scripts/verify-supabase.mjs"
+    "verify:supabase": "node scripts/verify-supabase.mjs",
+    "migrate:blog-slugs": "node scripts/migrate-blog-slugs.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

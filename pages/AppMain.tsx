@@ -505,7 +505,7 @@ export const AppMain: React.FC = () => {
           </div>
         </div>
       }>
-        <AdminDashboard onExit={() => navigate('/')} />
+        <AdminDashboard onExit={() => navigate('/app')} />
       </Suspense>
     );
   }

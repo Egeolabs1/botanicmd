@@ -68,6 +68,7 @@ export interface BlogPost {
   date: string;
   author: string;
   imageUrl: string;
+  slug?: string; // URL amigável para SEO
 }
 
 export interface AdminStats {

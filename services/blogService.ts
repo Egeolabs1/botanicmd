@@ -1,6 +1,7 @@
 
 import { BlogPost } from '../types';
 import { supabase, isSupabaseConfigured } from './supabase';
+import { generateUniqueSlug } from '../utils/slug';
 
 const STORAGE_KEY = 'botanicmd_blog_posts';
 
@@ -306,17 +307,26 @@ class BlogService {
 
   private getLocalPosts(): BlogPost[] {
     const stored = localStorage.getItem(STORAGE_KEY);
+    let posts: BlogPost[];
+    
     if (!stored) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(seedPosts));
-      return seedPosts;
+      posts = seedPosts;
+    } else {
+      try {
+        posts = JSON.parse(stored);
+      } catch (error) {
+        console.error('Erro ao ler posts do localStorage:', error);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(seedPosts));
+        posts = seedPosts;
+      }
     }
-    try {
-      return JSON.parse(stored);
-    } catch (error) {
-      console.error('Erro ao ler posts do localStorage:', error);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(seedPosts));
-      return seedPosts;
-    }
+    
+    // Garante que todos os posts tenham slug
+    return posts.map(post => ({
+      ...post,
+      slug: post.slug || generateUniqueSlug(post.title, post.id)
+    }));
   }
 
   private setLocalPosts(posts: BlogPost[]) {
@@ -361,7 +371,8 @@ class BlogService {
               category: row.category,
               author: row.author,
               date: row.date || new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-              imageUrl: row.image_url || ''
+              imageUrl: row.image_url || '',
+              slug: row.slug || generateUniqueSlug(row.title, row.id)
             }));
           }
         }
@@ -378,7 +389,8 @@ class BlogService {
         category: row.category,
         author: row.author,
         date: row.date || new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        imageUrl: row.image_url || ''
+        imageUrl: row.image_url || '',
+        slug: row.slug || generateUniqueSlug(row.title, row.id)
       }));
 
     } catch (error: any) {
@@ -417,6 +429,9 @@ class BlogService {
 
   private async savePostToSupabase(post: Omit<BlogPost, 'id'> & { id?: number }): Promise<BlogPost> {
     try {
+      // Gera slug se não existir
+      const slug = post.slug || (post.id ? generateUniqueSlug(post.title, post.id) : generateUniqueSlug(post.title, Date.now()));
+      
       const postData = {
         title: post.title,
         excerpt: post.excerpt,
@@ -424,7 +439,8 @@ class BlogService {
         category: post.category,
         author: post.author,
         date: post.date,
-        image_url: post.imageUrl
+        image_url: post.imageUrl,
+        slug: slug
       };
 
       if (post.id) {
@@ -446,7 +462,8 @@ class BlogService {
           category: data.category,
           author: data.author,
           date: data.date || new Date(data.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          imageUrl: data.image_url || ''
+          imageUrl: data.image_url || '',
+          slug: data.slug || generateUniqueSlug(data.title, data.id)
         };
       } else {
         // Create
@@ -466,7 +483,8 @@ class BlogService {
           category: data.category,
           author: data.author,
           date: data.date || new Date(data.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          imageUrl: data.image_url || ''
+          imageUrl: data.image_url || '',
+          slug: data.slug || generateUniqueSlug(data.title, data.id)
         };
       }
     } catch (error: any) {
@@ -519,7 +537,9 @@ class BlogService {
         // Update
         const index = posts.findIndex(p => p.id === post.id);
         if (index !== -1) {
-          newPost = { ...posts[index], ...post } as BlogPost;
+          // Gera slug se não existir
+          const slug = post.slug || generateUniqueSlug(post.title, post.id);
+          newPost = { ...posts[index], ...post, slug } as BlogPost;
           posts[index] = newPost;
         } else {
           throw new Error("Post not found");
@@ -527,7 +547,9 @@ class BlogService {
       } else {
         // Create
         const maxId = posts.reduce((max, p) => Math.max(max, p.id), 0);
-        newPost = { ...post, id: maxId + 1 } as BlogPost;
+        const newId = maxId + 1;
+        const slug = post.slug || generateUniqueSlug(post.title, newId);
+        newPost = { ...post, id: newId, slug } as BlogPost;
         posts.unshift(newPost);
       }
 
