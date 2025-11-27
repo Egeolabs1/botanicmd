@@ -9,6 +9,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string, name?: string) => Promise<void>;
   loginSocial: (provider: 'google') => Promise<void>;
+  sendMagicLink: (email: string) => Promise<void>;
   logout: () => void;
   incrementUsage: () => void;
   upgradeToPro: () => void;
@@ -475,6 +476,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         loginSocial,
+        sendMagicLink,
         logout,
         incrementUsage,
         upgradeToPro,

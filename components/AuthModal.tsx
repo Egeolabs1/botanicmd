@@ -17,10 +17,11 @@ const isValidEmail = (email: string): boolean => {
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { login, loginSocial, resetPassword, resendConfirmationEmail, isAuthenticated, isLoading } = useAuth();
+  const { login, loginSocial, resetPassword, resendConfirmationEmail, sendMagicLink, isAuthenticated, isLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isResendEmail, setIsResendEmail] = useState(false);
+  const [isMagicLink, setIsMagicLink] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -55,6 +56,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       setConfirmPassword('');
       setPasswordError('');
       setResetSuccess(false);
+      setMagicLinkSuccess(false);
     }
   }, [isLogin, isForgotPassword]);
 
@@ -179,7 +181,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <Leaf className="w-16 h-16 mx-auto text-nature-600 mb-4" />
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
               {isForgotPassword
-                ? 'Recuperar Senha'
+                ? isMagicLink
+                  ? 'Login com Link Mágico'
+                  : 'Recuperar Senha'
                 : isResendEmail
                 ? 'Reenviar Confirmação'
                 : isLogin
@@ -188,7 +192,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </h2>
             <p className="text-gray-600">
               {isForgotPassword
-                ? 'Digite seu email para receber o link de recuperação'
+                ? isMagicLink
+                  ? 'Digite seu email para receber um link de login sem senha'
+                  : 'Digite seu email para receber o link de recuperação'
                 : isResendEmail
                 ? 'Digite seu email para reenviar o email de confirmação'
                 : isLogin
