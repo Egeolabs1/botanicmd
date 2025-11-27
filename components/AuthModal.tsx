@@ -32,6 +32,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+  const [magicLinkSuccess, setMagicLinkSuccess] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
 
   // Monitora quando o login é bem-sucedido e redireciona quando autenticado
@@ -164,6 +165,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setEmailError('');
+
+    if (!isValidEmail(email)) {
+      setEmailError('Email inválido');
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      await sendMagicLink(email.trim());
+      setMagicLinkSuccess(true);
+    } catch (error: any) {
+      setEmailError(error.message || 'Erro ao enviar link mágico');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -204,7 +226,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           {isForgotPassword ? (
-            <form onSubmit={handleForgotPassword} className="space-y-4">
+            <form onSubmit={isMagicLink ? handleMagicLink : handleForgotPassword} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email
@@ -232,25 +254,48 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 </div>
               )}
 
+              {magicLinkSuccess && (
+                <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
+                  Link mágico enviado! Verifique sua caixa de entrada e clique no link para fazer login.
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full bg-nature-600 text-white py-3.5 rounded-2xl font-semibold hover:bg-nature-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Enviando...' : 'Enviar Link de Recuperação'}
+                {isSubmitting 
+                  ? 'Enviando...' 
+                  : isMagicLink 
+                    ? 'Enviar Link Mágico' 
+                    : 'Enviar Link de Recuperação'}
               </button>
 
-              <div className="flex items-center justify-center text-sm pt-2">
+              <div className="flex items-center justify-between text-sm pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMagicLink(!isMagicLink);
+                    setResetSuccess(false);
+                    setMagicLinkSuccess(false);
+                    setEmailError('');
+                  }}
+                  className="text-nature-600 hover:text-nature-700 font-medium"
+                >
+                  {isMagicLink ? 'Recuperar senha' : 'Login com link mágico'}
+                </button>
                 <button
                   type="button"
                   onClick={() => {
                     setIsResendEmail(true);
                     setResetSuccess(false);
+                    setMagicLinkSuccess(false);
                     setEmailError('');
                   }}
                   className="text-nature-600 hover:text-nature-700 font-medium"
                 >
-                  Reenviar confirmação de email
+                  Reenviar confirmação
                 </button>
               </div>
 
@@ -258,7 +303,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 type="button"
                 onClick={() => {
                   setIsForgotPassword(false);
+                  setIsMagicLink(false);
                   setResetSuccess(false);
+                  setMagicLinkSuccess(false);
                   setEmailError('');
                 }}
                 className="w-full text-nature-600 hover:text-nature-700 text-sm font-medium"

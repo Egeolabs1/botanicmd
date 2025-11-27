@@ -433,6 +433,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) throw error;
   };
 
+  const sendMagicLink = async (email: string) => {
+    if (!isSupabaseConfigured) {
+      throw new Error('Supabase não configurado');
+    }
+
+    // Garante que sempre usa botanicmd.com, não vercel.app
+    const origin = window.location.hostname === 'botanicmd.com' 
+      ? 'https://botanicmd.com'
+      : window.location.origin;
+    
+    const redirectTo = `${origin}/auth/callback`;
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        emailRedirectTo: redirectTo,
+      }
+    });
+
+    if (error) throw error;
+  };
+
   const refreshUserPlan = async () => {
     if (!user || !isSupabaseConfigured) return;
 
