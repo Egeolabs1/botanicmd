@@ -37,43 +37,91 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('🔄 Mapeando usuário:', sbUser.email);
       
-      const storedData = localStorage.getItem(`botanicmd_data_${sbUser.id}`);
-      let extraData = { plan: 'free' as PlanType, usageCount: 0, maxUsage: 3 };
+      // SEMPRE busca do banco de dados primeiro (fonte da verdade)
+      // localStorage é usado apenas como cache/fallback se o banco falhar
+      let userPlan: PlanType = 'free';
+      let usageCount = 0;
+      let maxUsage = 3;
       
+      // Tenta buscar do localStorage como fallback inicial (para performance)
+      const storedData = localStorage.getItem(`botanicmd_data_${sbUser.id}`);
       if (storedData) {
         try {
-          extraData = JSON.parse(storedData);
+          const cachedData = JSON.parse(storedData);
+          usageCount = cachedData.usageCount || 0;
+          // Não usa plan do cache, sempre busca do banco
         } catch (e) {
-          console.warn('Erro ao parsear dados do usuário:', e);
+          console.warn('Erro ao parsear dados do usuário do cache:', e);
         }
       }
 
-      // Sincronização do plano com timeout para não travar
-      let userPlan: PlanType = extraData.plan || 'free';
+      // SEMPRE busca o plano do banco de dados (fonte da verdade)
       if (isSupabaseConfigured) {
         try {
           const syncPromise = import('../services/subscriptionService').then(m => m.syncUserPlan()).catch(err => {
-            // Se houver erro (tabela não existe, RLS bloqueando, etc.), retorna 'free'
-            console.warn('⚠️ Erro ao sincronizar plano (normal se tabela não existe):', err.message || err);
-            return 'free' as PlanType;
+            console.warn('⚠️ Erro ao sincronizar plano do banco:', err.message || err);
+            return null as PlanType | null;
           });
-          const timeoutPromise = new Promise<PlanType>((resolve) => 
+          
+          // Timeout de 5 segundos para não travar o app
+          const timeoutPromise = new Promise<PlanType | null>((resolve) => 
             setTimeout(() => {
-              console.warn('⚠️ Timeout ao sincronizar plano, usando plano do localStorage');
-              resolve('free');
-            }, 2000)
+              console.warn('⚠️ Timeout ao sincronizar plano do banco');
+              resolve(null);
+            }, 5000)
           );
           
           const planFromSubscription = await Promise.race([syncPromise, timeoutPromise]);
-          if (planFromSubscription && planFromSubscription !== 'free') {
+          
+          if (planFromSubscription !== null) {
+            // Banco retornou um plano válido - usa ele (fonte da verdade)
             userPlan = planFromSubscription;
-            extraData.plan = userPlan;
-            extraData.maxUsage = userPlan === 'pro' ? -1 : 3;
-            console.log('✅ Plano sincronizado do banco:', userPlan);
+            maxUsage = userPlan === 'pro' ? -1 : 3;
+            console.log('✅ Plano sincronizado do banco de dados:', userPlan);
+          } else {
+            // Banco falhou ou timeout - usa localStorage como fallback
+            if (storedData) {
+              try {
+                const cachedData = JSON.parse(storedData);
+                userPlan = cachedData.plan || 'free';
+                maxUsage = userPlan === 'pro' ? -1 : 3;
+                console.warn('⚠️ Usando plano do cache (banco não disponível):', userPlan);
+              } catch (e) {
+                console.warn('⚠️ Erro ao ler cache, usando free como padrão');
+                userPlan = 'free';
+              }
+            } else {
+              // Sem cache e banco falhou - usa free como padrão seguro
+              console.warn('⚠️ Banco não disponível e sem cache, usando free como padrão');
+              userPlan = 'free';
+            }
           }
         } catch (error: any) {
-          console.warn('⚠️ Erro ao sincronizar plano do banco (normal se tabela não existe):', error?.message || error);
-          // Continua com o plano do localStorage
+          console.warn('⚠️ Erro ao sincronizar plano do banco:', error?.message || error);
+          // Fallback para localStorage se disponível
+          if (storedData) {
+            try {
+              const cachedData = JSON.parse(storedData);
+              userPlan = cachedData.plan || 'free';
+              maxUsage = userPlan === 'pro' ? -1 : 3;
+              console.warn('⚠️ Usando plano do cache devido a erro:', userPlan);
+            } catch (e) {
+              userPlan = 'free';
+            }
+          }
+        }
+      } else {
+        // Supabase não configurado - usa localStorage como única fonte
+        if (storedData) {
+          try {
+            const cachedData = JSON.parse(storedData);
+            userPlan = cachedData.plan || 'free';
+            usageCount = cachedData.usageCount || 0;
+            maxUsage = userPlan === 'pro' ? -1 : 3;
+            console.log('ℹ️ Supabase não configurado, usando dados do cache');
+          } catch (e) {
+            userPlan = 'free';
+          }
         }
       }
 
@@ -82,14 +130,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'Jardineiro',
         email: sbUser.email || '',
         plan: userPlan,
-        usageCount: extraData.usageCount || 0,
-        maxUsage: userPlan === 'pro' ? -1 : 3
+        usageCount: usageCount,
+        maxUsage: maxUsage
       };
 
-      console.log('✅ Usuário mapeado, definindo estado:', appUser.email);
+      console.log('✅ Usuário mapeado, definindo estado:', appUser.email, 'Plano:', appUser.plan);
       setUser(appUser);
       setIsLoading(false);
       
+      // Atualiza localStorage com os dados do banco (cache para próxima vez)
       const dataToSave = {
         plan: appUser.plan,
         usageCount: appUser.usageCount,
