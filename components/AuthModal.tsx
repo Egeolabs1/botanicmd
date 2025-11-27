@@ -234,6 +234,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 {isSubmitting ? 'Enviando...' : 'Enviar Link de Recuperação'}
               </button>
 
+              <div className="flex items-center justify-center text-sm pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsResendEmail(true);
+                    setResetSuccess(false);
+                    setEmailError('');
+                  }}
+                  className="text-nature-600 hover:text-nature-700 font-medium"
+                >
+                  Reenviar confirmação de email
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={() => {
@@ -404,7 +418,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 )}
 
                 {isLogin && (
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-end text-sm">
                     <button
                       type="button"
                       onClick={() => {
@@ -414,16 +428,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                       className="text-nature-600 hover:text-nature-700 font-medium"
                     >
                       Esqueci minha senha
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsResendEmail(true);
-                        setEmailError('');
-                      }}
-                      className="text-nature-600 hover:text-nature-700 font-medium"
-                    >
-                      Reenviar confirmação
                     </button>
                   </div>
                 )}
