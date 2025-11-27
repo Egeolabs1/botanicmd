@@ -54,24 +54,12 @@ export const AppMain: React.FC = () => {
   const [loadingTipIndex, setLoadingTipIndex] = useState(0);
 
   useEffect(() => {
-    // Não redireciona durante o carregamento inicial
-    if (isAuthLoading) {
-      console.log('⏳ AppMain: Aguardando autenticação carregar...');
-      return;
+    if (isAuthLoading) return;
+
+    // Redireciona imediatamente se não autenticado (sem timeout desnecessário)
+    if (!isAuthenticated && window.location.pathname === '/app') {
+      navigate('/');
     }
-
-    // Aguarda 5 segundos após carregar para dar tempo do auth atualizar
-    // (especialmente após login recente onde mapUser pode demorar)
-    const timer = setTimeout(() => {
-      if (!isAuthenticated && window.location.pathname === '/app') {
-        console.log('❌ AppMain: Usuário não autenticado após timeout, redirecionando para /');
-        navigate('/');
-      } else if (isAuthenticated) {
-        console.log('✅ AppMain: Usuário autenticado, página deve estar visível');
-      }
-    }, 5000);
-
-    return () => clearTimeout(timer);
   }, [isAuthenticated, isAuthLoading, navigate]);
 
   useEffect(() => {
@@ -429,33 +417,16 @@ export const AppMain: React.FC = () => {
   };
 
   const openPlantDetails = (plant: SavedPlant) => {
-    console.log('🌿 Abrindo detalhes da planta:', plant);
-    console.log('📸 Imagem da planta:', plant.image);
-    
     // Garante que a imagem existe ou usa placeholder
     const imageToShow = plant.image || PLACEHOLDER_PLANT_IMAGE;
     
-    // Scroll para o topo ANTES de mudar o estado (instant para evitar qualquer delay)
+    // Scroll imediato para o topo
     window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
     
+    // Atualiza estado de uma vez
     setPlantData(plant.data);
     setImagePreview(imageToShow);
     setAppState(AppState.SUCCESS);
-    
-    // Garante scroll após renderização (múltiplas tentativas para garantir)
-    setTimeout(() => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    }, 50);
-    
-    setTimeout(() => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    }, 200);
   };
 
   const resetApp = () => {
@@ -501,31 +472,10 @@ export const AppMain: React.FC = () => {
     "Checking botanical database..."
   ];
 
-  // Auto-scroll to top on success
+  // Auto-scroll to top on success (otimizado - apenas uma vez)
   useEffect(() => {
     if (appState === AppState.SUCCESS || appState === AppState.BLOG) {
-      // Scroll imediato e absoluto para o topo
       window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      
-      // Garante scroll após renderização (múltiplas tentativas)
-      const timeoutId1 = setTimeout(() => {
-        window.scrollTo(0, 0);
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-      }, 50);
-      
-      const timeoutId2 = setTimeout(() => {
-        window.scrollTo(0, 0);
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-      }, 200);
-      
-      return () => {
-        clearTimeout(timeoutId1);
-        clearTimeout(timeoutId2);
-      };
     }
   }, [appState]);
 
