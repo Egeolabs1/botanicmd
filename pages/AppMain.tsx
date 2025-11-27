@@ -435,22 +435,27 @@ export const AppMain: React.FC = () => {
     // Garante que a imagem existe ou usa placeholder
     const imageToShow = plant.image || PLACEHOLDER_PLANT_IMAGE;
     
-    // Scroll para o topo ANTES de mudar o estado
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    // Scroll para o topo ANTES de mudar o estado (instant para evitar qualquer delay)
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
     
     setPlantData(plant.data);
     setImagePreview(imageToShow);
     setAppState(AppState.SUCCESS);
     
-    // Garante scroll após renderização (fallback)
+    // Garante scroll após renderização (múltiplas tentativas para garantir)
     setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      // Também tenta scrollar o elemento main se existir
-      const mainElement = document.querySelector('main');
-      if (mainElement) {
-        mainElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }, 50);
+    
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }, 200);
   };
 
   const resetApp = () => {
@@ -499,20 +504,28 @@ export const AppMain: React.FC = () => {
   // Auto-scroll to top on success
   useEffect(() => {
     if (appState === AppState.SUCCESS || appState === AppState.BLOG) {
-      // Scroll imediato
-      window.scrollTo({ top: 0, behavior: 'instant' });
+      // Scroll imediato e absoluto para o topo
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
       
-      // Scroll suave após um pequeno delay para garantir que o componente foi renderizado
-      const timeoutId = setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        // Também tenta scrollar o elemento main se existir
-        const mainElement = document.querySelector('main');
-        if (mainElement) {
-          mainElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 150);
+      // Garante scroll após renderização (múltiplas tentativas)
+      const timeoutId1 = setTimeout(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }, 50);
       
-      return () => clearTimeout(timeoutId);
+      const timeoutId2 = setTimeout(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }, 200);
+      
+      return () => {
+        clearTimeout(timeoutId1);
+        clearTimeout(timeoutId2);
+      };
     }
   }, [appState]);
 

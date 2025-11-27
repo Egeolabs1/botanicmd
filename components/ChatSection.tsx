@@ -16,11 +16,18 @@ export const ChatSection: React.FC<ChatSectionProps> = ({ plantData }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Só faz scroll se houver mensagens e o elemento existir
+    // Evita scroll desnecessário quando o componente é montado
+    if (messages.length > 0 && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Só faz scroll se houver mensagens (não na montagem inicial)
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
   }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
