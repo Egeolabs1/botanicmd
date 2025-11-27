@@ -37,7 +37,8 @@ serve(async (req) => {
     // Verificar assinatura do webhook
     let event: Stripe.Event;
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      // Usar constructEventAsync para Deno/Supabase Edge Functions
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
     } catch (err: any) {
       console.error("Erro ao verificar assinatura do webhook:", err.message);
       return new Response(
