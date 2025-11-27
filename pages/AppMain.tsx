@@ -499,7 +499,20 @@ export const AppMain: React.FC = () => {
   // Auto-scroll to top on success
   useEffect(() => {
     if (appState === AppState.SUCCESS || appState === AppState.BLOG) {
-      window.scrollTo(0, 0);
+      // Scroll imediato
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      
+      // Scroll suave após um pequeno delay para garantir que o componente foi renderizado
+      const timeoutId = setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Também tenta scrollar o elemento main se existir
+        const mainElement = document.querySelector('main');
+        if (mainElement) {
+          mainElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 150);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [appState]);
 
