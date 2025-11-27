@@ -29,15 +29,24 @@ export interface SubscriptionData {
  */
 export async function getUserSubscription(): Promise<SubscriptionData | null> {
   if (!isSupabaseConfigured) {
+    console.warn('⚠️ getUserSubscription: Supabase não configurado');
     return null;
   }
 
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      console.error('❌ Erro ao obter usuário:', userError);
+      return null;
+    }
+    
     if (!user) {
       console.warn('⚠️ getUserSubscription: Usuário não autenticado');
       return null;
     }
+
+    console.log('🔍 Buscando assinatura para usuário:', user.id, user.email);
 
     // Usa .maybeSingle() para evitar erro 406 quando não há registro
     // .maybeSingle() retorna null se não houver linha, sem gerar erro
@@ -50,18 +59,31 @@ export async function getUserSubscription(): Promise<SubscriptionData | null> {
     if (error) {
       // 406 geralmente significa problema de RLS ou tabela não existe
       if (error.code === 'PGRST301' || error.statusCode === 406) {
-        console.warn('⚠️ Tabela subscriptions pode não existir ou RLS bloqueando acesso. Erro:', error.message);
+        console.error('❌ Tabela subscriptions pode não existir ou RLS bloqueando acesso. Erro:', error);
+        console.error('   Código:', error.code, 'Status:', error.statusCode, 'Mensagem:', error.message);
         return null;
       }
       console.error('❌ Erro ao buscar assinatura:', error);
+      console.error('   Código:', error.code, 'Status:', error.statusCode, 'Mensagem:', error.message);
       return null;
+    }
+
+    if (data) {
+      console.log('✅ Assinatura encontrada:', {
+        id: data.id,
+        status: data.status,
+        plan_type: data.plan_type,
+        user_id: data.user_id
+      });
+    } else {
+      console.log('ℹ️ Nenhuma assinatura encontrada para o usuário');
     }
 
     return data || null;
   } catch (error: any) {
     // Captura erros de rede ou outros erros não relacionados ao Supabase
     if (error?.message?.includes('Failed to fetch') || error?.code === 'PGRST301') {
-      console.warn('⚠️ Erro de conexão ou tabela não encontrada. Assinatura não será sincronizada.');
+      console.error('❌ Erro de conexão ou tabela não encontrada:', error);
       return null;
     }
     console.error('❌ Erro ao buscar assinatura:', error);
@@ -81,29 +103,33 @@ export async function hasActiveSubscription(): Promise<boolean> {
  * Sincroniza o plano do usuário com a assinatura no banco
  */
 export async function syncUserPlan(): Promise<PlanType> {
-  console.log('🔄 Sincronizando plano do usuário...');
+  console.log('🔄 [syncUserPlan] Iniciando sincronização do plano do usuário...');
   
   const subscription = await getUserSubscription();
   
   if (!subscription) {
-    console.log('⚠️ Nenhuma assinatura encontrada, retornando plano gratuito');
+    console.log('⚠️ [syncUserPlan] Nenhuma assinatura encontrada, retornando plano gratuito');
     return 'free';
   }
   
-  console.log('📋 Assinatura encontrada:', {
+  console.log('📋 [syncUserPlan] Assinatura encontrada:', {
+    id: subscription.id,
     status: subscription.status,
     plan_type: subscription.plan_type,
-    user_id: subscription.user_id
+    user_id: subscription.user_id,
+    stripe_subscription_id: subscription.stripe_subscription_id
   });
   
   if (subscription.status !== 'active' && subscription.status !== 'trialing') {
-    console.log('⚠️ Assinatura não está ativa, status:', subscription.status);
+    console.warn('⚠️ [syncUserPlan] Assinatura não está ativa, status:', subscription.status);
+    console.warn('   Status válidos: active, trialing');
+    console.warn('   Status atual:', subscription.status);
     return 'free';
   }
 
   // Mapeia plan_type para o tipo de plano do sistema
   // Para o sistema, tanto monthly quanto annual são 'pro'
-  console.log('✅ Plano sincronizado: PRO');
+  console.log('✅ [syncUserPlan] Plano sincronizado: PRO (status:', subscription.status, ')');
   return 'pro';
 }
 

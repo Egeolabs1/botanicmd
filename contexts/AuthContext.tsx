@@ -58,26 +58,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // SEMPRE busca o plano do banco de dados (fonte da verdade)
       if (isSupabaseConfigured) {
         try {
-          const syncPromise = import('../services/subscriptionService').then(m => m.syncUserPlan()).catch(err => {
-            console.warn('⚠️ Erro ao sincronizar plano do banco:', err.message || err);
+          console.log('🔄 [mapUser] Iniciando busca do plano do banco de dados...');
+          
+          const syncPromise = import('../services/subscriptionService').then(m => {
+            console.log('📦 [mapUser] subscriptionService carregado, chamando syncUserPlan...');
+            return m.syncUserPlan();
+          }).catch(err => {
+            console.error('❌ [mapUser] Erro ao sincronizar plano do banco:', err);
+            console.error('   Stack:', err.stack);
             return null as PlanType | null;
           });
           
           // Timeout de 5 segundos para não travar o app
           const timeoutPromise = new Promise<PlanType | null>((resolve) => 
             setTimeout(() => {
-              console.warn('⚠️ Timeout ao sincronizar plano do banco');
+              console.error('⏱️ [mapUser] TIMEOUT ao sincronizar plano do banco (5s)');
               resolve(null);
             }, 5000)
           );
           
           const planFromSubscription = await Promise.race([syncPromise, timeoutPromise]);
           
+          console.log('📊 [mapUser] Resultado da sincronização:', planFromSubscription);
+          
           if (planFromSubscription !== null) {
             // Banco retornou um plano válido - usa ele (fonte da verdade)
             userPlan = planFromSubscription;
             maxUsage = userPlan === 'pro' ? -1 : 3;
-            console.log('✅ Plano sincronizado do banco de dados:', userPlan);
+            console.log('✅ [mapUser] Plano sincronizado do banco de dados:', userPlan, 'maxUsage:', maxUsage);
           } else {
             // Banco falhou ou timeout - usa localStorage como fallback
             if (storedData) {
