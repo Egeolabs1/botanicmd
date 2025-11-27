@@ -36,34 +36,69 @@ class StorageService {
   // --- Métodos Públicos ---
 
   async getPlants(): Promise<SavedPlant[]> {
-    if (this.useLocalStorage) return this.getLocalPlants();
+    // SEMPRE tenta usar Supabase se estiver configurado, mesmo que useLocalStorage seja true
+    if (this.useLocalStorage && !isSupabaseConfigured) {
+      return this.getLocalPlants();
+    }
 
     try {
       const user = await this.getUser();
-      if (!user) return this.getLocalPlants();
+      if (!user) {
+        console.log('⚠️ Usuário não logado, retornando plantas do localStorage');
+        return this.getLocalPlants();
+      }
 
+      console.log('📋 Buscando plantas do Supabase para usuário:', user.id);
       const { data, error } = await supabase
         .from('plants')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro ao buscar plantas:', error);
+        throw error;
+      }
+
+      console.log(`✅ Encontradas ${data?.length || 0} plantas no Supabase`);
 
       // Mapeia do formato do banco para o formato do app
-      return data.map((row: any) => ({
-        data: typeof row.plant_data === 'string' ? JSON.parse(row.plant_data) : row.plant_data,
-        image: row.image_url || '' // Em um app real, image_url seria uma URL do Supabase Storage
-      }));
+      const mappedPlants = data.map((row: any) => {
+        const plantData = typeof row.plant_data === 'string' ? JSON.parse(row.plant_data) : row.plant_data;
+        const imageUrl = row.image_url || '';
+        
+        console.log('🌿 Planta:', {
+          id: row.id,
+          name: plantData?.commonName,
+          hasImage: !!imageUrl,
+          imageType: imageUrl?.startsWith('http') ? 'URL' : imageUrl?.startsWith('data:') ? 'base64' : 'vazio'
+        });
+        
+        return {
+          data: plantData,
+          image: imageUrl // URL do Supabase Storage ou base64 (fallback)
+        };
+      });
+
+      return mappedPlants;
 
     } catch (error) {
-      console.error('Supabase Error:', error);
-      return this.getLocalPlants();
+      console.error('❌ Erro ao buscar plantas do Supabase:', error);
+      // Fallback local apenas se não houver usuário logado
+      const user = await this.getUser();
+      if (!user) {
+        return this.getLocalPlants();
+      }
+      // Se houver usuário logado mas erro no Supabase, retorna array vazio
+      // para não mostrar dados locais incorretos
+      return [];
     }
   }
 
   async savePlant(plant: SavedPlant): Promise<SavedPlant[]> {
-    if (this.useLocalStorage) {
+    // SEMPRE tenta usar Supabase se estiver configurado, mesmo que useLocalStorage seja true
+    // O useLocalStorage só deve ser usado se Supabase não estiver configurado
+    if (this.useLocalStorage && !isSupabaseConfigured) {
         const current = this.getLocalPlants();
         const updated = [plant, ...current.filter(p => p.data.id !== plant.data.id)];
         this.setLocalPlants(updated);
@@ -74,18 +109,29 @@ class StorageService {
       const user = await this.getUser();
       if (!user) {
         // Se não estiver logado, salva local
+        console.log('⚠️ Usuário não logado, salvando no localStorage');
         const current = this.getLocalPlants();
         const updated = [plant, ...current.filter(p => p.data.id !== plant.data.id)];
         this.setLocalPlants(updated);
         return updated;
       }
 
+      console.log('💾 Salvando planta no Supabase para usuário:', user.id);
+
       // Tenta fazer upload da imagem para Supabase Storage
       let imageUrl = plant.image;
+      
+      console.log('📸 Processando imagem da planta:', {
+        hasImage: !!plant.image,
+        isBase64: plant.image?.startsWith('data:'),
+        isUrl: plant.image?.startsWith('http'),
+        imageLength: plant.image?.length || 0
+      });
       
       // Se a imagem for base64 (começa com data: ou não é uma URL http/https)
       if (plant.image && !plant.image.startsWith('http') && !plant.image.startsWith('/')) {
         try {
+          console.log('⬆️ Fazendo upload da imagem para Supabase Storage...');
           const uploadedUrl = await uploadImageToStorage(
             plant.image,
             user.id,
@@ -93,47 +139,76 @@ class StorageService {
           );
           
           if (uploadedUrl) {
+            console.log('✅ Imagem enviada com sucesso:', uploadedUrl);
             imageUrl = uploadedUrl;
           } else {
-            // Se o upload falhar, não salva base64 no banco (muito grande)
-            // Em vez disso, tenta novamente ou usa placeholder
-            if (process.env.NODE_ENV === 'development') {
-              console.warn('Upload de imagem falhou. A imagem não será salva no banco de dados.');
+            console.warn('⚠️ Upload de imagem falhou. Tentando salvar base64 como fallback.');
+            // Tenta salvar base64 se for pequeno (< 1MB)
+            if (plant.image.length < 1000000) {
+              imageUrl = plant.image;
+              console.log('💾 Salvando base64 como fallback (tamanho aceitável)');
+            } else {
+              imageUrl = '';
+              console.warn('❌ Base64 muito grande, não será salvo');
             }
-            // Usa um placeholder ou remove a imagem
-            imageUrl = ''; // Remove base64 para evitar problemas de tamanho
           }
         } catch (uploadError) {
-          // Log apenas em desenvolvimento
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Erro ao fazer upload da imagem:', uploadError);
+          console.error('❌ Erro ao fazer upload da imagem:', uploadError);
+          // Tenta salvar base64 se for pequeno
+          if (plant.image.length < 1000000) {
+            imageUrl = plant.image;
+            console.log('💾 Salvando base64 como fallback após erro');
+          } else {
+            imageUrl = '';
+            console.warn('❌ Base64 muito grande, não será salvo');
           }
-          // Não salva base64 no banco, remove a referência
-          imageUrl = '';
         }
+      } else if (plant.image) {
+        console.log('✅ Imagem já é uma URL, usando diretamente:', plant.image);
       }
+
+      const plantRecord = {
+        id: plant.data.id,
+        user_id: user.id,
+        common_name: plant.data.commonName,
+        plant_data: plant.data,
+        image_url: imageUrl // URL do Supabase Storage ou base64 (fallback)
+      };
+
+      console.log('💾 Salvando registro no banco:', {
+        id: plantRecord.id,
+        common_name: plantRecord.common_name,
+        hasImage: !!plantRecord.image_url,
+        imageType: plantRecord.image_url?.startsWith('http') ? 'URL' : 'base64'
+      });
 
       const { error } = await supabase
         .from('plants')
-        .upsert({
-          id: plant.data.id,
-          user_id: user.id,
-          common_name: plant.data.commonName,
-          plant_data: plant.data,
-          image_url: imageUrl // URL do Supabase Storage ou base64 (fallback)
-        });
+        .upsert(plantRecord);
 
-      if (error) throw error;
-      
-      return await this.getPlants();
+      if (error) {
+        console.error('❌ Erro ao salvar no Supabase:', error);
+        throw error;
+      }
+
+      console.log('✅ Planta salva com sucesso no Supabase');
+      const savedPlants = await this.getPlants();
+      console.log('📋 Total de plantas salvas:', savedPlants.length);
+      return savedPlants;
 
     } catch (error) {
-      console.error('Supabase Save Error:', error);
-      // Fallback local
-      const current = this.getLocalPlants();
-      const updated = [plant, ...current.filter(p => p.data.id !== plant.data.id)];
-      this.setLocalPlants(updated);
-      return updated;
+      console.error('❌ Erro ao salvar no Supabase:', error);
+      // Fallback local apenas se não houver usuário logado
+      const user = await this.getUser();
+      if (!user) {
+        console.log('💾 Usando fallback localStorage (usuário não logado)');
+        const current = this.getLocalPlants();
+        const updated = [plant, ...current.filter(p => p.data.id !== plant.data.id)];
+        this.setLocalPlants(updated);
+        return updated;
+      }
+      // Se houver usuário logado mas erro no Supabase, relança o erro
+      throw error;
     }
   }
 

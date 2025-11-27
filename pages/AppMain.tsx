@@ -11,6 +11,7 @@ import { ResetPasswordModal } from '../components/ResetPasswordModal';
 import { UserProfile } from '../components/UserProfile';
 import { AboutModal } from '../components/AboutModal';
 import { Luxometer } from '../components/Luxometer';
+import { SaveSuccessModal } from '../components/SaveSuccessModal';
 
 // Lazy load para componentes grandes (reduz bundle inicial)
 const AdminDashboard = lazy(() => import('../components/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
@@ -47,6 +48,7 @@ export const AppMain: React.FC = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isLuxometerOpen, setIsLuxometerOpen] = useState(false);
+  const [isSaveSuccessModalOpen, setIsSaveSuccessModalOpen] = useState(false);
   
   // Loading Scan Effect
   const [loadingTipIndex, setLoadingTipIndex] = useState(0);
@@ -399,14 +401,24 @@ export const AppMain: React.FC = () => {
     }
     
     if (plantData && imagePreview) {
-      const newPlantData = { ...plantData, id: crypto.randomUUID(), savedAt: Date.now(), language };
-      const newSavedPlant = { data: newPlantData, image: imagePreview };
-      
-      setSavedPlants(prev => [newSavedPlant, ...prev]);
-      
-      const updatedList = await storage.savePlant(newSavedPlant);
-      setSavedPlants(updatedList);
-      setPlantData(newPlantData);
+      try {
+        const newPlantData = { ...plantData, id: crypto.randomUUID(), savedAt: Date.now(), language };
+        const newSavedPlant = { data: newPlantData, image: imagePreview };
+        
+        // Atualiza estado local imediatamente para feedback visual
+        setSavedPlants(prev => [newSavedPlant, ...prev]);
+        
+        // Salva no Supabase
+        const updatedList = await storage.savePlant(newSavedPlant);
+        setSavedPlants(updatedList);
+        setPlantData(newPlantData);
+        
+        // Mostra modal de confirmação
+        setIsSaveSuccessModalOpen(true);
+      } catch (error) {
+        console.error('Erro ao salvar planta:', error);
+        alert('Erro ao salvar planta. Tente novamente.');
+      }
     }
   };
 
@@ -417,9 +429,18 @@ export const AppMain: React.FC = () => {
   };
 
   const openPlantDetails = (plant: SavedPlant) => {
+    console.log('🌿 Abrindo detalhes da planta:', plant);
+    console.log('📸 Imagem da planta:', plant.image);
+    
+    // Garante que a imagem existe ou usa placeholder
+    const imageToShow = plant.image || PLACEHOLDER_PLANT_IMAGE;
+    
     setPlantData(plant.data);
-    setImagePreview(plant.image);
+    setImagePreview(imageToShow);
     setAppState(AppState.SUCCESS);
+    
+    // Scroll para o topo
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetApp = () => {
@@ -557,6 +578,11 @@ export const AppMain: React.FC = () => {
       <ResetPasswordModal isOpen={isResetPasswordModalOpen} onClose={() => setIsResetPasswordModalOpen(false)} />
       <Luxometer isOpen={isLuxometerOpen} onClose={() => setIsLuxometerOpen(false)} />
       <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />
+      <SaveSuccessModal 
+        isOpen={isSaveSuccessModalOpen} 
+        onClose={() => setIsSaveSuccessModalOpen(false)}
+        plantName={plantData?.commonName}
+      />
       
       {user && isProfileOpen && (
         <UserProfile 
