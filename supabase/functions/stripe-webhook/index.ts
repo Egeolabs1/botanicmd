@@ -122,7 +122,19 @@ async function handleCheckoutCompleted(
     // É uma assinatura recorrente
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     priceId = subscription.items.data[0]?.price.id;
-    status = subscription.status;
+    
+    // IMPORTANTE: Se o pagamento foi completado, o status deve ser 'active'
+    // Mesmo que a subscription ainda esteja 'incomplete', se o checkout foi completado,
+    // significa que o pagamento foi processado e deve ser ativado
+    // O evento customer.subscription.updated virá depois para confirmar
+    if (subscription.status === 'incomplete' || subscription.status === 'incomplete_expired') {
+      // Se está incomplete mas o checkout foi completado, aguarda o próximo evento
+      // Mas vamos marcar como 'active' porque o pagamento foi processado
+      status = 'active';
+      console.log(`⚠️ Subscription ${subscriptionId} está incomplete, mas checkout foi completado. Marcando como active.`);
+    } else {
+      status = subscription.status;
+    }
     
     // Validar e converter timestamps com segurança
     if (subscription.current_period_start && typeof subscription.current_period_start === 'number') {

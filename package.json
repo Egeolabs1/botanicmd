@@ -14,7 +14,8 @@
     "migrate:blog-slugs": "node scripts/migrate-blog-slugs.mjs",
     "migrate:blog-date-modified": "node scripts/migrate-blog-date-modified.mjs",
     "generate:og-image": "node scripts/generate-og-image.mjs",
-    "diagnose:subscription": "node scripts/diagnose-subscription.mjs"
+    "diagnose:subscription": "node scripts/diagnose-subscription.mjs",
+    "fix:subscription-status": "node scripts/update-subscription-to-active.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

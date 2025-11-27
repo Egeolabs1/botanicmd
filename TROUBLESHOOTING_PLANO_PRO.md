@@ -96,6 +96,35 @@ npm run diagnose:subscription
 
 ## 🔧 Soluções Comuns
 
+### Problema 0: Status da assinatura é 'incomplete' (MAIS COMUM)
+
+**Causa:** O webhook criou a assinatura mas o status ficou como 'incomplete' em vez de 'active'
+
+**Solução Rápida (Script):**
+```bash
+# Substitua pelo email do usuário
+npm run fix:subscription-status -- ngfilho@gmail.com
+```
+
+**Solução Manual (SQL):**
+Execute no SQL Editor do Supabase:
+```sql
+-- 1. Encontrar o user_id
+SELECT id, email FROM auth.users WHERE email = 'ngfilho@gmail.com';
+
+-- 2. Atualizar status (substitua 'SEU_USER_ID' pelo ID encontrado)
+UPDATE subscriptions
+SET status = 'active', updated_at = NOW()
+WHERE user_id = 'SEU_USER_ID' AND status = 'incomplete';
+
+-- 3. Verificar
+SELECT * FROM subscriptions WHERE user_id = 'SEU_USER_ID';
+```
+
+**Após corrigir:**
+- O usuário precisa fazer logout e login novamente
+- Ou aguardar alguns segundos e recarregar a página
+
 ### Problema 1: Assinatura não existe no banco
 
 **Causa:** Webhook não processou o pagamento ou falhou
