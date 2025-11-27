@@ -12,14 +12,14 @@ export type Currency = 'BRL' | 'USD';
 
 const STRIPE_PRICES = {
   BRL: {
-    monthly: 'price_1SVjjkQxkNQpny1LIElriKgq', // ID do plano mensal em R$ 19,90
-    annual: 'price_1SVjksQxkNQpny1LP0OjkvIQ',  // ID do plano anual em R$ 99,90
-    lifetime: 'price_1SVjmTQxkNQpny1LrK08bJCm' // ID do plano vitalício (pagamento único) em R$ 289,90
+    monthly: 'price_1SXxQ5Bz9Lh5gOrNLB2lJy4v', // ID do plano mensal em R$ 19,90
+    annual: 'price_1SXxQbBz9Lh5gOrNXcn4KVRD',  // ID do plano anual em R$ 99,90
+    lifetime: 'price_1SXxWQBz9Lh5gOrNe8U5dfSx' // ID do plano vitalício (pagamento único) em R$ 289,90
   },
   USD: {
-    monthly: 'price_1SVjpzQxkNQpny1LJ7VEUF26', // ID do plano mensal em $ 5.99
-    annual: 'price_1SVjpzQxkNQpny1L1qsQ6QNy',  // ID do plano anual em $ 29.99
-    lifetime: 'price_1SVjpzQxkNQpny1LoiRKgepC' // ID do plano vitalício (pagamento único) em $ 79.99
+    monthly: 'price_1SXxXiBz9Lh5gOrNf8lpjvUC', // ID do plano mensal em $ 5.99
+    annual: 'price_1SXxYFBz9Lh5gOrNsJ7nzWOC',  // ID do plano anual em $ 29.99
+    lifetime: 'price_1SXxYgBz9Lh5gOrNNPyDcTRX' // ID do plano vitalício (pagamento único) em $ 79.99
   }
 };
 
@@ -67,7 +67,25 @@ export const initiateCheckout = async (plan: PlanType, language: SupportedLangua
     });
 
     if (error) {
-      throw new Error(error.message || 'Erro ao criar sessão de checkout.');
+      console.error('❌ Erro retornado pela Edge Function:', error);
+      
+      // Tentar extrair mensagem detalhada do erro
+      let errorMessage = 'Erro ao criar sessão de checkout.';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.context?.msg) {
+        errorMessage = error.context.msg;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      // Se houver detalhes no erro, adicionar à mensagem
+      if (error.context?.details) {
+        errorMessage += ` Detalhes: ${error.context.details}`;
+      }
+      
+      throw new Error(errorMessage);
     }
 
     if (!data?.url) {
@@ -78,10 +96,26 @@ export const initiateCheckout = async (plan: PlanType, language: SupportedLangua
     window.location.href = data.url;
 
   } catch (error: any) {
-    console.error('Erro ao iniciar checkout:', error);
+    console.error('❌ Erro ao iniciar checkout:', error);
+    
+    // Extrair mensagem de erro mais detalhada
+    let errorMessage = 'Erro ao criar sessão de checkout.';
+    
+    if (error?.message) {
+      errorMessage = error.message;
+    } else if (error?.error) {
+      errorMessage = error.error;
+      if (error.details) {
+        errorMessage += ` (${error.details})`;
+      }
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    
+    console.error('❌ Mensagem de erro detalhada:', errorMessage);
     
     // Em desenvolvimento, oferece modo de simulação apenas se o erro for de conexão
-    if (process.env.NODE_ENV === 'development' && error.message?.includes('fetch')) {
+    if (process.env.NODE_ENV === 'development' && errorMessage?.includes('fetch')) {
       const shouldSimulate = window.confirm(
         "Ambiente de Desenvolvimento: A Edge Function não está disponível.\n\n" +
         "Deseja SIMULAR um pagamento bem-sucedido para testar o fluxo?"
@@ -95,8 +129,8 @@ export const initiateCheckout = async (plan: PlanType, language: SupportedLangua
       }
     }
     
-    // Em produção ou se o usuário não quiser simular, lança o erro
-    throw error;
+    // Em produção ou se o usuário não quiser simular, lança o erro com mensagem detalhada
+    throw new Error(errorMessage);
   }
 };
 
