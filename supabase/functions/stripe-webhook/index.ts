@@ -189,6 +189,19 @@ async function handleSubscriptionUpdated(
   const planType = subscription.metadata?.plan_type || 
     (priceId?.includes("month") ? "monthly" : priceId?.includes("year") ? "annual" : "monthly");
 
+  // Validar e converter timestamps com segurança
+  const periodStart = subscription.current_period_start && typeof subscription.current_period_start === 'number'
+    ? new Date(subscription.current_period_start * 1000).toISOString()
+    : null;
+  
+  const periodEnd = subscription.current_period_end && typeof subscription.current_period_end === 'number'
+    ? new Date(subscription.current_period_end * 1000).toISOString()
+    : null;
+  
+  const canceledAt = subscription.canceled_at && typeof subscription.canceled_at === 'number'
+    ? new Date(subscription.canceled_at * 1000).toISOString()
+    : null;
+
   await supabase
     .from("subscriptions")
     .update({
@@ -196,10 +209,10 @@ async function handleSubscriptionUpdated(
       stripe_price_id: priceId,
       plan_type: planType,
       status: subscription.status,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-      cancel_at_period_end: subscription.cancel_at_period_end,
-      canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
+      current_period_start: periodStart,
+      current_period_end: periodEnd,
+      cancel_at_period_end: subscription.cancel_at_period_end || false,
+      canceled_at: canceledAt,
     })
     .eq("user_id", existingSub.user_id);
 
@@ -212,11 +225,16 @@ async function handleSubscriptionDeleted(
 ) {
   const customerId = subscription.customer as string;
 
+  // Validar e converter timestamp com segurança
+  const canceledAt = subscription.canceled_at && typeof subscription.canceled_at === 'number'
+    ? new Date(subscription.canceled_at * 1000).toISOString()
+    : new Date().toISOString();
+
   await supabase
     .from("subscriptions")
     .update({
       status: "canceled",
-      canceled_at: new Date().toISOString(),
+      canceled_at: canceledAt,
       cancel_at_period_end: false,
     })
     .eq("stripe_customer_id", customerId);
