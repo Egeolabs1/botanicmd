@@ -1,0 +1,7 @@
+# Configuração do Supabase para Edge Functions
+
+[functions.stripe-webhook]
+# Desabilitar verificação JWT para permitir webhooks do Stripe
+# Webhooks do Stripe usam assinatura (stripe-signature) para autenticação, não JWT
+verify_jwt = false
+
