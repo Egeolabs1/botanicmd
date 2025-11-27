@@ -1,5 +1,6 @@
 
 import { BlogPost } from '../types';
+import { supabase, isSupabaseConfigured } from './supabase';
 
 const STORAGE_KEY = 'botanicmd_blog_posts';
 
@@ -291,48 +292,303 @@ const seedPosts: BlogPost[] = [
 ];
 
 class BlogService {
-  getPosts(): BlogPost[] {
+  private useLocalStorage: boolean = false;
+
+  constructor() {
+    // Se o Supabase não estiver configurado, força LocalStorage
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase não configurado. Blog usando localStorage.');
+      this.useLocalStorage = true;
+    }
+  }
+
+  // --- Métodos LocalStorage (Fallback) ---
+
+  private getLocalPosts(): BlogPost[] {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(seedPosts));
       return seedPosts;
     }
-    return JSON.parse(stored);
+    try {
+      return JSON.parse(stored);
+    } catch (error) {
+      console.error('Erro ao ler posts do localStorage:', error);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(seedPosts));
+      return seedPosts;
+    }
   }
 
-  getPost(id: number): BlogPost | undefined {
-    const posts = this.getPosts();
+  private setLocalPosts(posts: BlogPost[]) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
+  }
+
+  // --- Métodos Supabase ---
+
+  private async getSupabasePosts(): Promise<BlogPost[]> {
+    try {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        // Se a tabela não existe, retorna localStorage
+        if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
+          console.warn('Tabela blog_posts não existe. Usando localStorage.');
+          return this.getLocalPosts();
+        }
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        // Se não há posts, tenta migrar os seed posts para o Supabase
+        // Mas só se houver pelo menos um seed post
+        if (seedPosts.length > 0) {
+          await this.migrateSeedPostsToSupabase();
+          // Tenta buscar novamente após migração
+          const { data: migratedData } = await supabase
+            .from('blog_posts')
+            .select('*')
+            .order('created_at', { ascending: false });
+          
+          if (migratedData && migratedData.length > 0) {
+            return migratedData.map((row: any) => ({
+              id: row.id,
+              title: row.title,
+              excerpt: row.excerpt,
+              content: row.content,
+              category: row.category,
+              author: row.author,
+              date: row.date || new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              imageUrl: row.image_url || ''
+            }));
+          }
+        }
+        // Se ainda não houver posts, retorna localStorage como fallback
+        return this.getLocalPosts();
+      }
+
+      // Mapeia do formato do banco para o formato do app
+      return data.map((row: any) => ({
+        id: row.id,
+        title: row.title,
+        excerpt: row.excerpt,
+        content: row.content,
+        category: row.category,
+        author: row.author,
+        date: row.date || new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        imageUrl: row.image_url || ''
+      }));
+
+    } catch (error: any) {
+      console.error('Erro ao buscar posts do Supabase:', error);
+      // Fallback para localStorage em caso de erro
+      return this.getLocalPosts();
+    }
+  }
+
+  private async migrateSeedPostsToSupabase(): Promise<void> {
+    try {
+      // Insere os posts seed no Supabase
+      const postsToInsert = seedPosts.map(post => ({
+        title: post.title,
+        excerpt: post.excerpt,
+        content: post.content,
+        category: post.category,
+        author: post.author,
+        date: post.date,
+        image_url: post.imageUrl
+      }));
+
+      const { error } = await supabase
+        .from('blog_posts')
+        .insert(postsToInsert);
+
+      if (error) {
+        console.error('Erro ao migrar posts seed para Supabase:', error);
+      } else {
+        console.log('✅ Posts seed migrados para Supabase com sucesso');
+      }
+    } catch (error) {
+      console.error('Erro ao migrar posts seed:', error);
+    }
+  }
+
+  private async savePostToSupabase(post: Omit<BlogPost, 'id'> & { id?: number }): Promise<BlogPost> {
+    try {
+      const postData = {
+        title: post.title,
+        excerpt: post.excerpt,
+        content: post.content,
+        category: post.category,
+        author: post.author,
+        date: post.date,
+        image_url: post.imageUrl
+      };
+
+      if (post.id) {
+        // Update
+        const { data, error } = await supabase
+          .from('blog_posts')
+          .update(postData)
+          .eq('id', post.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        
+        return {
+          id: data.id,
+          title: data.title,
+          excerpt: data.excerpt,
+          content: data.content,
+          category: data.category,
+          author: data.author,
+          date: data.date || new Date(data.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          imageUrl: data.image_url || ''
+        };
+      } else {
+        // Create
+        const { data, error } = await supabase
+          .from('blog_posts')
+          .insert(postData)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        return {
+          id: data.id,
+          title: data.title,
+          excerpt: data.excerpt,
+          content: data.content,
+          category: data.category,
+          author: data.author,
+          date: data.date || new Date(data.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          imageUrl: data.image_url || ''
+        };
+      }
+    } catch (error: any) {
+      console.error('Erro ao salvar post no Supabase:', error);
+      throw error;
+    }
+  }
+
+  private async deletePostFromSupabase(id: number): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('blog_posts')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Erro ao deletar post do Supabase:', error);
+      throw error;
+    }
+  }
+
+  // --- Métodos Públicos (com fallback automático) ---
+
+  async getPosts(): Promise<BlogPost[]> {
+    if (this.useLocalStorage) {
+      return this.getLocalPosts();
+    }
+
+    try {
+      return await this.getSupabasePosts();
+    } catch (error) {
+      console.error('Erro ao buscar posts, usando localStorage como fallback:', error);
+      return this.getLocalPosts();
+    }
+  }
+
+  async getPost(id: number): Promise<BlogPost | undefined> {
+    const posts = await this.getPosts();
     return posts.find(p => p.id === id);
   }
 
-  savePost(post: Omit<BlogPost, 'id'> & { id?: number }): BlogPost {
-    const posts = this.getPosts();
-    let newPost: BlogPost;
+  async savePost(post: Omit<BlogPost, 'id'> & { id?: number }): Promise<BlogPost> {
+    if (this.useLocalStorage) {
+      // Modo localStorage
+      const posts = this.getLocalPosts();
+      let newPost: BlogPost;
 
-    if (post.id) {
-      // Update
-      const index = posts.findIndex(p => p.id === post.id);
-      if (index !== -1) {
-        newPost = { ...posts[index], ...post } as BlogPost;
-        posts[index] = newPost;
+      if (post.id) {
+        // Update
+        const index = posts.findIndex(p => p.id === post.id);
+        if (index !== -1) {
+          newPost = { ...posts[index], ...post } as BlogPost;
+          posts[index] = newPost;
+        } else {
+          throw new Error("Post not found");
+        }
       } else {
-        throw new Error("Post not found");
+        // Create
+        const maxId = posts.reduce((max, p) => Math.max(max, p.id), 0);
+        newPost = { ...post, id: maxId + 1 } as BlogPost;
+        posts.unshift(newPost);
       }
-    } else {
-      // Create
-      const maxId = posts.reduce((max, p) => Math.max(max, p.id), 0);
-      newPost = { ...post, id: maxId + 1 } as BlogPost;
-      posts.unshift(newPost);
+
+      this.setLocalPosts(posts);
+      return newPost;
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
-    return newPost;
+    // Modo Supabase
+    try {
+      return await this.savePostToSupabase(post);
+    } catch (error: any) {
+      // Se falhar, tenta salvar no localStorage como backup
+      console.warn('Erro ao salvar no Supabase, tentando localStorage:', error);
+      try {
+        const posts = this.getLocalPosts();
+        let newPost: BlogPost;
+
+        if (post.id) {
+          const index = posts.findIndex(p => p.id === post.id);
+          if (index !== -1) {
+            newPost = { ...posts[index], ...post } as BlogPost;
+            posts[index] = newPost;
+          } else {
+            throw new Error("Post not found");
+          }
+        } else {
+          const maxId = posts.reduce((max, p) => Math.max(max, p.id), 0);
+          newPost = { ...post, id: maxId + 1 } as BlogPost;
+          posts.unshift(newPost);
+        }
+
+        this.setLocalPosts(posts);
+        return newPost;
+      } catch (localError) {
+        throw error; // Re-throw o erro original do Supabase
+      }
+    }
   }
 
-  deletePost(id: number): void {
-    const posts = this.getPosts();
-    const filtered = posts.filter(p => p.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  async deletePost(id: number): Promise<void> {
+    if (this.useLocalStorage) {
+      const posts = this.getLocalPosts();
+      const filtered = posts.filter(p => p.id !== id);
+      this.setLocalPosts(filtered);
+      return;
+    }
+
+    // Modo Supabase
+    try {
+      await this.deletePostFromSupabase(id);
+    } catch (error: any) {
+      // Se falhar, tenta deletar do localStorage como backup
+      console.warn('Erro ao deletar do Supabase, tentando localStorage:', error);
+      try {
+        const posts = this.getLocalPosts();
+        const filtered = posts.filter(p => p.id !== id);
+        this.setLocalPosts(filtered);
+      } catch (localError) {
+        throw error; // Re-throw o erro original do Supabase
+      }
+    }
   }
 }
 

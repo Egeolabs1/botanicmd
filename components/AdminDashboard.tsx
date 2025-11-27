@@ -40,7 +40,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
   }, []);
 
   const loadData = async () => {
-    setPosts(blogService.getPosts());
+    try {
+      const fetchedPosts = await blogService.getPosts();
+      setPosts(fetchedPosts);
+    } catch (error) {
+      console.error('Erro ao carregar posts:', error);
+      // Fallback para array vazio
+      setPosts([]);
+    }
     setIsLoadingUsers(true);
     try {
       const fetchedUsers = await adminService.getUsers();
@@ -65,23 +72,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     setIsEditingPost(true);
   };
 
-  const handleDeletePost = (id: number) => {
+  const handleDeletePost = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this post?')) {
-      blogService.deletePost(id);
-      loadData();
+      try {
+        await blogService.deletePost(id);
+        await loadData();
+      } catch (error) {
+        console.error('Erro ao deletar post:', error);
+        alert('Erro ao deletar post. Por favor, tente novamente.');
+      }
     }
   };
 
-  const handleSavePost = (postData: Omit<BlogPost, 'id'> & { id?: number }) => {
+  const handleSavePost = async (postData: Omit<BlogPost, 'id'> & { id?: number }) => {
     // If ID is 0 (draft from AI), treat as new post (undefined ID)
     const dataToSave = { ...postData };
     if (dataToSave.id === 0) {
       delete dataToSave.id;
     }
 
-    blogService.savePost(dataToSave);
-    setIsEditingPost(false);
-    loadData();
+    try {
+      await blogService.savePost(dataToSave);
+      setIsEditingPost(false);
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao salvar post:', error);
+      alert('Erro ao salvar post. Por favor, tente novamente.');
+    }
   };
 
   const handleGeneratePost = async () => {

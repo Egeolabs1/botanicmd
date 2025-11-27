@@ -26,7 +26,17 @@ export const BlogPage: React.FC = () => {
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
 
   useEffect(() => {
-    setPosts(blogService.getPosts());
+    const loadPosts = async () => {
+      try {
+        const fetchedPosts = await blogService.getPosts();
+        setPosts(fetchedPosts);
+      } catch (error) {
+        console.error('Erro ao carregar posts:', error);
+        // Fallback para array vazio
+        setPosts([]);
+      }
+    };
+    loadPosts();
   }, []);
 
   if (selectedPost) {
