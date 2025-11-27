@@ -112,9 +112,11 @@ async function handleCheckoutCompleted(
   const planType = session.metadata?.plan_type || "monthly";
   const currency = session.metadata?.currency || "BRL";
 
-  // Buscar informações do preço/subscription
+  // IMPORTANTE: Se o checkout foi completado, o pagamento foi processado
+  // Sempre marcar como 'active' independente do status da subscription no Stripe
+  // O evento checkout.session.completed só é disparado quando o pagamento foi bem-sucedido
   let priceId: string | undefined;
-  let status = "active";
+  let status = "active"; // Sempre active quando checkout é completado
   let periodStart: Date | undefined;
   let periodEnd: Date | undefined;
 
@@ -123,18 +125,11 @@ async function handleCheckoutCompleted(
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     priceId = subscription.items.data[0]?.price.id;
     
-    // IMPORTANTE: Se o pagamento foi completado, o status deve ser 'active'
-    // Mesmo que a subscription ainda esteja 'incomplete', se o checkout foi completado,
-    // significa que o pagamento foi processado e deve ser ativado
-    // O evento customer.subscription.updated virá depois para confirmar
-    if (subscription.status === 'incomplete' || subscription.status === 'incomplete_expired') {
-      // Se está incomplete mas o checkout foi completado, aguarda o próximo evento
-      // Mas vamos marcar como 'active' porque o pagamento foi processado
-      status = 'active';
-      console.log(`⚠️ Subscription ${subscriptionId} está incomplete, mas checkout foi completado. Marcando como active.`);
-    } else {
-      status = subscription.status;
-    }
+    // IMPORTANTE: checkout.session.completed só é disparado quando pagamento foi bem-sucedido
+    // Portanto, sempre marcar como 'active', mesmo se subscription.status for 'incomplete'
+    // O status 'incomplete' no Stripe pode ocorrer temporariamente durante o processamento
+    // mas se o checkout foi completado, o pagamento foi processado com sucesso
+    status = "active";
     
     // Validar e converter timestamps com segurança
     if (subscription.current_period_start && typeof subscription.current_period_start === 'number') {
@@ -143,12 +138,15 @@ async function handleCheckoutCompleted(
     if (subscription.current_period_end && typeof subscription.current_period_end === 'number') {
       periodEnd = new Date(subscription.current_period_end * 1000);
     }
+    
+    console.log(`✅ Checkout completado: subscription ${subscriptionId}, marcando como active`);
   } else {
     // É um pagamento único (lifetime)
     const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
     priceId = lineItems.data[0]?.price?.id;
     status = "active";
     periodEnd = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000); // 100 anos para lifetime
+    console.log(`✅ Checkout completado: pagamento único, marcando como active`);
   }
 
   if (!priceId) {
@@ -207,6 +205,25 @@ async function handleSubscriptionUpdated(
   const planType = subscription.metadata?.plan_type || 
     (priceId?.includes("month") ? "monthly" : priceId?.includes("year") ? "annual" : "monthly");
 
+  // IMPORTANTE: Se subscription.status for 'incomplete' mas já existe no banco como 'active',
+  // manter como 'active' (o checkout já foi processado)
+  // Só atualizar para 'incomplete' se realmente for necessário (ex: pagamento falhou depois)
+  let status = subscription.status;
+  if (subscription.status === 'incomplete' || subscription.status === 'incomplete_expired') {
+    // Verificar se já está como 'active' no banco (checkout já foi processado)
+    const { data: currentSub } = await supabase
+      .from("subscriptions")
+      .select("status")
+      .eq("user_id", existingSub.user_id)
+      .maybeSingle();
+    
+    if (currentSub?.status === 'active') {
+      // Manter como active - checkout já foi processado
+      status = 'active';
+      console.log(`⚠️ Subscription ${subscription.id} está incomplete no Stripe, mas mantendo como active no banco (checkout já processado)`);
+    }
+  }
+
   // Validar e converter timestamps com segurança
   const periodStart = subscription.current_period_start && typeof subscription.current_period_start === 'number'
     ? new Date(subscription.current_period_start * 1000).toISOString()
@@ -226,7 +243,7 @@ async function handleSubscriptionUpdated(
       stripe_subscription_id: subscription.id,
       stripe_price_id: priceId,
       plan_type: planType,
-      status: subscription.status,
+      status: status, // Usa o status corrigido
       current_period_start: periodStart,
       current_period_end: periodEnd,
       cancel_at_period_end: subscription.cancel_at_period_end || false,
@@ -234,7 +251,7 @@ async function handleSubscriptionUpdated(
     })
     .eq("user_id", existingSub.user_id);
 
-  console.log(`Assinatura atualizada: ${subscription.id}, status: ${subscription.status}`);
+  console.log(`Assinatura atualizada: ${subscription.id}, status: ${status}`);
 }
 
 async function handleSubscriptionDeleted(
