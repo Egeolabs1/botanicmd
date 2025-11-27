@@ -118,7 +118,12 @@ export const AppMain: React.FC = () => {
             if (isValid) {
               const newPlan = await syncUserPlan();
               if (newPlan === 'pro') {
+                // Atualiza imediatamente o estado local
                 upgradeToPro();
+                // Recarrega o plano do banco para garantir sincronização completa
+                setTimeout(() => {
+                  refreshUserPlan();
+                }, 1000);
                 alert('✅ Pagamento confirmado! Você agora é PRO! 🌟');
                 console.log('✅ Pagamento confirmado! Seu plano foi atualizado.');
               } else {
@@ -133,6 +138,9 @@ export const AppMain: React.FC = () => {
                   const retryPlan = await syncUserPlan();
                   if (retryPlan === 'pro') {
                     upgradeToPro();
+                    setTimeout(() => {
+                      refreshUserPlan();
+                    }, 1000);
                     alert('✅ Pagamento confirmado! Você agora é PRO! 🌟');
                     console.log('✅ Pagamento confirmado após retry! Seu plano foi atualizado.');
                   }
@@ -143,6 +151,9 @@ export const AppMain: React.FC = () => {
                     const finalPlan = await syncUserPlan();
                     if (finalPlan === 'pro') {
                       upgradeToPro();
+                      setTimeout(() => {
+                        refreshUserPlan();
+                      }, 1000);
                       alert('✅ Pagamento confirmado! Você agora é PRO! 🌟');
                     } else {
                       console.error('❌ Não foi possível verificar o pagamento. Verifique no Stripe Dashboard se o pagamento foi processado.');

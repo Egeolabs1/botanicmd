@@ -18,6 +18,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
   resendConfirmationEmail: (email: string) => Promise<void>;
+  refreshUserPlan: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -374,6 +375,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) throw error;
   };
 
+  const refreshUserPlan = async () => {
+    if (!user || !isSupabaseConfigured) return;
+
+    console.log('🔄 Recarregando plano do usuário do banco de dados...');
+    
+    try {
+      const { syncUserPlan } = await import('../services/subscriptionService');
+      const newPlan = await syncUserPlan();
+      
+      if (newPlan && newPlan !== user.plan) {
+        console.log(`✅ Plano atualizado de ${user.plan} para ${newPlan}`);
+        
+        const updatedUser: User = {
+          ...user,
+          plan: newPlan,
+          maxUsage: newPlan === 'pro' ? -1 : 3,
+        };
+        
+        setUser(updatedUser);
+        
+        // Atualizar localStorage
+        const dataToSave = {
+          plan: updatedUser.plan,
+          usageCount: updatedUser.usageCount,
+          maxUsage: updatedUser.maxUsage
+        };
+        localStorage.setItem(`botanicmd_data_${user.id}`, JSON.stringify(dataToSave));
+      } else {
+        console.log('ℹ️ Plano já está atualizado:', newPlan);
+      }
+    } catch (error: any) {
+      console.error('❌ Erro ao recarregar plano:', error);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -391,6 +427,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         resetPassword,
         updatePassword,
         resendConfirmationEmail,
+        refreshUserPlan,
       }}
     >
       {children}
