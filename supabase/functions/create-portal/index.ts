@@ -53,11 +53,19 @@ serve(async (req) => {
     }
 
     // Buscar customer_id do Stripe
-    const { data: subscription } = await supabase
+    const { data: subscription, error: subError } = await supabase
       .from("subscriptions")
       .select("stripe_customer_id")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
+
+    if (subError) {
+      console.error("Erro ao buscar assinatura:", subError);
+      return new Response(
+        JSON.stringify({ error: "Erro ao buscar assinatura" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!subscription?.stripe_customer_id) {
       return new Response(

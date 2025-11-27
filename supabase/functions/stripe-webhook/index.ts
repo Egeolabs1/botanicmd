@@ -168,11 +168,16 @@ async function handleSubscriptionUpdated(
   const customerId = subscription.customer as string;
 
   // Buscar assinatura no banco pelo customer_id
-  const { data: existingSub } = await supabase
+  const { data: existingSub, error: subError } = await supabase
     .from("subscriptions")
     .select("user_id")
     .eq("stripe_customer_id", customerId)
-    .single();
+    .maybeSingle();
+
+  if (subError) {
+    console.error(`Erro ao buscar assinatura para customer ${customerId}:`, subError);
+    return;
+  }
 
   if (!existingSub) {
     console.error(`Assinatura não encontrada para customer ${customerId}`);
@@ -229,11 +234,16 @@ async function handlePaymentSucceeded(
     return;
   }
 
-  const { data: existingSub } = await supabase
+  const { data: existingSub, error: subError } = await supabase
     .from("subscriptions")
     .select("user_id")
     .eq("stripe_customer_id", customerId)
-    .single();
+    .maybeSingle();
+
+  if (subError) {
+    console.error(`Erro ao buscar assinatura para customer ${customerId}:`, subError);
+    return;
+  }
 
   if (existingSub) {
     await supabase
