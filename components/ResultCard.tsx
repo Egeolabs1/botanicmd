@@ -330,35 +330,36 @@ export const ResultCard: React.FC<ResultCardProps> = ({ data, imagePreview, onRe
 
   // Renderização Padrão (Card Interativo)
   return (
-    <div id="plant-result-card" className="print-card w-full max-w-5xl mx-auto bg-white shadow-xl rounded-3xl overflow-hidden border border-nature-100 animate-fade-in transition-all duration-300">
+    <div id="plant-result-card" className="print-card w-full max-w-5xl mx-auto bg-gradient-to-br from-white via-white to-nature-50/30 shadow-2xl rounded-3xl overflow-hidden border border-nature-100/50 animate-fade-in transition-all duration-300">
       
       <div className="md:flex md:items-start">
         {/* Coluna da Imagem */}
-        <div className="md:w-1/3 relative bg-gray-50">
+        <div className="md:w-1/3 relative bg-gradient-to-br from-nature-50 to-nature-100/50">
           <div className="md:sticky md:top-0 md:p-6">
-            <div className="relative rounded-2xl overflow-hidden md:shadow-md md:border md:border-gray-100 bg-white aspect-[3/4]">
+            <div className="relative rounded-2xl overflow-hidden md:shadow-2xl md:border-2 md:border-white/80 bg-white aspect-[3/4] group">
               <img 
                 src={imgSrc} 
                 onError={handleImageError}
                 alt={data.commonName} 
-                className="w-full h-full object-cover block"
+                className="w-full h-full object-cover block transition-transform duration-700 group-hover:scale-105"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
           </div>
         </div>
 
         {/* Coluna de Conteúdo */}
-        <div className="md:w-2/3 relative">
+        <div className="md:w-2/3 relative bg-white">
           <div 
             ref={scrollContainerRef}
             className="p-6 md:p-8 space-y-6 md:max-h-[85vh] md:overflow-y-auto scrollbar-hide"
           >
             {/* Cabeçalho Card */}
-            <div className="border-b border-gray-100 pb-4">
+            <div className="border-b border-gradient-to-r from-transparent via-nature-100 to-transparent pb-6 bg-gradient-to-r from-nature-50/50 via-transparent to-transparent -mx-6 md:-mx-8 px-6 md:px-8 pt-2">
               <div className="flex flex-col md:flex-row justify-between items-start gap-4 md:gap-0">
-                <div>
-                  <h2 className="text-2xl md:text-3xl font-bold text-nature-900">{data.commonName}</h2>
-                  <p className="text-nature-600 italic text-lg">{data.scientificName}</p>
+                <div className="space-y-1">
+                  <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-nature-700 to-nature-600 bg-clip-text text-transparent">{data.commonName}</h2>
+                  <p className="text-nature-500 italic text-base font-medium">{data.scientificName}</p>
                 </div>
                 
                 <div className="flex flex-col w-full md:w-auto gap-3 no-print">
@@ -405,25 +406,25 @@ export const ResultCard: React.FC<ResultCardProps> = ({ data, imagePreview, onRe
               </div>
             </div>
 
-            <p className="text-gray-600 leading-relaxed text-justify">
+            <p className="text-gray-700 leading-relaxed text-base bg-gradient-to-r from-gray-50 to-transparent p-4 rounded-xl border border-gray-100/50">
               {data.description}
             </p>
             
             {/* Locked Fun Fact */}
             {isPro ? (
               data.funFact && (
-                <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-4 flex gap-3 items-start">
-                  <div className="text-yellow-600 mt-0.5"><Lightbulb className="w-5 h-5" /></div>
-                  <div>
-                    <span className="block text-xs font-bold text-yellow-600 uppercase tracking-wider mb-1">{t('fun_fact')}</span>
-                    <p className="text-gray-700 italic text-sm">{data.funFact}</p>
+                <div className="bg-gradient-to-br from-yellow-50 via-amber-50 to-yellow-50 border-2 border-yellow-200/50 rounded-2xl p-5 flex gap-4 items-start shadow-lg shadow-yellow-100/50 hover:shadow-xl hover:shadow-yellow-200/50 transition-all duration-300">
+                  <div className="bg-gradient-to-br from-yellow-400 to-amber-500 p-3 rounded-xl shadow-md text-white mt-0.5"><Lightbulb className="w-6 h-6" /></div>
+                  <div className="flex-1">
+                    <span className="block text-xs font-bold text-yellow-700 uppercase tracking-wider mb-2">{t('fun_fact')}</span>
+                    <p className="text-gray-800 italic text-sm leading-relaxed font-medium">{data.funFact}</p>
                   </div>
                 </div>
               )
             ) : (
-              <div onClick={onUpgrade} className="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-4 flex justify-center items-center gap-2 cursor-pointer hover:bg-gray-100 transition-colors group">
-                 <Lock className="w-4 h-4 text-gray-400 group-hover:text-nature-600" />
-                 <span className="text-sm text-gray-500 font-medium group-hover:text-nature-700">{t('fun_fact_locked')}</span>
+              <div onClick={onUpgrade} className="bg-gradient-to-br from-gray-50 to-gray-100/50 border-2 border-dashed border-gray-300 rounded-2xl p-5 flex justify-center items-center gap-3 cursor-pointer hover:border-nature-400 hover:bg-gradient-to-br hover:from-nature-50 hover:to-nature-100/30 transition-all duration-300 group shadow-sm hover:shadow-md">
+                 <Lock className="w-5 h-5 text-gray-400 group-hover:text-nature-600 transition-colors" />
+                 <span className="text-sm text-gray-600 font-semibold group-hover:text-nature-700 transition-colors">{t('fun_fact_locked')}</span>
               </div>
             )}
 
@@ -452,35 +453,39 @@ export const ResultCard: React.FC<ResultCardProps> = ({ data, imagePreview, onRe
             {/* Toxicity (Open) & Propagation (Locked) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Toxicity */}
-                <div className={`p-4 rounded-xl border flex gap-3 items-center ${isToxic ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
-                    <div className={`p-2 rounded-full ${isToxic ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-                      {isToxic ? <Skull className="w-5 h-5" /> : <Shield className="w-5 h-5" />}
+                <div className={`p-5 rounded-2xl border-2 flex gap-4 items-center shadow-lg hover:shadow-xl transition-all duration-300 ${
+                  isToxic 
+                    ? 'bg-gradient-to-br from-red-50 via-red-50/50 to-red-100/30 border-red-200/50 hover:border-red-300' 
+                    : 'bg-gradient-to-br from-green-50 via-emerald-50/50 to-green-100/30 border-green-200/50 hover:border-green-300'
+                }`}>
+                    <div className={`p-3 rounded-xl shadow-md ${isToxic ? 'bg-gradient-to-br from-red-500 to-red-600 text-white' : 'bg-gradient-to-br from-green-500 to-emerald-600 text-white'}`}>
+                      {isToxic ? <Skull className="w-6 h-6" /> : <Shield className="w-6 h-6" />}
                     </div>
-                    <div>
-                      <span className={`block text-xs font-bold uppercase tracking-wider ${isToxic ? 'text-red-500' : 'text-green-600'}`}>{t('toxicity')}</span>
-                      <span className="text-sm text-gray-800 font-medium">{data.toxicity}</span>
+                    <div className="flex-1">
+                      <span className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${isToxic ? 'text-red-700' : 'text-green-700'}`}>{t('toxicity')}</span>
+                      <span className="text-sm text-gray-800 font-semibold leading-snug">{data.toxicity}</span>
                     </div>
                 </div>
                 
                 {/* Propagation */}
                 {isPro ? (
-                  <div className="p-4 rounded-xl border border-purple-100 bg-purple-50 flex gap-3 items-center">
-                      <div className="p-2 rounded-full bg-purple-100 text-purple-600"><Scissors className="w-5 h-5" /></div>
-                      <div>
-                        <span className="block text-xs font-bold text-purple-500 uppercase tracking-wider">{t('propagation')}</span>
-                        <span className="text-sm text-gray-800 font-medium">{data.propagation}</span>
+                  <div className="p-5 rounded-2xl border-2 border-purple-200/50 bg-gradient-to-br from-purple-50 via-purple-50/50 to-purple-100/30 flex gap-4 items-center shadow-lg hover:shadow-xl hover:border-purple-300 transition-all duration-300">
+                      <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-md"><Scissors className="w-6 h-6" /></div>
+                      <div className="flex-1">
+                        <span className="block text-xs font-bold text-purple-700 uppercase tracking-wider mb-1.5">{t('propagation')}</span>
+                        <span className="text-sm text-gray-800 font-semibold leading-snug">{data.propagation}</span>
                       </div>
                   </div>
                 ) : (
-                  <div onClick={onUpgrade} className="p-4 rounded-xl border border-gray-200 bg-gray-50 flex gap-3 items-center relative overflow-hidden cursor-pointer hover:bg-gray-100 transition-colors group">
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 backdrop-blur-[2px] z-10">
-                         <Lock className="w-4 h-4 text-gray-400 mb-1 group-hover:text-nature-600" />
-                         <span className="text-xs font-bold text-gray-500 group-hover:text-nature-700">{t('pro_feature')}</span>
+                  <div onClick={onUpgrade} className="p-5 rounded-2xl border-2 border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100/50 flex gap-4 items-center relative overflow-hidden cursor-pointer hover:border-nature-300 hover:shadow-lg transition-all duration-300 group">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm z-10 rounded-2xl">
+                         <Lock className="w-5 h-5 text-gray-400 mb-2 group-hover:text-nature-600 transition-colors" />
+                         <span className="text-xs font-bold text-gray-600 group-hover:text-nature-700 transition-colors">{t('pro_feature')}</span>
                       </div>
-                      <div className="p-2 rounded-full bg-purple-50 text-purple-200"><Scissors className="w-5 h-5" /></div>
-                      <div>
-                        <span className="block text-xs font-bold text-gray-300 uppercase tracking-wider">{t('propagation')}</span>
-                        <div className="h-4 w-24 bg-gray-200 rounded mt-1"></div>
+                      <div className="p-3 rounded-xl bg-gray-200/50 text-gray-300"><Scissors className="w-6 h-6" /></div>
+                      <div className="flex-1">
+                        <span className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">{t('propagation')}</span>
+                        <div className="h-4 w-28 bg-gray-200/70 rounded mt-1"></div>
                       </div>
                   </div>
                 )}
@@ -499,33 +504,33 @@ export const ResultCard: React.FC<ResultCardProps> = ({ data, imagePreview, onRe
               </div>
 
               {isPro ? (
-                <div className="grid gap-4 mt-4 grid-cols-1 sm:grid-cols-2">
-                  <div className="bg-blue-50 p-4 rounded-xl flex gap-3 items-start border border-blue-100">
-                    <div className="bg-white p-2 rounded-lg shadow-sm text-blue-500"><Droplet className="w-5 h-5" /></div>
-                    <div>
-                      <span className="block text-xs font-bold text-blue-400 uppercase tracking-wider">{t('water')}</span>
-                      <span className="text-sm text-gray-700">{data.care.water}</span>
+                <div className="grid gap-4 mt-5 grid-cols-1 sm:grid-cols-2">
+                  <div className="bg-gradient-to-br from-blue-50 via-blue-50/50 to-blue-100/30 p-5 rounded-2xl flex gap-4 items-start border-2 border-blue-200/50 shadow-md hover:shadow-lg hover:border-blue-300 transition-all duration-300 group">
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-xl shadow-lg text-white group-hover:scale-110 transition-transform"><Droplet className="w-6 h-6" /></div>
+                    <div className="flex-1">
+                      <span className="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">{t('water')}</span>
+                      <span className="text-sm text-gray-800 font-medium leading-relaxed">{data.care.water}</span>
                     </div>
                   </div>
-                  <div className="bg-amber-50 p-4 rounded-xl flex gap-3 items-start border border-amber-100">
-                    <div className="bg-white p-2 rounded-lg shadow-sm text-amber-500"><Sun className="w-5 h-5" /></div>
-                    <div>
-                      <span className="block text-xs font-bold text-amber-400 uppercase tracking-wider">{t('light')}</span>
-                      <span className="text-sm text-gray-700">{data.care.light}</span>
+                  <div className="bg-gradient-to-br from-amber-50 via-yellow-50/50 to-amber-100/30 p-5 rounded-2xl flex gap-4 items-start border-2 border-amber-200/50 shadow-md hover:shadow-lg hover:border-amber-300 transition-all duration-300 group">
+                    <div className="bg-gradient-to-br from-amber-500 to-orange-500 p-3 rounded-xl shadow-lg text-white group-hover:scale-110 transition-transform"><Sun className="w-6 h-6" /></div>
+                    <div className="flex-1">
+                      <span className="block text-xs font-bold text-amber-600 uppercase tracking-wider mb-2">{t('light')}</span>
+                      <span className="text-sm text-gray-800 font-medium leading-relaxed">{data.care.light}</span>
                     </div>
                   </div>
-                  <div className="bg-stone-50 p-4 rounded-xl flex gap-3 items-start border border-stone-200">
-                    <div className="bg-white p-2 rounded-lg shadow-sm text-stone-600"><Sprout className="w-5 h-5" /></div>
-                    <div>
-                      <span className="block text-xs font-bold text-stone-400 uppercase tracking-wider">{t('soil')}</span>
-                      <span className="text-sm text-gray-700">{data.care.soil}</span>
+                  <div className="bg-gradient-to-br from-stone-50 via-neutral-50/50 to-stone-100/30 p-5 rounded-2xl flex gap-4 items-start border-2 border-stone-200/50 shadow-md hover:shadow-lg hover:border-stone-300 transition-all duration-300 group">
+                    <div className="bg-gradient-to-br from-stone-600 to-stone-700 p-3 rounded-xl shadow-lg text-white group-hover:scale-110 transition-transform"><Sprout className="w-6 h-6" /></div>
+                    <div className="flex-1">
+                      <span className="block text-xs font-bold text-stone-600 uppercase tracking-wider mb-2">{t('soil')}</span>
+                      <span className="text-sm text-gray-800 font-medium leading-relaxed">{data.care.soil}</span>
                     </div>
                   </div>
-                  <div className="bg-orange-50 p-4 rounded-xl flex gap-3 items-start border border-orange-100">
-                    <div className="bg-white p-2 rounded-lg shadow-sm text-orange-500"><Thermometer className="w-5 h-5" /></div>
-                    <div>
-                      <span className="block text-xs font-bold text-orange-400 uppercase tracking-wider">{t('climate')}</span>
-                      <span className="text-sm text-gray-700">{data.care.temperature}</span>
+                  <div className="bg-gradient-to-br from-orange-50 via-red-50/50 to-orange-100/30 p-5 rounded-2xl flex gap-4 items-start border-2 border-orange-200/50 shadow-md hover:shadow-lg hover:border-orange-300 transition-all duration-300 group">
+                    <div className="bg-gradient-to-br from-orange-500 to-red-500 p-3 rounded-xl shadow-lg text-white group-hover:scale-110 transition-transform"><Thermometer className="w-6 h-6" /></div>
+                    <div className="flex-1">
+                      <span className="block text-xs font-bold text-orange-600 uppercase tracking-wider mb-2">{t('climate')}</span>
+                      <span className="text-sm text-gray-800 font-medium leading-relaxed">{data.care.temperature}</span>
                     </div>
                   </div>
                 </div>
@@ -546,9 +551,29 @@ export const ResultCard: React.FC<ResultCardProps> = ({ data, imagePreview, onRe
               )}
             </div>
 
-            <div className={`rounded-2xl p-6 border-2 relative ${isPro ? (data.health.isHealthy ? 'bg-nature-50 border-nature-100' : 'bg-red-50 border-red-100') : 'bg-gray-50 border-gray-100'}`}>
-              <h3 className={`text-xl font-bold flex items-center gap-2 mb-4 ${isPro ? (data.health.isHealthy ? 'text-nature-800' : 'text-red-800') : 'text-gray-800'}`}>
-                {isPro ? (data.health.isHealthy ? <HeartPulse className="w-6 h-6" /> : <Bug className="w-6 h-6" />) : <HeartPulse className="w-6 h-6" />}
+            <div className={`rounded-3xl p-6 md:p-8 border-2 relative shadow-xl ${
+              isPro 
+                ? (data.health.isHealthy 
+                    ? 'bg-gradient-to-br from-green-50 via-nature-50/50 to-emerald-50/30 border-green-200/50' 
+                    : 'bg-gradient-to-br from-red-50 via-rose-50/50 to-red-100/30 border-red-200/50')
+                : 'bg-gradient-to-br from-gray-50 to-gray-100/50 border-gray-200'
+            }`}>
+              <h3 className={`text-2xl font-bold flex items-center gap-3 mb-5 ${
+                isPro 
+                  ? (data.health.isHealthy 
+                      ? 'text-green-700' 
+                      : 'text-red-700') 
+                  : 'text-gray-700'
+              }`}>
+                <div className={`p-2.5 rounded-xl shadow-md ${
+                  isPro 
+                    ? (data.health.isHealthy 
+                        ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white' 
+                        : 'bg-gradient-to-br from-red-500 to-rose-600 text-white')
+                    : 'bg-gray-400 text-white'
+                }`}>
+                  {isPro ? (data.health.isHealthy ? <HeartPulse className="w-6 h-6" /> : <Bug className="w-6 h-6" />) : <HeartPulse className="w-6 h-6" />}
+                </div>
                 {t('health_diagnosis')}
               </h3>
               
