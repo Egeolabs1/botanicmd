@@ -108,38 +108,78 @@ export const AppMain: React.FC = () => {
           alert("✨ Simulação de pagamento bem-sucedida! Você agora é PRO! 🌟");
         } else if (sessionId) {
           // Verifica o status real da sessão de checkout
+          console.log('💳 Processando pagamento com session_id:', sessionId);
           try {
             const { verifyCheckoutSession, syncUserPlan } = await import('../services/subscriptionService');
-            const isValid = await verifyCheckoutSession(sessionId);
+            
+            // Primeira tentativa - aguarda o webhook processar
+            let isValid = await verifyCheckoutSession(sessionId);
             
             if (isValid) {
               const newPlan = await syncUserPlan();
               if (newPlan === 'pro') {
                 upgradeToPro();
-                // Mostrar mensagem de sucesso
+                alert('✅ Pagamento confirmado! Você agora é PRO! 🌟');
                 console.log('✅ Pagamento confirmado! Seu plano foi atualizado.');
+              } else {
+                console.warn('⚠️ Plano não sincronizado corretamente:', newPlan);
               }
             } else {
-              // Aguarda mais tempo para o webhook processar
+              // Segunda tentativa após mais tempo (webhook pode demorar)
+              console.log('⏳ Webhook pode estar processando, aguardando mais 5 segundos...');
               setTimeout(async () => {
                 const retryIsValid = await verifyCheckoutSession(sessionId);
                 if (retryIsValid) {
                   const retryPlan = await syncUserPlan();
                   if (retryPlan === 'pro') {
                     upgradeToPro();
-                    console.log('✅ Pagamento confirmado! Seu plano foi atualizado.');
+                    alert('✅ Pagamento confirmado! Você agora é PRO! 🌟');
+                    console.log('✅ Pagamento confirmado após retry! Seu plano foi atualizado.');
                   }
+                } else {
+                  // Terceira tentativa - força verificação
+                  console.log('⏳ Última tentativa de verificação...');
+                  setTimeout(async () => {
+                    const finalPlan = await syncUserPlan();
+                    if (finalPlan === 'pro') {
+                      upgradeToPro();
+                      alert('✅ Pagamento confirmado! Você agora é PRO! 🌟');
+                    } else {
+                      console.error('❌ Não foi possível verificar o pagamento. Verifique no Stripe Dashboard se o pagamento foi processado.');
+                      alert('⚠️ Pagamento recebido, mas a verificação está demorando. Recarregue a página em alguns instantes ou entre em contato com o suporte.');
+                    }
+                  }, 5000);
                 }
-              }, 3000);
+              }, 5000);
             }
           } catch (error) {
-            console.error('Erro ao verificar sessão de checkout:', error);
-            // Em caso de erro, tenta fazer upgrade mesmo assim (o webhook pode ter processado)
-            upgradeToPro();
+            console.error('❌ Erro ao verificar sessão de checkout:', error);
+            // Tenta sincronizar o plano mesmo assim
+            try {
+              const { syncUserPlan } = await import('../services/subscriptionService');
+              const plan = await syncUserPlan();
+              if (plan === 'pro') {
+                upgradeToPro();
+                alert('✅ Seu plano foi atualizado!');
+              }
+            } catch (syncError) {
+              console.error('❌ Erro ao sincronizar plano:', syncError);
+              alert('⚠️ Erro ao verificar pagamento. Se o pagamento foi processado, recarregue a página ou entre em contato com o suporte.');
+            }
           }
         } else {
-          // Fallback: apenas faz upgrade se não tiver session_id
-          upgradeToPro();
+          // Fallback: tenta sincronizar o plano mesmo sem session_id
+          console.log('⚠️ Sem session_id, tentando sincronizar plano...');
+          try {
+            const { syncUserPlan } = await import('../services/subscriptionService');
+            const plan = await syncUserPlan();
+            if (plan === 'pro') {
+              upgradeToPro();
+              alert('✅ Seu plano foi atualizado!');
+            }
+          } catch (error) {
+            console.error('❌ Erro ao sincronizar plano:', error);
+          }
         }
         
         // Limpa a URL para não reprocessar ao atualizar

@@ -81,14 +81,29 @@ export async function hasActiveSubscription(): Promise<boolean> {
  * Sincroniza o plano do usuário com a assinatura no banco
  */
 export async function syncUserPlan(): Promise<PlanType> {
+  console.log('🔄 Sincronizando plano do usuário...');
+  
   const subscription = await getUserSubscription();
   
-  if (!subscription || subscription.status !== 'active') {
+  if (!subscription) {
+    console.log('⚠️ Nenhuma assinatura encontrada, retornando plano gratuito');
+    return 'free';
+  }
+  
+  console.log('📋 Assinatura encontrada:', {
+    status: subscription.status,
+    plan_type: subscription.plan_type,
+    user_id: subscription.user_id
+  });
+  
+  if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+    console.log('⚠️ Assinatura não está ativa, status:', subscription.status);
     return 'free';
   }
 
   // Mapeia plan_type para o tipo de plano do sistema
   // Para o sistema, tanto monthly quanto annual são 'pro'
+  console.log('✅ Plano sincronizado: PRO');
   return 'pro';
 }
 
@@ -123,23 +138,35 @@ export async function createPortalSession(returnUrl: string): Promise<string | n
  */
 export async function verifyCheckoutSession(sessionId: string): Promise<boolean> {
   if (!isSupabaseConfigured || !sessionId) {
+    console.warn('⚠️ verifyCheckoutSession: Supabase não configurado ou sessionId ausente');
     return false;
   }
 
   try {
-    // Aguarda um pouco para garantir que o webhook processou
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.log('🔍 Verificando sessão de checkout:', sessionId);
+    
+    // Aguarda um pouco para garantir que o webhook processou (aumentado para 5 segundos)
+    console.log('⏳ Aguardando 5 segundos para o webhook processar...');
+    await new Promise(resolve => setTimeout(resolve, 5000));
 
     // Verifica se a assinatura foi criada/atualizada
     const subscription = await getUserSubscription();
     
+    console.log('📋 Status da assinatura:', subscription ? {
+      status: subscription.status,
+      plan_type: subscription.plan_type,
+      user_id: subscription.user_id
+    } : 'Nenhuma assinatura encontrada');
+    
     if (subscription && (subscription.status === 'active' || subscription.status === 'trialing')) {
+      console.log('✅ Assinatura ativa encontrada!');
       return true;
     }
 
+    console.warn('⚠️ Assinatura não encontrada ou não está ativa');
     return false;
   } catch (error) {
-    console.error('Erro ao verificar sessão de checkout:', error);
+    console.error('❌ Erro ao verificar sessão de checkout:', error);
     return false;
   }
 }
