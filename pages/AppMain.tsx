@@ -505,7 +505,10 @@ export const AppMain: React.FC = () => {
           </div>
         </div>
       }>
-        <AdminDashboard onExit={() => navigate('/app')} />
+        <AdminDashboard onExit={() => {
+          setAppState(AppState.IDLE);
+          navigate('/app', { replace: true });
+        }} />
       </Suspense>
     );
   }
