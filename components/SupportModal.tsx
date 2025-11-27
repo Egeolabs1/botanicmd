@@ -65,6 +65,8 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
           <button 
             onClick={onClose} 
             className="text-gray-400 hover:text-gray-600 hover:bg-white p-2 rounded-full transition-all"
+            aria-label="Fechar modal de suporte"
+            title="Fechar"
           >
             <X className="w-6 h-6" />
           </button>
