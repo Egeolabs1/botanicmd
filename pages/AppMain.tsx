@@ -435,12 +435,22 @@ export const AppMain: React.FC = () => {
     // Garante que a imagem existe ou usa placeholder
     const imageToShow = plant.image || PLACEHOLDER_PLANT_IMAGE;
     
+    // Scroll para o topo ANTES de mudar o estado
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    
     setPlantData(plant.data);
     setImagePreview(imageToShow);
     setAppState(AppState.SUCCESS);
     
-    // Scroll para o topo
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Garante scroll após renderização (fallback)
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Também tenta scrollar o elemento main se existir
+      const mainElement = document.querySelector('main');
+      if (mainElement) {
+        mainElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   const resetApp = () => {
