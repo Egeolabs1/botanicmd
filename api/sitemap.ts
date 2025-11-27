@@ -35,7 +35,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             author: row.author,
             date: row.date || new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
             imageUrl: row.image_url || '',
-            slug: row.slug || generateUniqueSlug(row.title, row.id)
+            slug: row.slug || generateUniqueSlug(row.title, row.id),
+            dateModified: row.date_modified ? new Date(row.date_modified).toISOString() : undefined
           }));
         }
       } catch (supabaseError) {

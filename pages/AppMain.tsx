@@ -24,7 +24,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { storage, SavedPlant } from '../services/storageService';
 import { historyService } from '../services/historyService';
 import { isAdmin } from '../services/adminAuthService';
-import { SEOHead, getWebApplicationSchema } from '../components/SEOHead';
+import { SEOHead, getWebApplicationSchema, getSoftwareApplicationSchema, breadcrumbSchema } from '../components/SEOHead';
 
 const PLACEHOLDER_PLANT_IMAGE = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23dcfce7;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%2386efac;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='400' fill='url(%23grad)' /%3E%3Cpath d='M200 100c0 0 40 60 40 100s-20 60-40 80c-20-20-40-40-40-80s40-100 40-100z' fill='%2315803d' opacity='0.6'/%3E%3Cpath d='M200 280v60' stroke='%2315803d' stroke-width='8' stroke-linecap='round' /%3E%3Ccircle cx='200' cy='200' r='140' stroke='%23fff' stroke-width='4' fill='none' opacity='0.5' /%3E%3C/svg%3E`;
 
@@ -510,10 +510,42 @@ export const AppMain: React.FC = () => {
     );
   }
 
+  // Gera keywords baseadas no idioma para o app
+  const generateAppKeywords = (lang: string): string => {
+    const keywords: { [key: string]: string } = {
+      'pt': 'app identificar plantas, app plantas, identificação plantas app, diagnóstico plantas app, jardinagem app, IA plantas app',
+      'en': 'plant identification app, plant app, plant ID app, plant diagnosis app, gardening app, AI plants app',
+      'es': 'app identificar plantas, app plantas, identificación plantas app, diagnóstico plantas app, jardinería app, IA plantas app',
+      'fr': 'app identification plantes, app plantes, identification plantes app, diagnostic plantes app, jardinage app, IA plantes app',
+      'de': 'Pflanzen App, Pflanzen identifizieren App, Pflanzendiagnose App, Garten App, KI Pflanzen App',
+      'it': 'app identificare piante, app piante, identificazione piante app, diagnosi piante app, giardinaggio app, IA piante app',
+      'zh': '植物识别应用, 植物应用, 植物识别应用, 植物诊断应用, 园艺应用, AI植物应用',
+      'ru': 'приложение идентификация растений, приложение растений, идентификация растений приложение, диагностика растений приложение, садоводство приложение, ИИ растения приложение',
+      'hi': 'पौधे पहचान ऐप, पौधे ऐप, पौधे पहचान ऐप, पौधे निदान ऐप, बागवानी ऐप, AI पौधे ऐप'
+    };
+    return keywords[lang] || keywords['en'];
+  };
+
+  // Breadcrumbs para o app
+  const breadcrumbs = breadcrumbSchema([
+    { name: t('app_name'), url: 'https://botanicmd.com/' },
+    { name: 'App', url: 'https://botanicmd.com/app' }
+  ]);
+
+  // Structured data para o app
+  const appStructuredData = [
+    getWebApplicationSchema(t, language),
+    getSoftwareApplicationSchema(t, language),
+    breadcrumbs
+  ];
+
   return (
     <div className="min-h-screen bg-white text-gray-800 font-sans pb-20 md:pb-12 selection:bg-nature-200">
       <SEOHead 
-        structuredData={getWebApplicationSchema(t, language)}
+        title={`${t('app_name')} - ${t('tagline')} | App`}
+        description={`Use ${t('app_name')} para identificar plantas, diagnosticar doenças e cuidar do seu jardim com IA. ${t('hero_subtitle')}`}
+        keywords={generateAppKeywords(language)}
+        structuredData={appStructuredData}
         url="https://botanicmd.com/app"
       />
       <PWAInstallPrompt />

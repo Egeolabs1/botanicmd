@@ -208,7 +208,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({ data, imagePreview, onRe
            <div className="flex gap-8 mb-10 items-start break-inside-avoid">
               <div className="w-[35%] flex-shrink-0">
                  <div className="rounded-lg overflow-hidden shadow-sm border border-gray-100 aspect-[3/4]">
-                    <img src={imgSrc} className="w-full h-full object-cover" alt={data.commonName} style={{ objectPosition: 'center' }} />
+                    <img src={imgSrc} className="w-full h-full object-cover" alt={`${data.commonName} (${data.scientificName}) - Plant identification result from BotanicMD`} style={{ objectPosition: 'center' }} loading="lazy" />
                  </div>
               </div>
               

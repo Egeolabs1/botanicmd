@@ -11,13 +11,16 @@
     "preview": "vite preview",
     "setup:supabase": "node scripts/setup-supabase.mjs",
     "verify:supabase": "node scripts/verify-supabase.mjs",
-    "migrate:blog-slugs": "node scripts/migrate-blog-slugs.mjs"
+    "migrate:blog-slugs": "node scripts/migrate-blog-slugs.mjs",
+    "migrate:blog-date-modified": "node scripts/migrate-blog-date-modified.mjs",
+    "generate:og-image": "node scripts/generate-og-image.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",
     "@supabase/supabase-js": "2.39.3",
     "@vercel/analytics": "^1.5.0",
     "dompurify": "^3.0.8",
+    "puppeteer": "^24.31.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.6",

@@ -372,7 +372,8 @@ class BlogService {
               author: row.author,
               date: row.date || new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
               imageUrl: row.image_url || '',
-              slug: row.slug || generateUniqueSlug(row.title, row.id)
+              slug: row.slug || generateUniqueSlug(row.title, row.id),
+              dateModified: row.date_modified ? new Date(row.date_modified).toISOString() : undefined
             }));
           }
         }
@@ -390,7 +391,8 @@ class BlogService {
         author: row.author,
         date: row.date || new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         imageUrl: row.image_url || '',
-        slug: row.slug || generateUniqueSlug(row.title, row.id)
+        slug: row.slug || generateUniqueSlug(row.title, row.id),
+        dateModified: row.date_modified ? new Date(row.date_modified).toISOString() : undefined
       }));
 
     } catch (error: any) {
@@ -444,7 +446,7 @@ class BlogService {
       };
 
       if (post.id) {
-        // Update
+        // Update (o trigger no banco atualiza date_modified automaticamente)
         const { data, error } = await supabase
           .from('blog_posts')
           .update(postData)
@@ -463,7 +465,8 @@ class BlogService {
           author: data.author,
           date: data.date || new Date(data.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           imageUrl: data.image_url || '',
-          slug: data.slug || generateUniqueSlug(data.title, data.id)
+          slug: data.slug || generateUniqueSlug(data.title, data.id),
+          dateModified: data.date_modified ? new Date(data.date_modified).toISOString() : undefined
         };
       } else {
         // Create
@@ -484,7 +487,8 @@ class BlogService {
           author: data.author,
           date: data.date || new Date(data.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           imageUrl: data.image_url || '',
-          slug: data.slug || generateUniqueSlug(data.title, data.id)
+          slug: data.slug || generateUniqueSlug(data.title, data.id),
+          dateModified: data.date_modified ? new Date(data.date_modified).toISOString() : undefined
         };
       }
     } catch (error: any) {

@@ -6,7 +6,7 @@ import { useLanguage } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { BlogPost } from '../types';
 import { blogService } from '../services/blogService';
-import { SEOHead } from './SEOHead';
+import { SEOHead, breadcrumbSchema } from './SEOHead';
 import { generateUniqueSlug } from '../utils/slug';
 
 export const BlogPage: React.FC = () => {
@@ -22,7 +22,7 @@ export const BlogPage: React.FC = () => {
       navigate('/');
     }
   };
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [posts, setPosts] = useState<BlogPost[]>([]);
 
   useEffect(() => {
@@ -46,14 +46,37 @@ export const BlogPage: React.FC = () => {
 
   const blogUrl = 'https://botanicmd.com/blog';
 
+  // Gera keywords baseadas no idioma
+  const generateBlogKeywords = (lang: string): string => {
+    const keywords: { [key: string]: string } = {
+      'pt': 'blog plantas, jardinagem, cuidados com plantas, dicas jardinagem, plantas de interior, botânica',
+      'en': 'plant blog, gardening, plant care, gardening tips, indoor plants, botany',
+      'es': 'blog plantas, jardinería, cuidado de plantas, consejos jardinería, plantas de interior, botánica',
+      'fr': 'blog plantes, jardinage, soins des plantes, conseils jardinage, plantes d\'intérieur, botanique',
+      'de': 'Pflanzen Blog, Gartenarbeit, Pflanzenpflege, Gartentipps, Zimmerpflanzen, Botanik',
+      'it': 'blog piante, giardinaggio, cura delle piante, consigli giardinaggio, piante da interno, botanica',
+      'zh': '植物博客, 园艺, 植物护理, 园艺技巧, 室内植物, 植物学',
+      'ru': 'блог о растениях, садоводство, уход за растениями, советы по садоводству, комнатные растения, ботаника',
+      'hi': 'पौधे ब्लॉग, बागवानी, पौधे की देखभाल, बागवानी युक्तियाँ, इनडोर पौधे, वनस्पति विज्ञान'
+    };
+    return keywords[lang] || keywords['en'];
+  };
+
+  // Breadcrumbs structured data
+  const breadcrumbs = breadcrumbSchema([
+    { name: t('app_name'), url: 'https://botanicmd.com/' },
+    { name: 'Blog', url: blogUrl }
+  ]);
+
   return (
     <>
       <SEOHead
         title={`Blog | ${t('app_name')}`}
         description={t('blog_subtitle')}
-        keywords="blog plantas, jardinagem, cuidados com plantas, dicas jardinagem"
+        keywords={generateBlogKeywords(language)}
         url={blogUrl}
         type="website"
+        structuredData={breadcrumbs}
       />
       
       <div className="min-h-screen bg-gray-50 font-sans animate-fade-in">
@@ -88,7 +111,7 @@ export const BlogPage: React.FC = () => {
                 to={`/blog/${posts[0].slug}`}
                 className="relative rounded-[2rem] overflow-hidden bg-gray-900 group cursor-pointer h-[500px] block"
               >
-                <img src={posts[0].imageUrl} alt={posts[0].title} className="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-700" />
+                <img src={posts[0].imageUrl} alt={`${posts[0].title} - ${posts[0].category} - BotanicMD Blog`} className="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-700" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                 <div className="absolute bottom-0 left-0 p-8 md:p-12 max-w-3xl">
                   <span className="bg-nature-600 text-white px-3 py-1 rounded-full text-sm font-bold uppercase tracking-wider mb-4 inline-block">
@@ -120,7 +143,7 @@ export const BlogPage: React.FC = () => {
               >
                 <article className="flex flex-col h-full">
                   <div className="h-56 overflow-hidden relative">
-                    <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <img src={post.imageUrl} alt={`${post.title} - ${post.category} - BotanicMD Blog`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                     <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm">
                       {post.category}
                     </span>

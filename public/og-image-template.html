@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            width: 1200px;
+            height: 630px;
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="1200" height="630" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            color: white;
+            padding: 60px;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .logo-icon {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+        
+        .logo-icon svg {
+            width: 80px;
+            height: 80px;
+        }
+        
+        .logo-text {
+            text-align: left;
+        }
+        
+        .logo-text h2 {
+            font-size: 72px;
+            font-weight: 800;
+            margin: 0;
+            line-height: 1;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .tagline {
+            font-size: 32px;
+            font-weight: 400;
+            margin-top: 12px;
+            opacity: 0.95;
+            letter-spacing: -0.5px;
+        }
+        
+        .subtitle {
+            font-size: 36px;
+            font-weight: 600;
+            margin-top: 50px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .features {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            margin-top: 40px;
+            font-size: 24px;
+            font-weight: 500;
+        }
+        
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .feature-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" fill="#22c55e" stroke="none"/>
+                    <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" stroke="#15803d"/>
+                </svg>
+            </div>
+            <div class="logo-text">
+                <h2>BotanicMD</h2>
+                <div class="tagline">Identify, Diagnose, Heal.</div>
+            </div>
+        </div>
+        
+        <div class="subtitle">AI-Powered Plant Identification</div>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🌿</div>
+                <span>1M+ Plants</span>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎯</div>
+                <span>98% Accuracy</span>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⭐</div>
+                <span>10k+ Users</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

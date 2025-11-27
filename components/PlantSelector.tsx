@@ -30,8 +30,9 @@ export const PlantSelector: React.FC<PlantSelectorProps> = ({ candidates, onSele
               {plant.imageUrl ? (
                 <img 
                   src={plant.imageUrl} 
-                  alt={plant.commonName}
+                  alt={`${plant.commonName} - Plant identification candidate from BotanicMD`}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  loading="lazy"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                     (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');

@@ -70,16 +70,43 @@ export function generateSitemap(posts: BlogPost[]): string {
     })
   ];
 
-  const urlElements = urls.map(url => `  <url>
+  const supportedLanguages = [
+    { code: 'pt', hreflang: 'pt-BR' },
+    { code: 'en', hreflang: 'en-US' },
+    { code: 'es', hreflang: 'es-ES' },
+    { code: 'fr', hreflang: 'fr-FR' },
+    { code: 'de', hreflang: 'de-DE' },
+    { code: 'it', hreflang: 'it-IT' },
+    { code: 'zh', hreflang: 'zh-CN' },
+    { code: 'ru', hreflang: 'ru-RU' },
+    { code: 'hi', hreflang: 'hi-IN' }
+  ];
+
+  const urlElements = urls.map(url => {
+    // Gera links hreflang para cada idioma
+    const hreflangLinks = supportedLanguages.map(({ code, hreflang }) => {
+      const separator = url.loc.includes('?') ? '&' : '?';
+      return `    <xhtml:link rel="alternate" hreflang="${hreflang}" href="${url.loc}${separator}lang=${code}"/>`;
+    }).join('\n');
+    
+    // Adiciona x-default
+    const separator = url.loc.includes('?') ? '&' : '?';
+    const xDefault = `    <xhtml:link rel="alternate" hreflang="x-default" href="${url.loc}${separator}lang=en"/>`;
+    
+    return `  <url>
     <loc>${url.loc}</loc>
     <lastmod>${url.lastmod}</lastmod>
     <changefreq>${url.changefreq}</changefreq>
     <priority>${url.priority}</priority>
-  </url>`).join('\n');
+${hreflangLinks}
+${xDefault}
+  </url>`;
+  }).join('\n');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${urlElements}
 </urlset>`;
 }

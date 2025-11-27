@@ -69,6 +69,7 @@ export interface BlogPost {
   author: string;
   imageUrl: string;
   slug?: string; // URL amigável para SEO
+  dateModified?: string; // Data da última modificação (ISO format)
 }
 
 export interface AdminStats {

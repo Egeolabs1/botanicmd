@@ -5,7 +5,7 @@ import { useLanguage } from '../i18n';
 import { AuthModal } from '../components/AuthModal';
 import { AboutModal } from '../components/AboutModal';
 import { PWAInstallPrompt } from '../components/PWAInstallPrompt';
-import { SEOHead, getOrganizationSchema, getWebApplicationSchema } from '../components/SEOHead';
+import { SEOHead, getOrganizationSchema, getWebApplicationSchema, getSoftwareApplicationSchema, faqSchema, howToSchema, breadcrumbSchema } from '../components/SEOHead';
 import { useAuth } from '../contexts/AuthContext';
 
 export const LandingPage: React.FC = () => {
@@ -36,13 +36,75 @@ export const LandingPage: React.FC = () => {
   };
 
 
+  // Gera keywords baseadas no idioma
+  const generateLandingKeywords = (lang: string): string => {
+    const keywords: { [key: string]: string } = {
+      'pt': 'identificar plantas, diagnóstico plantas, app plantas, IA plantas, jardinagem app, plantas medicinais, identificação plantas IA, app jardinagem, plantas tóxicas, cuidados plantas',
+      'en': 'plant identification, plant diagnosis, plant app, AI plants, gardening app, medicinal plants, plant identification AI, gardening app, toxic plants, plant care',
+      'es': 'identificar plantas, diagnóstico plantas, app plantas, IA plantas, app jardinería, plantas medicinales, identificación plantas IA, plantas tóxicas, cuidado plantas',
+      'fr': 'identification plantes, diagnostic plantes, app plantes, IA plantes, app jardinage, plantes médicinales, identification plantes IA, plantes toxiques, soins plantes',
+      'de': 'Pflanzen identifizieren, Pflanzendiagnose, Pflanzen App, KI Pflanzen, Garten App, Heilpflanzen, Pflanzenidentifikation KI, giftige Pflanzen, Pflanzenpflege',
+      'it': 'identificare piante, diagnosi piante, app piante, IA piante, app giardinaggio, piante medicinali, identificazione piante IA, piante tossiche, cura piante',
+      'zh': '植物识别, 植物诊断, 植物应用, AI植物, 园艺应用, 药用植物, 植物识别AI, 有毒植物, 植物护理',
+      'ru': 'идентификация растений, диагностика растений, приложение растений, ИИ растения, садоводство приложение, лекарственные растения, идентификация растений ИИ, ядовитые растения, уход за растениями',
+      'hi': 'पौधे की पहचान, पौधे का निदान, पौधे ऐप, AI पौधे, बागवानी ऐप, औषधीय पौधे, पौधे पहचान AI, विषैले पौधे, पौधे की देखभाल'
+    };
+    return keywords[lang] || keywords['en'];
+  };
+
+  // FAQ data para structured data
+  const faqs = [
+    { question: t('faq_1_q'), answer: t('faq_1_a') },
+    { question: t('faq_2_q'), answer: t('faq_2_a') },
+    { question: t('faq_3_q'), answer: t('faq_3_a') },
+    { question: t('faq_4_q'), answer: t('faq_4_a') }
+  ];
+
+  // HowTo steps para structured data
+  const howToSteps = [
+    {
+      name: t('step_1_title'),
+      text: t('step_1_desc'),
+      image: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?q=80&w=800&auto=format&fit=crop"
+    },
+    {
+      name: t('step_2_title'),
+      text: t('step_2_desc'),
+      image: "https://images.unsplash.com/photo-1463936575829-25148e1db1b8?q=80&w=800&auto=format&fit=crop"
+    },
+    {
+      name: t('step_3_title'),
+      text: t('step_3_desc'),
+      image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=800&auto=format&fit=crop"
+    }
+  ];
+
+  // Breadcrumbs
+  const breadcrumbs = breadcrumbSchema([
+    { name: t('app_name'), url: 'https://botanicmd.com/' }
+  ]);
+
+  // Structured data completo
+  const structuredData = [
+    getOrganizationSchema(t, language),
+    getWebApplicationSchema(t, language),
+    getSoftwareApplicationSchema(t, language),
+    faqSchema(faqs),
+    howToSchema(howToSteps),
+    breadcrumbs
+  ];
+
+  // Meta description melhorada
+  const enhancedDescription = `${t('hero_subtitle')} Identifique mais de 1 milhão de plantas, diagnostique doenças com 98% de precisão. Mais de 10.000 jardineiros confiam no BotanicMD. Grátis!`;
+
   return (
     <>
       <SEOHead 
-        structuredData={[
-          getOrganizationSchema(t, language),
-          getWebApplicationSchema(t, language)
-        ]}
+        title={`${t('app_name')} - ${t('tagline')} | ${t('hero_subtitle')}`}
+        description={enhancedDescription}
+        keywords={generateLandingKeywords(language)}
+        image="https://botanicmd.com/og-image.jpg"
+        structuredData={structuredData}
         url="https://botanicmd.com/"
       />
       <div className="min-h-screen bg-white font-sans selection:bg-nature-200 selection:text-nature-900 overflow-x-hidden">
@@ -115,9 +177,9 @@ export const LandingPage: React.FC = () => {
 
               <div className="pt-6 flex items-center gap-4 justify-center md:justify-start">
                  <div className="flex -space-x-3">
-                   <img src="https://i.pravatar.cc/100?img=1" alt="User" className="w-10 h-10 rounded-full border-2 border-white" />
-                   <img src="https://i.pravatar.cc/100?img=2" alt="User" className="w-10 h-10 rounded-full border-2 border-white" />
-                   <img src="https://i.pravatar.cc/100?img=3" alt="User" className="w-10 h-10 rounded-full border-2 border-white" />
+                   <img src="https://i.pravatar.cc/100?img=1" alt="BotanicMD user - Plant identification community member" className="w-10 h-10 rounded-full border-2 border-white" loading="lazy" />
+                   <img src="https://i.pravatar.cc/100?img=2" alt="BotanicMD user - Gardening enthusiast" className="w-10 h-10 rounded-full border-2 border-white" loading="lazy" />
+                   <img src="https://i.pravatar.cc/100?img=3" alt="BotanicMD user - Plant care expert" className="w-10 h-10 rounded-full border-2 border-white" loading="lazy" />
                    <div className="w-10 h-10 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600">+2k</div>
                  </div>
                  <div className="text-sm">
@@ -132,7 +194,7 @@ export const LandingPage: React.FC = () => {
               <div className="relative rounded-[2.5rem] bg-gray-900 p-4 shadow-2xl shadow-nature-200 border-4 border-gray-900 transform md:rotate-y-12 md:rotate-x-6 transition-all duration-700 group-hover:rotate-0">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 h-6 w-32 bg-gray-900 rounded-b-2xl z-20"></div>
                 <div className="w-full h-[600px] bg-white rounded-[2rem] overflow-hidden relative">
-                  <img src="https://images.unsplash.com/photo-1501004318641-b39e6451bec6?q=80&w=1000&auto=format&fit=crop" className="w-full h-full object-cover" alt="Plant App UI" />
+                  <img src="https://images.unsplash.com/photo-1501004318641-b39e6451bec6?q=80&w=1000&auto=format&fit=crop" className="w-full h-full object-cover" alt="BotanicMD app interface showing Monstera Deliciosa plant identification with AI-powered diagnosis and care recommendations" loading="eager" />
                   
                   {/* UI Overlay */}
                   <div className="absolute bottom-0 inset-x-0 bg-white/80 backdrop-blur-md p-6 m-4 rounded-2xl border border-white/50 shadow-lg">

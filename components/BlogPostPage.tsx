@@ -6,7 +6,7 @@ import { useLanguage } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { BlogPost } from '../types';
 import { blogService } from '../services/blogService';
-import { SEOHead, blogPostSchema } from './SEOHead';
+import { SEOHead, blogPostSchema, breadcrumbSchema } from './SEOHead';
 import { generateUniqueSlug } from '../utils/slug';
 
 export const BlogPostPage: React.FC = () => {
@@ -88,28 +88,65 @@ export const BlogPostPage: React.FC = () => {
     );
   }
 
+  // URL canônica do post
+  const postUrl = `https://botanicmd.com/blog/${post.slug}`;
+
+  // Gera keywords baseadas no idioma
+  const generateKeywords = (category: string, title: string, lang: string): string => {
+    const baseKeywords: { [key: string]: string[] } = {
+      'pt': ['plantas', 'jardinagem', 'cuidados com plantas', 'plantas de interior', 'botânica'],
+      'en': ['plants', 'gardening', 'plant care', 'indoor plants', 'botany'],
+      'es': ['plantas', 'jardinería', 'cuidado de plantas', 'plantas de interior', 'botánica'],
+      'fr': ['plantes', 'jardinage', 'soins des plantes', 'plantes d\'intérieur', 'botanique'],
+      'de': ['Pflanzen', 'Gartenarbeit', 'Pflanzenpflege', 'Zimmerpflanzen', 'Botanik'],
+      'it': ['piante', 'giardinaggio', 'cura delle piante', 'piante da interno', 'botanica'],
+      'zh': ['植物', '园艺', '植物护理', '室内植物', '植物学'],
+      'ru': ['растения', 'садоводство', 'уход за растениями', 'комнатные растения', 'ботаника'],
+      'hi': ['पौधे', 'बागवानी', 'पौधे की देखभाल', 'इनडोर पौधे', 'वनस्पति विज्ञान']
+    };
+    
+    const keywords = baseKeywords[lang] || baseKeywords['en'];
+    return `${category}, ${keywords.join(', ')}, ${title.toLowerCase()}`;
+  };
+
+  const keywords = generateKeywords(post.category, post.title, language);
+
   // Gera structured data para SEO
+  // Converte dateModified de ISO para formato legível se disponível
+  const dateModified = post.dateModified 
+    ? new Date(post.dateModified).toISOString().split('T')[0] 
+    : post.date;
+
   const structuredData = blogPostSchema(
     post.title,
     post.excerpt,
     post.author,
     post.date,
-    post.imageUrl
+    post.imageUrl,
+    postUrl,
+    post.category,
+    keywords,
+    language,
+    dateModified
   );
 
-  // URL canônica do post
-  const postUrl = `https://botanicmd.com/blog/${post.slug}`;
+  // Breadcrumbs structured data
+  const breadcrumbs = breadcrumbSchema([
+    { name: t('app_name'), url: 'https://botanicmd.com/' },
+    { name: 'Blog', url: 'https://botanicmd.com/blog' },
+    { name: post.title, url: postUrl }
+  ]);
 
   return (
     <>
       <SEOHead
         title={`${post.title} | BotanicMD Blog`}
         description={post.excerpt}
-        keywords={`${post.category}, plantas, jardinagem, ${post.title.toLowerCase()}`}
+        keywords={keywords}
         image={post.imageUrl}
         url={postUrl}
         type="article"
-        structuredData={structuredData}
+        structuredData={[structuredData, breadcrumbs]}
       />
       
       <div className="min-h-screen bg-white animate-fade-in font-sans">
@@ -137,7 +174,7 @@ export const BlogPostPage: React.FC = () => {
             <img 
               src={post.imageUrl} 
               className="w-full h-full object-cover" 
-              alt={post.title}
+              alt={`${post.title} - ${post.category} - BotanicMD Blog`}
               loading="eager"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
