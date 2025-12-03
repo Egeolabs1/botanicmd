@@ -8,14 +8,25 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 // Modelo Gemini
 const MODEL_NAME = "gemini-3-pro-preview";
 
-// Limites de segurança
+// 🔒 Limites de segurança reforçados
 const MAX_IMAGE_SIZE_BASE64 = 10 * 1024 * 1024; // 10MB em base64
 const MAX_PROMPT_LENGTH = 5000;
-const MAX_REQUESTS_PER_MINUTE = 10;
+const MAX_REQUESTS_PER_MINUTE = 3; // Reduzido de 10 para 3
+const MAX_REQUESTS_PER_HOUR = 20; // Limite por hora
+const MAX_REQUESTS_PER_DAY = 100; // Limite diário
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minuto
+const RATE_LIMIT_HOUR = 60 * 60 * 1000; // 1 hora
+const RATE_LIMIT_DAY = 24 * 60 * 60 * 1000; // 1 dia
 
-// Rate limiting simples (em produção, usar Redis ou Vercel Edge Config)
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+// Rate limiting com múltiplas janelas (em produção, usar Redis ou Vercel Edge Config)
+const rateLimitMap = new Map<string, { 
+  minuteCount: number; 
+  minuteReset: number;
+  hourCount: number;
+  hourReset: number;
+  dayCount: number;
+  dayReset: number;
+}>();
 
 // Tipos MIME permitidos
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
@@ -27,22 +38,55 @@ const SAFETY_SETTINGS = [
   { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
 ];
 
-// Função para verificar rate limiting
-function checkRateLimit(identifier: string): boolean {
+// 🔒 Função para verificar rate limiting com múltiplas janelas
+function checkRateLimit(identifier: string): { allowed: boolean; reason?: string } {
   const now = Date.now();
   const record = rateLimitMap.get(identifier);
 
-  if (!record || now > record.resetTime) {
-    rateLimitMap.set(identifier, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
-    return true;
+  // Inicializar registro se não existir ou se todas as janelas expiraram
+  if (!record || now > record.dayReset) {
+    rateLimitMap.set(identifier, { 
+      minuteCount: 1, 
+      minuteReset: now + RATE_LIMIT_WINDOW,
+      hourCount: 1,
+      hourReset: now + RATE_LIMIT_HOUR,
+      dayCount: 1,
+      dayReset: now + RATE_LIMIT_DAY
+    });
+    return { allowed: true };
   }
 
-  if (record.count >= MAX_REQUESTS_PER_MINUTE) {
-    return false;
+  // Verificar limite diário
+  if (record.dayCount >= MAX_REQUESTS_PER_DAY) {
+    return { allowed: false, reason: 'Limite diário atingido (100 requisições/dia)' };
   }
 
-  record.count++;
-  return true;
+  // Verificar limite por hora
+  if (now <= record.hourReset && record.hourCount >= MAX_REQUESTS_PER_HOUR) {
+    return { allowed: false, reason: 'Limite por hora atingido (20 requisições/hora)' };
+  }
+
+  // Verificar limite por minuto
+  if (now <= record.minuteReset && record.minuteCount >= MAX_REQUESTS_PER_MINUTE) {
+    return { allowed: false, reason: 'Limite por minuto atingido (3 requisições/min)' };
+  }
+
+  // Resetar contadores se janelas expiraram
+  if (now > record.minuteReset) {
+    record.minuteCount = 0;
+    record.minuteReset = now + RATE_LIMIT_WINDOW;
+  }
+  if (now > record.hourReset) {
+    record.hourCount = 0;
+    record.hourReset = now + RATE_LIMIT_HOUR;
+  }
+
+  // Incrementar contadores
+  record.minuteCount++;
+  record.hourCount++;
+  record.dayCount++;
+
+  return { allowed: true };
 }
 
 // Função para obter identificador do cliente (IP)
@@ -54,7 +98,13 @@ function getClientIdentifier(req: VercelRequest): string {
 
 // Função para configurar headers CORS
 function setCORSHeaders(res: VercelResponse) {
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || '*';
+  const allowedOrigin = process.env.ALLOWED_ORIGIN;
+  
+  // 🔒 SEGURANÇA: Rejeitar se não configurado
+  if (!allowedOrigin || allowedOrigin === '*') {
+    throw new Error('ALLOWED_ORIGIN não configurado! Configure no Vercel Dashboard em Settings → Environment Variables com o domínio do seu site (ex: https://botanicmd.com)');
+  }
+  
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -75,18 +125,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Rate limiting
+  // 🔒 Rate limiting com múltiplas janelas
   const clientId = getClientIdentifier(req);
-  if (!checkRateLimit(clientId)) {
+  const rateLimitResult = checkRateLimit(clientId);
+  if (!rateLimitResult.allowed) {
     return res.status(429).json({ 
-      error: 'Muitas requisições. Tente novamente em alguns instantes.' 
+      error: rateLimitResult.reason || 'Muitas requisições. Tente novamente em alguns instantes.' 
     });
   }
 
-  // Validação de autenticação (opcional - pode ser desabilitada em modo demo)
-  // Em produção, configure REQUIRE_AUTH=true no Vercel para exigir autenticação
+  // 🔒 SEGURANÇA: Validação de autenticação (obrigatória por padrão)
+  // Configure REQUIRE_AUTH=false no Vercel APENAS para modo demo/testes
   const authHeader = req.headers.authorization;
-  const requireAuth = process.env.REQUIRE_AUTH === 'true'; // Por padrão NÃO requer auth (modo demo)
+  const requireAuth = process.env.REQUIRE_AUTH !== 'false'; // Por padrão REQUER autenticação
   
   if (requireAuth && (!authHeader || !authHeader.startsWith('Bearer '))) {
     return res.status(401).json({ 
