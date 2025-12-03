@@ -100,12 +100,11 @@ function getClientIdentifier(req: VercelRequest): string {
 function setCORSHeaders(res: VercelResponse) {
   const allowedOrigin = process.env.ALLOWED_ORIGIN;
   
-  // 🔒 SEGURANÇA: Rejeitar se não configurado
-  if (!allowedOrigin || allowedOrigin === '*') {
-    throw new Error('ALLOWED_ORIGIN não configurado! Configure no Vercel Dashboard em Settings → Environment Variables com o domínio do seu site (ex: https://botanicmd.com)');
-  }
+  // Se ALLOWED_ORIGIN não estiver configurado, aceita qualquer origem (modo compatibilidade)
+  // ⚠️ MENOS SEGURO, mas permite funcionar sem configuração adicional
+  const origin = allowedOrigin || '*';
   
-  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+  res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Max-Age', '86400');
@@ -144,16 +143,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Requisição inválida' });
   }
 
-  // 🔒 SEGURANÇA: Verificar Origin/Referer (proteção CSRF)
+  // 🔒 SEGURANÇA: Verificar Origin/Referer (proteção CSRF) - DESABILITADO TEMPORARIAMENTE
+  // Comentado para permitir funcionamento sem ALLOWED_ORIGIN configurado
+  /*
   const origin = req.headers.origin as string;
   const referer = req.headers.referer as string;
   const allowedOrigin = process.env.ALLOWED_ORIGIN;
 
-  // Em produção, validar Origin/Referer (relaxado para requisições autenticadas)
   if (process.env.NODE_ENV === 'production' && allowedOrigin && allowedOrigin !== '*') {
     const requestOrigin = origin || referer;
     if (requestOrigin) {
-      // Extrair domínio sem protocolo e www para comparação flexível
       const normalizeOrigin = (url: string) => {
         return url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
       };
@@ -167,6 +166,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
   }
+  */
 
   // 🔒 Rate limiting com múltiplas janelas
   const clientId = getClientIdentifier(req);
