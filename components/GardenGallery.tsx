@@ -297,4 +297,4 @@ export const GardenGallery: React.FC<GardenGalleryProps> = React.memo(({
       </button>
     </div>
   );
-}
+});
