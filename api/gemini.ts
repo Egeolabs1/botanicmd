@@ -6,7 +6,7 @@ import { GoogleGenAI, Type, HarmCategory, HarmBlockThreshold } from "@google/gen
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // Modelo Gemini
-const MODEL_NAME = "gemini-3-pro-preview";
+const MODEL_NAME = "gemini-2.5-pro";
 
 // 🔒 Limites de segurança reforçados
 const MAX_IMAGE_SIZE_BASE64 = 10 * 1024 * 1024; // 10MB em base64
