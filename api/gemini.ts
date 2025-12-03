@@ -5,8 +5,8 @@ import { GoogleGenAI, Type, HarmCategory, HarmBlockThreshold } from "@google/gen
 // Esta variável NÃO será exposta no cliente, pois roda apenas no servidor
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-// Modelo Gemini (usando modelo básico sempre disponível)
-const MODEL_NAME = "gemini-pro";
+// Modelo Gemini (voltando ao modelo original que funcionava)
+const MODEL_NAME = "gemini-2.0-flash-exp";
 
 // 🔒 Limites de segurança reforçados
 const MAX_IMAGE_SIZE_BASE64 = 10 * 1024 * 1024; // 10MB em base64
@@ -219,7 +219,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Inicializa cliente Gemini
     console.log('🤖 Inicializando GoogleGenAI com modelo:', MODEL_NAME);
-    const ai = new GoogleGenAI(GEMINI_API_KEY);
+    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
     switch (action) {
       case 'analyzeImage': {
@@ -297,18 +297,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           required: ["commonName", "scientificName", "description", "funFact", "toxicity", "propagation", "wateringFrequencyDays", "care", "health", "medicinal"]
         };
 
-        const model = ai.getGenerativeModel({ 
+        const response = await ai.models.generateContent({
           model: MODEL_NAME,
-          systemInstruction: `You are a helpful, accurate, and friendly gardening assistant. Respond in ${getLanguageName(language)}.`,
-          generationConfig: {
-            temperature: 0.4,
-            responseMimeType: "application/json",
-            responseSchema: PLANT_SCHEMA,
-          },
-          safetySettings: SAFETY_SETTINGS,
-        });
-
-        const response = await model.generateContent({
           contents: [
             {
               parts: [
@@ -324,6 +314,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               ],
             },
           ],
+          config: {
+            systemInstruction: `You are a helpful, accurate, and friendly gardening assistant. Respond in ${getLanguageName(language)}.`,
+            temperature: 0.4,
+            responseMimeType: "application/json",
+            responseSchema: PLANT_SCHEMA,
+            safetySettings: SAFETY_SETTINGS,
+          },
         });
 
         const text = response.text;
@@ -445,31 +442,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           };
         }
 
-        const generationConfig: any = {
+        const config: any = {
+          systemInstruction: `You are a helpful, accurate, and friendly gardening assistant. Respond in ${getLanguageName(language)}.`,
           temperature: temperature,
+          safetySettings: SAFETY_SETTINGS,
         };
 
         if (responseMimeType) {
-          generationConfig.responseMimeType = responseMimeType;
+          config.responseMimeType = responseMimeType;
         }
 
         if (responseSchema) {
-          generationConfig.responseSchema = responseSchema;
+          config.responseSchema = responseSchema;
         }
 
-        const model = ai.getGenerativeModel({ 
+        const response = await ai.models.generateContent({
           model: MODEL_NAME,
-          systemInstruction: `You are a helpful, accurate, and friendly gardening assistant. Respond in ${getLanguageName(language)}.`,
-          generationConfig: generationConfig,
-          safetySettings: SAFETY_SETTINGS,
-        });
-
-        const response = await model.generateContent({
           contents: [
             {
               parts: [{ text: prompt }]
             }
           ],
+          config: config,
         });
 
         const text = response.text;
