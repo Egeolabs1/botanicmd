@@ -297,8 +297,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           required: ["commonName", "scientificName", "description", "funFact", "toxicity", "propagation", "wateringFrequencyDays", "care", "health", "medicinal"]
         };
 
-        const response = await ai.models.generateContent({
+        const model = ai.getGenerativeModel({ 
           model: MODEL_NAME,
+          systemInstruction: `You are a helpful, accurate, and friendly gardening assistant. Respond in ${getLanguageName(language)}.`,
+          generationConfig: {
+            temperature: 0.4,
+            responseMimeType: "application/json",
+            responseSchema: PLANT_SCHEMA,
+          },
+          safetySettings: SAFETY_SETTINGS,
+        });
+
+        const response = await model.generateContent({
           contents: [
             {
               parts: [
@@ -314,13 +324,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               ],
             },
           ],
-          config: {
-            systemInstruction: `You are a helpful, accurate, and friendly gardening assistant. Respond in ${getLanguageName(language)}.`,
-            temperature: 0.4,
-            responseMimeType: "application/json",
-            responseSchema: PLANT_SCHEMA,
-            safetySettings: SAFETY_SETTINGS,
-          },
         });
 
         const text = response.text;
@@ -442,28 +445,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           };
         }
 
-        const config: any = {
-          systemInstruction: `You are a helpful, accurate, and friendly gardening assistant. Respond in ${getLanguageName(language)}.`,
+        const generationConfig: any = {
           temperature: temperature,
-          safetySettings: SAFETY_SETTINGS,
         };
 
         if (responseMimeType) {
-          config.responseMimeType = responseMimeType;
+          generationConfig.responseMimeType = responseMimeType;
         }
 
         if (responseSchema) {
-          config.responseSchema = responseSchema;
+          generationConfig.responseSchema = responseSchema;
         }
 
-        const response = await ai.models.generateContent({
+        const model = ai.getGenerativeModel({ 
           model: MODEL_NAME,
+          systemInstruction: `You are a helpful, accurate, and friendly gardening assistant. Respond in ${getLanguageName(language)}.`,
+          generationConfig: generationConfig,
+          safetySettings: SAFETY_SETTINGS,
+        });
+
+        const response = await model.generateContent({
           contents: [
             {
               parts: [{ text: prompt }]
             }
           ],
-          config: config,
         });
 
         const text = response.text;
