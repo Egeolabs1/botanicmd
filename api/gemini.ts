@@ -149,12 +149,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const referer = req.headers.referer as string;
   const allowedOrigin = process.env.ALLOWED_ORIGIN;
 
-  // Em produção, validar Origin/Referer
+  // Em produção, validar Origin/Referer (relaxado para requisições autenticadas)
   if (process.env.NODE_ENV === 'production' && allowedOrigin && allowedOrigin !== '*') {
     const requestOrigin = origin || referer;
-    if (requestOrigin && !requestOrigin.startsWith(allowedOrigin)) {
-      console.log(`🚫 Bloqueado: Origin não permitida: ${requestOrigin}`);
-      return res.status(403).json({ error: 'Acesso negado' });
+    if (requestOrigin) {
+      // Extrair domínio sem protocolo e www para comparação flexível
+      const normalizeOrigin = (url: string) => {
+        return url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+      };
+      
+      const normalizedRequest = normalizeOrigin(requestOrigin);
+      const normalizedAllowed = normalizeOrigin(allowedOrigin);
+      
+      if (normalizedRequest !== normalizedAllowed) {
+        console.log(`🚫 Bloqueado: Origin não permitida: ${requestOrigin} (esperado: ${allowedOrigin})`);
+        return res.status(403).json({ error: 'Acesso negado' });
+      }
     }
   }
 
