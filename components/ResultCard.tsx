@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PlantData } from '../types';
-import { Droplet, Sun, Sprout, Thermometer, Bug, CheckCircle, AlertTriangle, HeartPulse, Skull, Shield, Scissors, Lightbulb, Bookmark, Calendar, FileDown, Leaf, Share2, Lock, Star, Flask, ArrowRight } from './Icons';
+import { Droplet, Sun, Sprout, Thermometer, Bug, CheckCircle, AlertTriangle, HeartPulse, Skull, Shield, Scissors, Lightbulb, Bookmark, Calendar, FileDown, Leaf, Lock, Star, Flask, ArrowRight } from './Icons';
 import { ChatSection } from './ChatSection';
 import { useLanguage } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
@@ -380,8 +380,11 @@ export const ResultCard: React.FC<ResultCardProps> = React.memo(({ data, imagePr
                   )}
                   
                   <div className="flex gap-3 items-center justify-start md:justify-end overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
-                    <button type="button" onClick={handleShare} className="p-3 text-gray-400 hover:text-nature-700 hover:bg-gradient-to-br hover:from-nature-50 hover:to-nature-100 rounded-xl transition-all no-print flex-shrink-0 shadow-sm hover:shadow-md" title="Share">
-                      <Share2 className="w-5 h-5" />
+                    <button type="button" onClick={handleExportPdf} className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gradient-to-r from-gray-100 to-gray-50 hover:from-nature-100 hover:to-nature-50 hover:text-nature-800 rounded-xl transition-all no-print flex-shrink-0 relative group shadow-sm hover:shadow-md border border-gray-200 hover:border-nature-200">
+                      <FileDown className="w-4 h-4" />
+                      <span className="hidden sm:inline">{t('download_pdf')}</span>
+                      <span className="sm:hidden">PDF</span>
+                      {!isPro && <Lock className="w-3 h-3 absolute -top-1 -right-1 text-nature-600" />}
                     </button>
                     
                     <button 
