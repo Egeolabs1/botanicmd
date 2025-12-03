@@ -142,11 +142,17 @@ async function handleCheckoutCompleted(
     console.log(`✅ Checkout completado: subscription ${subscriptionId}, marcando como active`);
   } else {
     // É um pagamento único (lifetime)
+    // IMPORTANTE: Para pagamentos únicos, não há subscription_id, então não devemos criar
+    // uma assinatura recorrente. Em vez disso, devemos usar o payment_intent.succeeded
+    // que já está sendo tratado em handlePaymentSucceeded.
+    // Mas se chegou aqui, significa que o checkout foi completado, então vamos criar
+    // uma assinatura "lifetime" sem subscription_id (isso é válido para lifetime)
     const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
     priceId = lineItems.data[0]?.price?.id;
     status = "active";
     periodEnd = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000); // 100 anos para lifetime
-    console.log(`✅ Checkout completado: pagamento único, marcando como active`);
+    console.log(`✅ Checkout completado: pagamento único (lifetime), marcando como active`);
+    // Para lifetime, stripe_subscription_id será null, o que é correto
   }
 
   if (!priceId) {
@@ -154,12 +160,21 @@ async function handleCheckoutCompleted(
     return;
   }
 
+  // VALIDAÇÃO CRÍTICA: Para assinaturas recorrentes, SEMPRE deve ter stripe_subscription_id
+  // Se não tiver, não criar/atualizar (isso indica um problema)
+  if (!subscriptionId && planType !== 'lifetime') {
+    console.error(`❌ ERRO CRÍTICO: Checkout completado sem subscription_id para plano ${planType} que não é lifetime`);
+    console.error(`   User ID: ${userId}, Customer ID: ${customerId}, Session ID: ${session.id}`);
+    // Não criar assinatura inválida - aguardar evento customer.subscription.created
+    return;
+  }
+
   // Atualizar ou criar assinatura no banco
-  await supabase.from("subscriptions").upsert(
+  const { error: upsertError } = await supabase.from("subscriptions").upsert(
     {
       user_id: userId,
       stripe_customer_id: customerId,
-      stripe_subscription_id: subscriptionId,
+      stripe_subscription_id: subscriptionId || null, // null é válido apenas para lifetime
       stripe_price_id: priceId,
       plan_type: planType,
       currency: currency,
@@ -172,6 +187,22 @@ async function handleCheckoutCompleted(
       onConflict: "user_id",
     }
   );
+
+  if (upsertError) {
+    console.error(`❌ Erro ao criar/atualizar assinatura:`, upsertError);
+    return;
+  }
+
+  // VALIDAÇÃO PÓS-INSERÇÃO: Verificar se a assinatura foi criada corretamente
+  if (planType !== 'lifetime' && !subscriptionId) {
+    // Se não é lifetime e não tem subscription_id, marcar como canceled
+    console.error(`❌ Assinatura criada sem subscription_id para plano recorrente, marcando como canceled`);
+    await supabase
+      .from("subscriptions")
+      .update({ status: "canceled" })
+      .eq("user_id", userId);
+    return;
+  }
 
   // Atualizar plano do usuário no localStorage (será sincronizado via AuthContext)
   // Também podemos atualizar uma tabela de perfil se existir

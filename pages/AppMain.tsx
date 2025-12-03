@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UploadSection } from '../components/UploadSection';
 import { ResultCard } from '../components/ResultCard';
@@ -410,13 +410,13 @@ export const AppMain: React.FC = () => {
     }
   };
 
-  const deletePlantFromGarden = async (id: string) => {
+  const deletePlantFromGarden = useCallback(async (id: string) => {
     setSavedPlants(prev => prev.filter(p => p.data.id !== id));
     const updatedList = await storage.deletePlant(id);
     setSavedPlants(updatedList);
-  };
+  }, []);
 
-  const openPlantDetails = (plant: SavedPlant) => {
+  const openPlantDetails = useCallback((plant: SavedPlant) => {
     // Garante que a imagem existe ou usa placeholder
     const imageToShow = plant.image || PLACEHOLDER_PLANT_IMAGE;
     
@@ -427,7 +427,7 @@ export const AppMain: React.FC = () => {
     setPlantData(plant.data);
     setImagePreview(imageToShow);
     setAppState(AppState.SUCCESS);
-  };
+  }, []);
 
   const resetApp = () => {
     setAppState(AppState.IDLE);
@@ -463,7 +463,9 @@ export const AppMain: React.FC = () => {
 
   const getInitials = (name: string) => name.substring(0, 2).toUpperCase();
 
-  const isCurrentPlantSaved = plantData?.id ? savedPlants.some(p => p.data.id === plantData.id) : false;
+  const isCurrentPlantSaved = useMemo(() => {
+    return plantData?.id ? savedPlants.some(p => p.data.id === plantData.id) : false;
+  }, [plantData?.id, savedPlants]);
 
 
   const loadingTips = [

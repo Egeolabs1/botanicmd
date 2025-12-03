@@ -16,7 +16,7 @@ interface ResultCardProps {
 
 const FALLBACK_IMAGE = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f0fdf4'/%3E%3Cpath d='M200 100c0 0 40 60 40 100s-20 60-40 80c-20-20-40-40-40-80s40-100 40-100z' fill='%2315803d' opacity='0.4'/%3E%3Ctext x='200' y='260' font-family='sans-serif' font-size='14' fill='%23166534' text-anchor='middle'%3EImagem indisponível%3C/text%3E%3C/svg%3E`;
 
-export const ResultCard: React.FC<ResultCardProps> = ({ data, imagePreview, onReset, onSave, isSaved = false, onUpgrade }) => {
+export const ResultCard: React.FC<ResultCardProps> = React.memo(({ data, imagePreview, onReset, onSave, isSaved = false, onUpgrade }) => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const isPro = user?.plan === 'pro';

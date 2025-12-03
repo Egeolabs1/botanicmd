@@ -13,7 +13,7 @@ interface GardenGalleryProps {
 type FilterType = 'all' | 'healthy' | 'sick' | 'toxic' | 'safe';
 
 // Simplified logic for tips since translation handles the text
-export const GardenGallery: React.FC<GardenGalleryProps> = ({ 
+export const GardenGallery: React.FC<GardenGalleryProps> = React.memo(({ 
   savedPlants, 
   onSelectPlant, 
   onDeletePlant,

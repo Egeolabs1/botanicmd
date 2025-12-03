@@ -31,7 +31,7 @@ type ViewState = 'main' | 'profile' | 'settings' | 'subscription' | 'savedPlants
 export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogout, onUpgrade, onAdmin, onOpenAbout, onOpenPrivacy }) => {
   const { t, language, setLanguage } = useLanguage();
   const navigate = useNavigate();
-  const { updateProfile, changePassword } = useAuth();
+  const { updateProfile, changePassword, deleteAccount, exportData, logout } = useAuth();
   const isPWA = useIsPWA();
   const [currentView, setCurrentView] = useState<ViewState>('main');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -50,16 +50,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onClose, onLogou
     // Mostra o botão se NÃO estiver instalado
     setShowInstallButton(!actuallyInstalled);
     
-    // Debug
-    console.log('🔍 UserProfile - Install Button Check:');
-    console.log('  - isPWA (hook):', isPWA);
-    console.log('  - display-mode standalone:', isStandalone);
-    console.log('  - iOS standalone:', isIOSStandalone);
-    console.log('  - Android standalone:', isAndroidStandalone);
-    console.log('  - actuallyInstalled:', actuallyInstalled);
-    console.log('  - showInstallButton:', !actuallyInstalled);
-    console.log('  - deferredPrompt:', !!deferredPrompt);
-    console.log('  - isIOS:', isIOS);
+    // Debug apenas em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 UserProfile - Install Button Check:', {
+        isPWA,
+        isStandalone,
+        isIOSStandalone,
+        isAndroidStandalone,
+        actuallyInstalled,
+        showInstallButton: !actuallyInstalled,
+        hasDeferredPrompt: !!deferredPrompt,
+        isIOS
+      });
+    }
   }, [isPWA, deferredPrompt, isIOS]);
   const [editName, setEditName] = useState(user.name);
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
@@ -1515,21 +1518,47 @@ Alternativamente, alguns navegadores mostram um banner na parte superior da tela
         >
           Ver Política de Privacidade
         </button>
-        <button 
-          onClick={() => {
-            if (window.confirm('Deseja realmente excluir todos os seus dados? Esta ação não pode ser desfeita.')) {
-              // Limpar dados locais
-              localStorage.removeItem('botanicmd_history');
-              localStorage.removeItem('botanicmd_reminders');
-              localStorage.removeItem('botanicmd_notifications');
-              localStorage.removeItem('botanicmd_email_notifications');
-              alert('Dados locais excluídos. Para excluir dados do servidor, entre em contato com o suporte.');
-            }
-          }}
-          className="w-full bg-red-50 text-red-600 py-2.5 rounded-lg font-medium hover:bg-red-100 transition-colors border border-red-200"
-        >
-          Excluir Meus Dados
-        </button>
+        <div className="space-y-2">
+          <button 
+            onClick={async () => {
+              try {
+                const data = await exportData();
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `botanicmd-dados-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                alert('Dados exportados com sucesso!');
+              } catch (error: any) {
+                alert(`Erro ao exportar dados: ${error.message}`);
+              }
+            }}
+            className="w-full bg-nature-50 text-nature-600 py-2.5 rounded-lg font-medium hover:bg-nature-100 transition-colors border border-nature-200"
+          >
+            Exportar Meus Dados (LGPD)
+          </button>
+          <button 
+            onClick={async () => {
+              if (window.confirm('⚠️ ATENÇÃO: Esta ação é IRREVERSÍVEL!\n\nTodos os seus dados serão excluídos permanentemente:\n- Suas plantas salvas\n- Seu histórico\n- Suas assinaturas\n- Sua conta\n\nDeseja realmente continuar?')) {
+                try {
+                  await deleteAccount();
+                  logout();
+                  alert('Sua conta e todos os dados foram excluídos com sucesso.');
+                  onClose();
+                } catch (error: any) {
+                  alert(`Erro ao excluir conta: ${error.message}\n\nPor favor, entre em contato com o suporte: suport.botanicmd@egeolabs.com`);
+                }
+              }
+            }}
+            className="w-full bg-red-50 text-red-600 py-2.5 rounded-lg font-medium hover:bg-red-100 transition-colors border border-red-200"
+          >
+            Excluir Minha Conta (LGPD)
+          </button>
+        </div>
       </div>
       
       {/* Footer */}

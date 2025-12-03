@@ -125,6 +125,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // 🔒 SEGURANÇA: Bloquear user-agents suspeitos (bots, scrapers)
+  const userAgent = req.headers['user-agent'] || '';
+  const suspiciousAgents = [
+    'bot', 'crawler', 'spider', 'scraper', 'curl', 'wget', 
+    'python-requests', 'axios', 'postman', 'insomnia',
+    'headless', 'phantom', 'selenium'
+  ];
+  
+  if (suspiciousAgents.some(agent => userAgent.toLowerCase().includes(agent))) {
+    console.log(`🚫 Bloqueado: User-Agent suspeito: ${userAgent}`);
+    return res.status(403).json({ error: 'Acesso negado' });
+  }
+
+  // 🔒 SEGURANÇA: Exigir User-Agent válido
+  if (!userAgent || userAgent.length < 10) {
+    console.log('🚫 Bloqueado: User-Agent ausente ou inválido');
+    return res.status(400).json({ error: 'Requisição inválida' });
+  }
+
+  // 🔒 SEGURANÇA: Verificar Origin/Referer (proteção CSRF)
+  const origin = req.headers.origin as string;
+  const referer = req.headers.referer as string;
+  const allowedOrigin = process.env.ALLOWED_ORIGIN;
+
+  // Em produção, validar Origin/Referer
+  if (process.env.NODE_ENV === 'production' && allowedOrigin && allowedOrigin !== '*') {
+    const requestOrigin = origin || referer;
+    if (requestOrigin && !requestOrigin.startsWith(allowedOrigin)) {
+      console.log(`🚫 Bloqueado: Origin não permitida: ${requestOrigin}`);
+      return res.status(403).json({ error: 'Acesso negado' });
+    }
+  }
+
   // 🔒 Rate limiting com múltiplas janelas
   const clientId = getClientIdentifier(req);
   const rateLimitResult = checkRateLimit(clientId);

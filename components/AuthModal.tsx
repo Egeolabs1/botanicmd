@@ -34,6 +34,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [resendSuccess, setResendSuccess] = useState(false);
   const [magicLinkSuccess, setMagicLinkSuccess] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [consentError, setConsentError] = useState<string>('');
 
   // Monitora quando o login é bem-sucedido e redireciona quando autenticado
   React.useEffect(() => {
@@ -51,6 +53,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       setNameError('');
       setConfirmPassword('');
       setPasswordError('');
+      setConsentAccepted(false);
+      setConsentError('');
     }
     if (isForgotPassword) {
       setPassword('');
@@ -100,6 +104,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
     if (!isLogin && password !== confirmPassword) {
       setPasswordError('As senhas não coincidem');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Validação LGPD: Consentimento obrigatório para cadastro
+    if (!isLogin && !consentAccepted) {
+      setConsentError('Você precisa aceitar os termos de privacidade para criar uma conta');
       setIsSubmitting(false);
       return;
     }
@@ -289,6 +300,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   type="button"
                   onClick={() => {
                     setIsResendEmail(true);
+                    setIsForgotPassword(false);
                     setResetSuccess(false);
                     setMagicLinkSuccess(false);
                     setEmailError('');
@@ -485,9 +497,55 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   </div>
                 )}
 
+                {/* LGPD: Consentimento obrigatório para cadastro */}
+                {!isLogin && (
+                  <div className="space-y-2">
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={consentAccepted}
+                        onChange={(e) => {
+                          setConsentAccepted(e.target.checked);
+                          setConsentError('');
+                        }}
+                        className="mt-1 w-4 h-4 text-nature-600 border-gray-300 rounded focus:ring-nature-500 cursor-pointer"
+                        required
+                      />
+                      <span className="text-sm text-gray-600 leading-relaxed">
+                        Eu aceito os{' '}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            navigate('/terms');
+                            onClose();
+                          }}
+                          className="text-nature-600 hover:text-nature-700 underline font-medium"
+                        >
+                          Termos de Serviço
+                        </button>
+                        {' '}e a{' '}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            navigate('/privacy');
+                            onClose();
+                          }}
+                          className="text-nature-600 hover:text-nature-700 underline font-medium"
+                        >
+                          Política de Privacidade
+                        </button>
+                        {' '}e consinto com o tratamento dos meus dados pessoais conforme a LGPD.
+                      </span>
+                    </label>
+                    {consentError && <p className="text-red-500 text-sm mt-1">{consentError}</p>}
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || (!isLogin && !consentAccepted)}
                   className="w-full bg-nature-600 text-white py-3.5 rounded-2xl font-semibold hover:bg-nature-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
