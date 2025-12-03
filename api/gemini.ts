@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
+import { GoogleGenerativeAI, Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 
 // ⚠️ IMPORTANTE: Configure GEMINI_API_KEY (SEM prefixo VITE_) no Vercel Dashboard
 // Esta variável NÃO será exposta no cliente, pois roda apenas no servidor
@@ -219,7 +219,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Inicializa cliente Gemini
     console.log('🤖 Inicializando GoogleGenAI com modelo:', MODEL_NAME);
-    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+    const ai = new GoogleGenerativeAI(GEMINI_API_KEY);
 
     switch (action) {
       case 'analyzeImage': {
