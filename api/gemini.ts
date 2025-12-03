@@ -200,17 +200,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  // 🔍 DEBUG: Log da chave API (apenas primeiros caracteres)
+  console.log('🔑 GEMINI_API_KEY presente?', !!GEMINI_API_KEY);
+  console.log('🔑 GEMINI_API_KEY length:', GEMINI_API_KEY?.length || 0);
+  console.log('🔑 Primeiros 10 chars:', GEMINI_API_KEY?.substring(0, 10) || 'VAZIO');
+
   // Verifica se a API key está configurada
   if (!GEMINI_API_KEY || GEMINI_API_KEY.trim() === '') {
+    console.error('❌ GEMINI_API_KEY não configurada!');
     return res.status(500).json({ 
       error: 'Gemini API não configurada no servidor. Configure GEMINI_API_KEY no Vercel Dashboard (Settings → Environment Variables).' 
     });
   }
 
   try {
+    console.log('📥 Requisição recebida - Action:', req.body?.action);
     const { action, ...params } = req.body;
 
     // Inicializa cliente Gemini
+    console.log('🤖 Inicializando GoogleGenAI com modelo:', MODEL_NAME);
     const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
     switch (action) {
@@ -472,14 +480,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Ação inválida' });
     }
   } catch (error: any) {
-    // Log apenas em desenvolvimento, sem expor detalhes sensíveis
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Gemini API Error:', error.message);
+    // 🔍 DEBUG: Log completo do erro
+    console.error('❌ Erro no Gemini API:');
+    console.error('Tipo:', error.constructor.name);
+    console.error('Mensagem:', error.message);
+    console.error('Stack:', error.stack);
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
     }
     
-    // Não expor detalhes do erro em produção
+    // Retornar erro com mais detalhes para debug
     return res.status(500).json({ 
-      error: 'Erro ao processar requisição. Tente novamente mais tarde.'
+      error: 'Erro ao processar requisição',
+      details: error.message,
+      type: error.constructor.name
     });
   }
 }
