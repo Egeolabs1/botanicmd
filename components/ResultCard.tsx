@@ -680,6 +680,6 @@ export const ResultCard: React.FC<ResultCardProps> = React.memo(({ data, imagePr
           )}
         </div>
       </div>
-    </div>
-  );
-};
+      </div>
+    );
+  }
